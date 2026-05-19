@@ -65,8 +65,47 @@ const login = async (req, res) => {
   }
 }
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body
+    if (!email) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp Email của tài khoản' })
+    }
+
+    const result = await authService.forgotPassword(email)
+    return res.status(200).json(result)
+  } catch (error) {
+    if (error.message.includes('không tồn tại')) {
+      return res.status(400).json({ message: error.message })
+    }
+    return res.status(500).json({ message: `Lỗi hệ thống yêu cầu OTP: ${error.message}` })
+  }
+}
+
+const resetPassword = async (req, res) => {
+  try {
+    const result = await authService.resetPassword(req.body)
+    return res.status(200).json(result)
+  } catch (error) {
+    const badRequests = [
+      'Tài khoản không tồn tại',
+      'Mã OTP khôi phục mật khẩu không chính xác',
+      'Mã OTP của bạn đã hết hạn'
+    ]
+
+    const isBadRequest = badRequests.some(msg => error.message.includes(msg))
+    if (isBadRequest) {
+      return res.status(400).json({ message: error.message })
+    }
+
+    return res.status(500).json({ message: `Lỗi hệ thống đặt lại mật khẩu: ${error.message}` })
+  }
+}
+
 export const authController = {
   register,
   verifyOtp,
-  login
+  login,
+  forgotPassword,
+  resetPassword
 }

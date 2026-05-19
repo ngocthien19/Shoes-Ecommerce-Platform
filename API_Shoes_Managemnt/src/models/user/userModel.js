@@ -54,11 +54,33 @@ const updateRefreshToken = async (userId, refreshToken) => {
   await pool.execute(query, [refreshToken, userId])
 }
 
+const updateForgotPasswordOtp = async (email, otpCode, otpExpiry) => {
+  const query = `
+    UPDATE users 
+    SET otp_code = ?, otp_expiry = ? 
+    WHERE email = ?
+  `
+  const [result] = await pool.execute(query, [otpCode, otpExpiry, email])
+  return result
+}
+
+const updateNewPassword = async (email, hashedPassword) => {
+  const query = `
+    UPDATE users 
+    SET password = ?, otp_code = NULL, otp_expiry = NULL 
+    WHERE email = ?
+  `
+  const [result] = await pool.execute(query, [hashedPassword, email])
+  return result
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
   getOtpInfo,
   activateUser,
   getLoginUser,
-  updateRefreshToken
+  updateRefreshToken,
+  updateForgotPasswordOtp,
+  updateNewPassword
 }
