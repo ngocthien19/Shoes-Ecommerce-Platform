@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import { env } from '~/config/environment'
 import { connectDB } from '~/config/db'
 import { authRouter } from '~/routes/auth/authRoute'
+import { userRouter } from '~/routes/user/userRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -11,6 +12,8 @@ dotenv.config()
 
 const START_SERVER = () => {
   const app = express()
+  // Cấu hình middleware để đọc cookie từ request
+  app.use(cookieParser())
 
   // Cấu hình CORS để cho phép Frontend (Vite) kết nối bảo mật sang Backend
   app.use(cors(corsOptions))
@@ -18,11 +21,13 @@ const START_SERVER = () => {
   // Cho phép Express đọc dữ liệu dạng JSON gửi lên từ req.body
   app.use(express.json())
 
-  // Cấu hình middleware để đọc cookie từ request
-  app.use(cookieParser())
+  //Giúp giải mã dữ liệu text từ form-data (Postman/Frontend gửi lên)
+  app.use(express.urlencoded({ extended: true }))
 
-  // Định tuyến hệ thống API (Điều hướng luồng Auth)
+  // Định tuyến hệ thống API
   app.use('/api/auth', authRouter)
+
+  app.use('/api/users', userRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
