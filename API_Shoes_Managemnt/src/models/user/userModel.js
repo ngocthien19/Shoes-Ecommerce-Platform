@@ -74,6 +74,41 @@ const updateNewPassword = async (email, hashedPassword) => {
   return result
 }
 
+const updateProfile = async (userId, cleanData) => {
+  const { fullname, phone, address, hashedPassword, avatarData } = cleanData
+
+  // Khởi tạo câu lệnh SQL gốc với các trường văn bản luôn luôn có
+  let query = 'UPDATE users SET fullname = ?, phone = ?, address = ?'
+  let params = [fullname, phone, address]
+
+  // Kiểm tra nếu có mật khẩu mới đã mã hóa thì nối thêm vào SQL
+  if (hashedPassword) {
+    query += ', password = ?'
+    params.push(hashedPassword)
+  }
+
+  // Kiểm tra nếu có đường link ảnh mới từ Cloudinary thì nối thêm vào SQL
+  if (avatarData) {
+    query += ', avatar = ?'
+    // BẮT BUỘC dùng JSON.stringify để MySQL nhận diện đúng định dạng JSON
+    params.push(JSON.stringify(avatarData))
+  }
+
+  // Cuối cùng găm điều kiện WHERE theo id của user
+  query += ' WHERE id = ?'
+  params.push(userId)
+
+  // Thực thi câu lệnh query động xuống Database MySQL
+  const [result] = await pool.execute(query, params)
+  return result
+}
+
+const getUpdatedUserFields = async (userId) => {
+  const query = 'SELECT id, fullname, email, phone, address, role_id, avatar FROM users WHERE id = ?'
+  const [rows] = await pool.execute(query, [userId])
+  return rows[0]
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -82,5 +117,7 @@ export const userModel = {
   getLoginUser,
   updateRefreshToken,
   updateForgotPasswordOtp,
-  updateNewPassword
+  updateNewPassword,
+  updateProfile,
+  getUpdatedUserFields
 }
