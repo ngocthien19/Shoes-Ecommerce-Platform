@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #e94560;   
+  --color-brand-bg: #f6f9fc;        
+  
+  /* 2. Định nghĩa font chữ toàn cục */
+  --font-sans: "Poppins", "Inter", "sans-serif";
+  
+  /* 3. Tự định nghĩa hiệu ứng đổ bóng hệ thống (Box Shadow)  */
+  --shadow-custom: 0 4px 16px rgb(43 52 69 / 10%);
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-brand-bg);     
+  color: var(--color-brand-dark, #1a1a1a);
+  font-family: var(--font-sans);               
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}

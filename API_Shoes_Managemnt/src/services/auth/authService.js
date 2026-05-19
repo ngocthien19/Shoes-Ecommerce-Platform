@@ -1,0 +1,154 @@
+import bcrypt from 'bcrypt'
+import { userModel } from '~/models/user/userModel'
+import { EmailProvider } from '~/providers/EmailProvider'
+import { JwtProvider } from '~/providers/JwtProvider'
+import { ROLE_ID } from '~/utils/constants/roleConstant'
+import { env } from '~/config/environment'
+import generateOTP from '~/utils/otpGenerator'
+
+const register = async (bodyData) => {
+  const { fullname, email, password, phone, address } = bodyData
+
+  // 1. Kiểm tra trùng lặp email
+  const existingUser = await userModel.findByEmail(email)
+  if (existingUser) {
+    throw new Error('Email này đã được sử dụng đăng ký tài khoản khác')
+  }
+
+  // 2. Mã hóa mật khẩu
+  const salt = await bcrypt.genSalt(10)
+  const hashedPassword = await bcrypt.hash(password, salt)
+
+  // 3. Sử dụng hàm generateOTP có sẵn từ utils và set thời gian hết hạn (5 phút)
+  const otpCode = generateOTP()
+  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000)
+  const roleId = ROLE_ID.USER
+
+  // 4. Lưu thông tin vào Database qua Model
+  await userModel.createPendingUser({
+    fullname,
+    email,
+    password: hashedPassword,
+    phone,
+    address,
+    otpCode,
+    otpExpiry,
+    roleId
+  })
+
+  const htmlContent = `
+    <div style="font-family: 'Poppins', sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #eef2f5;">
+      <h2 style="color: #e94560; text-align: center;">KÍCH HOẠT TÀI KHOẢN SHOES STORE 👑</h2>
+      <p>Chào <b>${fullname}</b>,</p>
+      <p>Cảm ơn bạn đã đăng ký thành viên. Mã OTP để xác thực kích hoạt tài khoản của bạn là:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="font-size: 32px; font-weight: bold; color: #1a1a1a; letter-spacing: 5px; background: #f6f9fc; padding: 10px 25px; border-radius: 8px;">
+          ${otpCode}
+        </span>
+      </div>
+      <p style="color: #808080; font-size: 13px;">* Lưu ý: Mã OTP này có hiệu lực trong vòng 5 phút.</p>
+    </div>
+  `
+
+  // 6. Gửi Mail chứa OTP
+  await EmailProvider.sendEmail(email, 'Mã kích hoạt tài khoản Shoes Store của bạn', htmlContent)
+
+  return { message: 'Mã OTP kích hoạt đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư!' }
+}
+
+const verifyOtp = async (data) => {
+  const { email, otpCode } = data
+
+  // 1. Lấy thông tin OTP của user từ Database
+  const user = await userModel.getOtpInfo(email)
+  if (!user) {
+    throw new Error('Tài khoản không tồn tại trên hệ thống')
+  }
+
+  // 2. Nếu tài khoản đã được kích hoạt trước đó rồi thì không cần làm lại
+  if (user.is_active === 1) {
+    throw new Error('Tài khoản này đã được kích hoạt thành công từ trước')
+  }
+
+  // 3. Kiểm tra xem mã OTP gửi lên có khớp với mã lưu trong DB không
+  if (user.otp_code !== otpCode) {
+    throw new Error('Mã OTP không chính xác. Vui lòng kiểm tra lại')
+  }
+
+  // 4. Kiểm tra mã OTP còn trong thời hạn sử dụng hay không
+  const now = new Date()
+  if (now > new Date(user.otp_expiry)) {
+    throw new Error('Mã OTP của bạn đã hết hạn. Vui lòng yêu cầu gửi lại mã mới')
+  }
+
+  // 5. Mọi thứ hợp lệ -> Kích hoạt trạng thái tài khoản thành công
+  await userModel.activateUser(email)
+
+  return { message: 'Kích hoạt tài khoản thành công! Bạn hiện đã có thể đăng nhập vào hệ thống.' }
+}
+
+const login = async (reqBody) => {
+  const { email, password } = reqBody
+
+  // 1. Kiểm tra tài khoản có tồn tại không
+  const user = await userModel.getLoginUser(email)
+  if (!user) {
+    throw new Error('Email hoặc mật khẩu không chính xác')
+  }
+
+  // 2. Kiểm tra xem tài khoản đã kích hoạt OTP qua Email chưa
+  if (user.is_active === 0) {
+    throw new Error('Tài khoản của bạn chưa được kích hoạt. Vui lòng xác thực OTP trước!')
+  }
+
+  // 3. So sánh mật khẩu client gửi lên với mật khẩu đã hash trong DB
+  const isMatch = await bcrypt.compare(password, user.password)
+  if (!isMatch) {
+    throw new Error('Email hoặc mật khẩu không chính xác')
+  }
+
+  // 4. Tạo mã bọc thông tin payload (Nên bỏ password ra để bảo mật)
+  const userInfo = {
+    id: user.id,
+    email: user.email,
+    roleId: user.role_id
+  }
+
+  // 5. Ký cấp cặp Token thông qua JwtProvider của bạn
+  const accessToken = JwtProvider.generateToken(userInfo, env.JWT_ACCESS_SECRET, env.JWT_ACCESS_EXPIRE)
+  const refreshToken = JwtProvider.generateToken(userInfo, env.JWT_REFRESH_SECRET, env.JWT_REFRESH_EXPIRE)
+
+  // 6. Lưu Refresh Token xuống Database
+  await userModel.updateRefreshToken(user.id, refreshToken)
+
+  // 7. Xử lý phân quyền điều hướng URL theo đúng yêu cầu của bạn
+  let redirectUrl = '/'
+  if (user.role_id === ROLE_ID.ADMIN) {
+    redirectUrl = '/admin/dashboard'
+  } else if (user.role_id === ROLE_ID.MANAGER) {
+    redirectUrl = '/manager/dashboard'
+  } else if (user.role_id === ROLE_ID.VENDOR) {
+    redirectUrl = '/vendor/dashboard'
+  }
+
+  // Trả về dữ liệu sạch và cặp token để Controller bỏ vào Cookie
+  return {
+    user: {
+      id: user.id,
+      fullname: user.fullname,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      roleId: user.role_id
+    },
+    accessToken,
+    refreshToken,
+    redirectUrl
+  }
+}
+
+export const authService = {
+  register,
+  verifyOtp,
+  login
+}
