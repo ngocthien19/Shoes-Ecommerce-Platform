@@ -147,8 +147,73 @@ const login = async (reqBody) => {
   }
 }
 
+const forgotPassword = async (email) => {
+  // 1. Kiểm tra tài khoản có tồn tại trên hệ thống hay không
+  const user = await userModel.findByEmail(email)
+  if (!user) {
+    throw new Error('Email này không tồn tại trên hệ thống của cửa hàng')
+  }
+
+  // 2. Tạo mã OTP mới và thiết lập thời gian hết hạn là 5 phút
+  const otpCode = generateOTP()
+  const otpExpiry = new Date(Date.now() + 5 * 60 * 1000)
+
+  // 3. Gọi Model cập nhật mã OTP quên mật khẩu này vào dòng dữ liệu của user
+  await userModel.updateForgotPasswordOtp(email, otpCode, otpExpiry)
+
+  const htmlContent = `
+    <div style="font-family: 'Poppins', sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #eef2f5;">
+      <h2 style="color: #e94560; text-align: center;">YÊU CẦU KHÔI PHỤC MẬT KHẨU 👟</h2>
+      <p>Chào bạn,</p>
+      <p>Hệ thống Shoes Store nhận được yêu cầu lấy lại mật khẩu từ bạn. Mã OTP để xác thực khôi phục mật khẩu của bạn là:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="font-size: 32px; font-weight: bold; color: #1a1a1a; letter-spacing: 5px; background: #f6f9fc; padding: 10px 25px; border-radius: 8px;">
+          ${otpCode}
+        </span>
+      </div>
+      <p style="color: #808080; font-size: 13px;">* Lưu ý: Mã OTP này có hiệu lực khôi phục trong vòng 5 phút. Nếu không phải bạn yêu cầu, vui lòng bỏ qua email này.</p>
+    </div>
+  `
+
+  await EmailProvider.sendEmail(email, 'Mã OTP khôi phục mật khẩu Shoes Store của bạn', htmlContent)
+
+  return { message: 'Mã OTP khôi phục mật khẩu đã được gửi thành công tới Email của bạn!' }
+}
+
+const resetPassword = async (data) => {
+  const { email, otpCode, password } = data
+
+  // 1. Kiểm tra tài khoản và lấy thông tin OTP từ Database
+  const user = await userModel.getOtpInfo(email)
+  if (!user) {
+    throw new Error('Tài khoản không tồn tại trên hệ thống')
+  }
+
+  // 2. Kiểm tra xem mã OTP gửi lên có khớp với mã lưu trong DB không
+  if (user.otp_code !== otpCode) {
+    throw new Error('Mã OTP khôi phục mật khẩu không chính xác')
+  }
+
+  // 3. Kiểm tra mã OTP còn trong thời hạn sử dụng hay không
+  const now = new Date()
+  if (now > new Date(user.otp_expiry)) {
+    throw new Error('Mã OTP của bạn đã hết hạn. Vui lòng yêu cầu lại mã mới')
+  }
+
+  // 4. Mọi thứ hợp lệ -> Tiến hành mã hóa (Hash) mật khẩu mới của người dùng
+  const salt = await bcrypt.genSalt(8)
+  const hashedPassword = await bcrypt.hash(password, salt)
+
+  // 5. Gọi model lưu mật khẩu mới và hủy OTP đi để tránh dùng lại lần 2
+  await userModel.updateNewPassword(email, hashedPassword)
+
+  return { message: 'Đặt lại mật khẩu thành công! Bạn đã có thể dùng mật khẩu mới này để đăng nhập vào Shoes Store.' }
+}
+
 export const authService = {
   register,
   verifyOtp,
-  login
+  login,
+  forgotPassword,
+  resetPassword
 }

@@ -21,4 +21,14 @@ router.post('/login',
   authController.login
 )
 
+router.post('/forgot-password',
+  authMiddleware.registerLimiter,
+  authController.forgotPassword
+)
+
+router.post('/reset-password',
+  authMiddleware.validateResetPassword,
+  authController.resetPassword
+)
+
 export const authRouter = router

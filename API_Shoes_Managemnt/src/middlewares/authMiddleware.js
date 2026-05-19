@@ -84,10 +84,38 @@ const validateLogin = (req, res, next) => {
   next()
 }
 
+const validateResetPassword = (req, res, next) => {
+  const { email, otpCode, password } = req.body
+
+  if (!email || !otpCode || !password) {
+    return res.status(400).json({ message: 'Vui lòng nhập đầy đủ: email, otpCode và mật khẩu mới' })
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Định dạng Email không hợp lệ' })
+  }
+
+  if (otpCode.length !== 6) {
+    return res.status(400).json({ message: 'Mã OTP phải bao gồm đúng 6 chữ số' })
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ message: 'Mật khẩu mới phải chứa ít nhất 6 ký tự' })
+  }
+
+  if (password.trim().length === 0) {
+    return res.status(400).json({ message: 'Mật khẩu mới không được chỉ chứa khoảng trắng' })
+  }
+
+  next()
+}
+
 export const authMiddleware = {
   registerLimiter,
   validateRegister,
   validateVerifyOtp,
   loginLimiter,
-  validateLogin
+  validateLogin,
+  validateResetPassword
 }
