@@ -25,7 +25,7 @@ const searchAndFilterProducts = async (req, res) => {
     const result = await productService.searchAndFilterProducts(req.query)
     return res.status(200).json(result)
   } catch (error) {
-    return res.status(500).json({ message: `Lỗi bộ lọc tìm kiếm sản phẩm: ${error.message}` })
+    return res.status(500).json({ message: `Lỗi bộ lọc và phân trang sản phẩm: ${error.message}` })
   }
 }
 

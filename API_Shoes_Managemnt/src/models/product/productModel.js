@@ -86,59 +86,91 @@ const increaseViewCount = async (productId) => {
 }
 
 const searchAndFilterProducts = async (filters) => {
-  const { search, categorySlugs, storeIds, minPrice, maxPrice, ratings } = filters
+  // Bổ sung nhận thêm thuộc tính sortBy từ filters
+  const { search, categorySlugs, storeIds, minPrice, maxPrice, ratings, limit, offset, sortBy } = filters
 
-  let query = `
+  let queryData = `
     SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images 
     FROM products 
     WHERE is_active = TRUE
   `
+  let queryCount = `
+    SELECT COUNT(*) AS total 
+    FROM products 
+    WHERE is_active = TRUE
+  `
+
+  let whereClauses = ''
   let params = []
 
   if (search) {
-    query += ' AND name LIKE ?'
+    whereClauses += ' AND name LIKE ?'
     params.push(`%${search}%`)
   }
-
-  // Lọc đa Checkbox theo Category SLUG
   if (categorySlugs && categorySlugs.length > 0) {
     const placeholders = categorySlugs.map(() => '?').join(',')
-
-    // Dùng Subquery để bốc category_id dựa theo slug cực kỳ nhanh gọn
-    query += ` AND category_id IN (
-      SELECT id FROM categories WHERE slug IN (${placeholders})
-    )`
+    whereClauses += ` AND category_id IN (SELECT id FROM categories WHERE slug IN (${placeholders}))`
     params = [...params, ...categorySlugs]
   }
-
-  // Lọc theo Store ID
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',')
-    query += ` AND store_id IN (${placeholders})`
+    whereClauses += ` AND store_id IN (${placeholders})`
     params = [...params, ...storeIds]
   }
-
-  // Lọc theo khoảng giá
   if (minPrice !== undefined && minPrice !== null) {
-    query += ' AND price >= ?'
+    whereClauses += ' AND price >= ?'
     params.push(minPrice)
   }
   if (maxPrice !== undefined && maxPrice !== null) {
-    query += ' AND price <= ?'
+    whereClauses += ' AND price <= ?'
     params.push(maxPrice)
   }
-
-  // Lọc theo số sao đánh giá
   if (ratings && ratings.length > 0) {
     const placeholders = ratings.map(() => '?').join(',')
-    query += ` AND FLOOR(rating_avg) IN (${placeholders})`
+    whereClauses += ` AND FLOOR(rating_avg) IN (${placeholders})`
     params = [...params, ...ratings]
   }
 
-  query += ' ORDER BY created_at DESC'
+  let orderByClause = ' ORDER BY created_at DESC' // Mặc định nếu không truyền gì là Mới nhất
 
-  const [rows] = await pool.execute(query, params)
-  return rows
+  switch (sortBy) {
+    case 'latest':
+      orderByClause = ' ORDER BY created_at DESC' // Mới nhất
+      break
+    case 'sold_desc':
+      orderByClause = ' ORDER BY sold DESC' // Bán chạy nhất
+      break
+    case 'views_desc':
+      orderByClause = ' ORDER BY view_count DESC' // Xem nhiều nhất
+      break
+    case 'price_asc':
+      orderByClause = ' ORDER BY price ASC' // Giá tăng dần
+      break
+    case 'price_desc':
+      orderByClause = ' ORDER BY price DESC' // Giá giảm dần
+      break
+    case 'rating_desc':
+      orderByClause = ' ORDER BY rating_avg DESC' // Đánh giá cao nhất
+      break
+    case 'name_asc':
+      orderByClause = ' ORDER BY name ASC' // Theo tên từ A - Z
+      break
+    default:
+      orderByClause = ' ORDER BY created_at DESC'
+  }
+
+  // Ghép nối điều kiện WHERE và mệnh đề ORDER BY động vào chuỗi SQL chính
+  queryData += whereClauses + orderByClause + ' LIMIT ? OFFSET ?'
+  queryCount += whereClauses
+
+  // Tính tổng số lượng dòng để phân trang
+  const [countRows] = await pool.execute(queryCount, params)
+  const total = countRows[0].total
+
+  const finalParams = [...params, String(limit), String(offset)]
+  const [products] = await pool.execute(queryData, finalParams)
+
+  return { products, total }
 }
 
 export const productModel = {
