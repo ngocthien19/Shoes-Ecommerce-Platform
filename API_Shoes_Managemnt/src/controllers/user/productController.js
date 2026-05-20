@@ -20,7 +20,17 @@ const getProductDetail = async (req, res) => {
   }
 }
 
+const searchAndFilterProducts = async (req, res) => {
+  try {
+    const result = await productService.searchAndFilterProducts(req.query)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi bộ lọc tìm kiếm sản phẩm: ${error.message}` })
+  }
+}
+
 export const productController = {
   getHomepageProducts,
-  getProductDetail
+  getProductDetail,
+  searchAndFilterProducts
 }
