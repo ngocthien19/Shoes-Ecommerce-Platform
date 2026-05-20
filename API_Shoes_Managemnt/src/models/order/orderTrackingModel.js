@@ -53,10 +53,18 @@ const autoConfirmOrders = async () => {
   return result.affectedRows // Trả về số lượng đơn hàng tự động chuyển trạng thái thành công
 }
 
+const withdrawCancelOrder = async (orderId) => {
+  // Đưa đơn hàng từ 'cancel_requested' quay trở lại trạng thái 'processing'
+  const query = 'UPDATE orders SET status = \'processing\' WHERE id = ?'
+  const [result] = await pool.execute(query, [orderId])
+  return result
+}
+
 export const orderTrackingModel = {
   getOrderHistoryByUserId,
   getOrderItemsByOrderId,
   getOrderById,
   updateOrderStatus,
-  autoConfirmOrders
+  autoConfirmOrders,
+  withdrawCancelOrder
 }
