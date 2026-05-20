@@ -44,7 +44,7 @@ const login = async (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       secure: true,
-      sameSite: 'strict'
+      sameSite: 'none'
     }
 
     // Đưa cả 2 token vào cookie
@@ -102,10 +102,36 @@ const resetPassword = async (req, res) => {
   }
 }
 
+const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh Token là bắt buộc để đăng xuất.' })
+    }
+
+    await authService.logout(refreshToken)
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+    }
+
+    res.clearCookie('accessToken', cookieOptions)
+    res.clearCookie('refreshToken', cookieOptions)
+
+    return res.status(200).json({ message: 'Đăng xuất thành công!' })
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xử lý đăng xuất: ${error.message}` })
+  }
+}
+
 export const authController = {
   register,
   verifyOtp,
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  logout
 }
