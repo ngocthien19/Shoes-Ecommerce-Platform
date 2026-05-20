@@ -8,6 +8,7 @@ import { userRouter } from '~/routes/user/userRoute'
 import { categoryRouter } from './routes/user/categoryRoute'
 import { productRouter } from './routes/user/productRoute'
 import { cartRouter } from './routes/user/cartRoute'
+import { orderRouter } from './routes/user/orderRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -35,6 +36,7 @@ const START_SERVER = () => {
   app.use('/api/categories', categoryRouter)
   app.use('/api/products', productRouter)
   app.use('/api/carts', cartRouter)
+  app.use('/api/orders', orderRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
