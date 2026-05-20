@@ -34,7 +34,11 @@ const getProductDetail = async (slug) => {
 }
 
 const searchAndFilterProducts = async (queryParams) => {
-  const { search, categories, stores, minPrice, maxPrice, ratings } = queryParams
+  const { search, categories, stores, minPrice, maxPrice, ratings, page, limit, sortBy } = queryParams
+
+  const currentPage = Math.max(1, Number(page) || 1)
+  const perPage = Math.max(1, Number(limit) || 8)
+  const offset = (currentPage - 1) * perPage
 
   const filters = {
     search: search || '',
@@ -42,11 +46,24 @@ const searchAndFilterProducts = async (queryParams) => {
     storeIds: stores ? stores.split(',').map(Number) : [],
     minPrice: minPrice ? Number(minPrice) : null,
     maxPrice: maxPrice ? Number(maxPrice) : null,
-    ratings: ratings ? ratings.split(',').map(Number) : []
+    ratings: ratings ? ratings.split(',').map(Number) : [],
+    limit: perPage,
+    offset: offset,
+    sortBy: sortBy || 'latest'
   }
 
-  const products = await productModel.searchAndFilterProducts(filters)
-  return products
+  const { products, total } = await productModel.searchAndFilterProducts(filters)
+  const totalPages = Math.ceil(total / perPage)
+
+  return {
+    pagination: {
+      totalItems: total,
+      totalPages: totalPages,
+      currentPage: currentPage,
+      limit: perPage
+    },
+    products: products
+  }
 }
 
 export const productService = {
