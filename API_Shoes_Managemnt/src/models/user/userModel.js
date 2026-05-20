@@ -109,6 +109,12 @@ const getUpdatedUserFields = async (userId) => {
   return rows[0]
 }
 
+const removeRefreshToken = async (refreshToken) => {
+  const query = 'UPDATE users SET refresh_token = NULL WHERE refresh_token = ?'
+
+  await pool.execute(query, [refreshToken])
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -119,5 +125,6 @@ export const userModel = {
   updateForgotPasswordOtp,
   updateNewPassword,
   updateProfile,
-  getUpdatedUserFields
+  getUpdatedUserFields,
+  removeRefreshToken
 }

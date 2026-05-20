@@ -210,10 +210,16 @@ const resetPassword = async (data) => {
   return { message: 'Đặt lại mật khẩu thành công! Bạn đã có thể dùng mật khẩu mới này để đăng nhập vào Shoes Store.' }
 }
 
+const logout = async (refreshToken) => {
+  // Thực hiện logic xóa hoặc cập nhật trạng thái token dưới DB
+  await userModel.removeRefreshToken(refreshToken)
+}
+
 export const authService = {
   register,
   verifyOtp,
   login,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  logout
 }
