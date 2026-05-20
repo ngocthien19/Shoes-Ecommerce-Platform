@@ -85,6 +85,62 @@ const increaseViewCount = async (productId) => {
   await pool.execute('UPDATE products SET view_count = view_count + 1 WHERE id = ?', [productId])
 }
 
+const searchAndFilterProducts = async (filters) => {
+  const { search, categorySlugs, storeIds, minPrice, maxPrice, ratings } = filters
+
+  let query = `
+    SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images 
+    FROM products 
+    WHERE is_active = TRUE
+  `
+  let params = []
+
+  if (search) {
+    query += ' AND name LIKE ?'
+    params.push(`%${search}%`)
+  }
+
+  // Lọc đa Checkbox theo Category SLUG
+  if (categorySlugs && categorySlugs.length > 0) {
+    const placeholders = categorySlugs.map(() => '?').join(',')
+
+    // Dùng Subquery để bốc category_id dựa theo slug cực kỳ nhanh gọn
+    query += ` AND category_id IN (
+      SELECT id FROM categories WHERE slug IN (${placeholders})
+    )`
+    params = [...params, ...categorySlugs]
+  }
+
+  // Lọc theo Store ID
+  if (storeIds && storeIds.length > 0) {
+    const placeholders = storeIds.map(() => '?').join(',')
+    query += ` AND store_id IN (${placeholders})`
+    params = [...params, ...storeIds]
+  }
+
+  // Lọc theo khoảng giá
+  if (minPrice !== undefined && minPrice !== null) {
+    query += ' AND price >= ?'
+    params.push(minPrice)
+  }
+  if (maxPrice !== undefined && maxPrice !== null) {
+    query += ' AND price <= ?'
+    params.push(maxPrice)
+  }
+
+  // Lọc theo số sao đánh giá
+  if (ratings && ratings.length > 0) {
+    const placeholders = ratings.map(() => '?').join(',')
+    query += ` AND FLOOR(rating_avg) IN (${placeholders})`
+    params = [...params, ...ratings]
+  }
+
+  query += ' ORDER BY created_at DESC'
+
+  const [rows] = await pool.execute(query, params)
+  return rows
+}
+
 export const productModel = {
   getFlashSaleProducts,
   getTopSellingProducts,
@@ -92,5 +148,6 @@ export const productModel = {
   getProductBySlug,
   getProductVariants,
   getRelatedProducts,
-  increaseViewCount
+  increaseViewCount,
+  searchAndFilterProducts
 }
