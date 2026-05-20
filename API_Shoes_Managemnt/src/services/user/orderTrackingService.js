@@ -42,8 +42,36 @@ const handleAutoConfirmOrders = async () => {
   return await orderTrackingModel.autoConfirmOrders()
 }
 
+const withdrawCancelRequest = async (userId, orderId) => {
+  // 1. Tìm đơn hàng xem có tồn tại không
+  const order = await orderTrackingModel.getOrderById(orderId)
+
+  if (!order) {
+    throw new Error('Đơn hàng không tồn tại trên hệ thống.')
+  }
+
+  // 2. Kiểm tra tính chính chủ
+  if (order.user_id !== userId) {
+    throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
+  }
+
+  // 3. RÀNG BUỘC CỨNG: Chỉ được rút yêu cầu khi đơn đang ở trạng thái 'cancel_requested'
+  if (order.status !== 'cancel_requested') {
+    throw new Error('Đơn hàng không ở trạng thái chờ hủy, không thể rút lại yêu cầu hủy.')
+  }
+
+  // 4. Tiến hành cập nhật lại trạng thái dưới DB
+  await orderTrackingModel.withdrawCancelOrder(orderId)
+
+  return {
+    status: 'processing',
+    message: 'Rút lại yêu cầu hủy đơn thành công! Đơn hàng đã được đưa quay trở lại danh sách chuẩn bị hàng.'
+  }
+}
+
 export const orderTrackingService = {
   getOrderHistory,
   cancelOrderByUser,
-  handleAutoConfirmOrders
+  handleAutoConfirmOrders,
+  withdrawCancelRequest
 }

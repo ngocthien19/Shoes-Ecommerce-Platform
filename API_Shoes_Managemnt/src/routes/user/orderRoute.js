@@ -14,6 +14,8 @@ router.get('/history', orderTrackingController.getOrderHistory)
 
 router.put('/cancel/:orderId', orderTrackingController.cancelOrderByUser)
 
+router.put('/cancel-withdraw/:orderId', orderTrackingController.withdrawCancelRequest)
+
 router.post('/:orderId/reviews', reviewController.createReview)
 
 router.post('/:orderId/store-reviews', reviewController.createStoreReview)
