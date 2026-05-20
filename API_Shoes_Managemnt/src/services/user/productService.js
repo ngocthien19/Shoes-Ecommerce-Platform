@@ -26,15 +26,31 @@ const getProductDetail = async (slug) => {
     productModel.getRelatedProducts(product.category_id, product.id, 4) // Lấy 4 sản phẩm tương tự
   ])
 
-  // BƯỚC 3: Gộp chung lại thành một bọc dữ liệu hoàn chỉnh gửi về cho Frontend
   return {
     ...product,
-    variants: variants, // Mảng chứa size, màu để FE làm nút bấm chọn
-    relatedProducts: relatedProducts // Mảng sản phẩm tương tự hiển thị phía dưới Swiper
+    variants: variants,
+    relatedProducts: relatedProducts
   }
+}
+
+const searchAndFilterProducts = async (queryParams) => {
+  const { search, categories, stores, minPrice, maxPrice, ratings } = queryParams
+
+  const filters = {
+    search: search || '',
+    categorySlugs: categories ? categories.split(',') : [],
+    storeIds: stores ? stores.split(',').map(Number) : [],
+    minPrice: minPrice ? Number(minPrice) : null,
+    maxPrice: maxPrice ? Number(maxPrice) : null,
+    ratings: ratings ? ratings.split(',').map(Number) : []
+  }
+
+  const products = await productModel.searchAndFilterProducts(filters)
+  return products
 }
 
 export const productService = {
   getHomepageProducts,
-  getProductDetail
+  getProductDetail,
+  searchAndFilterProducts
 }
