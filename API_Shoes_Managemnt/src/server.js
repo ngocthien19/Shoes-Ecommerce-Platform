@@ -5,13 +5,14 @@ import { env } from '~/config/environment'
 import { connectDB } from '~/config/db'
 import { authRouter } from '~/routes/auth/authRoute'
 import { userRouter } from '~/routes/user/userRoute'
-import { categoryRouter } from './routes/user/categoryRoute'
-import { productRouter } from './routes/user/productRoute'
-import { cartRouter } from './routes/user/cartRoute'
-import { orderRouter } from './routes/user/orderRoute'
-import { promotionRouter } from './routes/user/promotionRoute'
-import { vendorStoreRouter } from './routes/vendor/vendorStoreRoute'
-import { vendorProductRouter } from './routes/vendor/vendorProductRoute'
+import { categoryRouter } from '~/routes/user/categoryRoute'
+import { productRouter } from '~/routes/user/productRoute'
+import { cartRouter } from '~/routes/user/cartRoute'
+import { orderRouter } from '~/routes/user/orderRoute'
+import { promotionRouter } from '~/routes/user/promotionRoute'
+import { vendorStoreRouter } from '~/routes/vendor/vendorStoreRoute'
+import { vendorProductRouter } from '~/routes/vendor/vendorProductRoute'
+import { vendorOrderRouter } from '~/routes/vendor/vendorOrderRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -43,6 +44,7 @@ const START_SERVER = () => {
   // TODO: Định tuyến hệ thống API cho VENDOR (Cửa hàng)
   app.use('/api/vendor/stores', vendorStoreRouter)
   app.use('/api/vendor/products', vendorProductRouter)
+  app.use('/api/vendor/orders', vendorOrderRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
