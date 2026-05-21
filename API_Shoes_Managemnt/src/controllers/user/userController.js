@@ -19,6 +19,22 @@ const updateProfile = async (req, res) => {
   }
 }
 
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Không tìm thấy thông tin xác thực. Vui lòng đăng nhập lại!' })
+    }
+
+    const result = await userService.getUserProfile(userId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải thông tin cá nhân: ${error.message}` })
+  }
+}
+
 export const userController = {
-  updateProfile
+  updateProfile,
+  getUserProfile
 }

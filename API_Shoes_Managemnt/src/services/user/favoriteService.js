@@ -1,4 +1,4 @@
-import { favoriteModel } from '~/models/product/favoriteModel'
+import { favoriteModel } from '~/models/user/product/favoriteModel'
 
 // Xử lý logic bật tắt Trái tim độc lập
 const toggleFavorite = async (userId, productId) => {

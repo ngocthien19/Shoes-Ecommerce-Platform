@@ -31,6 +31,17 @@ const updateProfile = async (userId, bodyData) => {
   }
 }
 
+const getUserProfile = async (userId) => {
+  const user = await userModel.getUserProfileById(userId)
+
+  if (!user) {
+    throw new Error('Tài khoản người dùng không tồn tại hoặc đã bị khóa.')
+  }
+
+  return user
+}
+
 export const userService = {
-  updateProfile
+  updateProfile,
+  getUserProfile
 }
