@@ -14,6 +14,7 @@ import { vendorStoreRouter } from '~/routes/vendor/vendorStoreRoute'
 import { vendorProductRouter } from '~/routes/vendor/vendorProductRoute'
 import { vendorOrderRouter } from '~/routes/vendor/vendorOrderRoute'
 import { vendorPromotionRouter } from '~/routes/vendor/vendorPromotionRoute'
+import { vendorReviewRouter } from './routes/vendor/vendorReviewRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -47,6 +48,7 @@ const START_SERVER = () => {
   app.use('/api/vendor/products', vendorProductRouter)
   app.use('/api/vendor/orders', vendorOrderRouter)
   app.use('/api/vendor/promotions', vendorPromotionRouter)
+  app.use('/api/vendor/reviews', vendorReviewRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
