@@ -1,4 +1,4 @@
-import { orderTrackingModel } from '~/models/order/orderTrackingModel'
+import { orderTrackingModel } from '~/models/user/order/orderTrackingModel'
 
 // 1. USER: Lấy lịch sử mua hàng kèm theo mảng sản phẩm bên trong mỗi đơn
 const getOrderHistory = async (userId) => {

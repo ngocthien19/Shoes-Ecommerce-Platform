@@ -1,5 +1,5 @@
 import pool from '~/config/db'
-import { orderModel } from '~/models/order/orderModel'
+import { orderModel } from '~/models/user/order/orderModel'
 
 const createOrderCOD = async (userId, shippingAddress) => {
   // BƯỚC 1: Lấy toàn bộ hàng trong giỏ của user ra

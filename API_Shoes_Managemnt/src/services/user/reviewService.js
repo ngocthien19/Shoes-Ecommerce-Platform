@@ -1,5 +1,5 @@
 import pool from '~/config/db.js'
-import { reviewModel } from '~/models/review/reviewModel'
+import { reviewModel } from '~/models/user/review/reviewModel'
 
 const getReviewsByProductSlug = async (slug) => {
   const reviews = await reviewModel.getReviewsByProductSlug(slug)

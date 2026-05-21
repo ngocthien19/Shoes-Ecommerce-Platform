@@ -1,4 +1,4 @@
-import { productModel } from '~/models/product/productModel'
+import { productModel } from '~/models/user/product/productModel'
 
 // 1. Gom cụm dữ liệu trang chủ
 const getHomepageProducts = async () => {

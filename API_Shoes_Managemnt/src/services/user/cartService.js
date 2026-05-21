@@ -1,4 +1,4 @@
-import { cartModel } from '~/models/cart/cartModel'
+import { cartModel } from '~/models/user/cart/cartModel'
 
 // Logic: Thêm vào giỏ
 const addToCart = async (userId, variantId, quantity) => {

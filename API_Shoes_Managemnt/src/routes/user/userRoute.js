@@ -7,6 +7,8 @@ const router = express.Router()
 
 router.use(authGuard.isAuthorized)
 
+router.get('/profile', userController.getUserProfile)
+
 router.put('/update-profile',
   userMiddleware.uploadAvatar,
   userMiddleware.validateUpdateProfile,
