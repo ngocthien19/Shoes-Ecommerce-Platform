@@ -9,6 +9,9 @@ import { categoryRouter } from './routes/user/categoryRoute'
 import { productRouter } from './routes/user/productRoute'
 import { cartRouter } from './routes/user/cartRoute'
 import { orderRouter } from './routes/user/orderRoute'
+import { promotionRouter } from './routes/user/promotionRoute'
+import { vendorStoreRouter } from './routes/vendor/vendorStoreRoute'
+import { vendorProductRouter } from './routes/vendor/vendorProductRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -28,15 +31,18 @@ const START_SERVER = () => {
   //Giúp giải mã dữ liệu text từ form-data (Postman/Frontend gửi lên)
   app.use(express.urlencoded({ extended: true }))
 
-  // Định tuyến hệ thống API
+  // Định tuyến hệ thống API cho USER
   app.use('/api/auth', authRouter)
-
   app.use('/api/users', userRouter)
-
   app.use('/api/categories', categoryRouter)
   app.use('/api/products', productRouter)
   app.use('/api/carts', cartRouter)
   app.use('/api/orders', orderRouter)
+  app.use('/api/promotions', promotionRouter)
+
+  // TODO: Định tuyến hệ thống API cho VENDOR (Cửa hàng)
+  app.use('/api/vendor/stores', vendorStoreRouter)
+  app.use('/api/vendor/products', vendorProductRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000

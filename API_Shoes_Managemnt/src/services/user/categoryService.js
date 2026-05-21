@@ -1,4 +1,4 @@
-import { categoryModel } from '~/models/category/categoryModel'
+import { categoryModel } from '~/models/user/category/categoryModel'
 
 const getAllCategories = async () => {
   return await categoryModel.getAllCategories()

@@ -115,6 +115,16 @@ const removeRefreshToken = async (refreshToken) => {
   await pool.execute(query, [refreshToken])
 }
 
+const getUserProfileById = async (userId) => {
+  const query = `
+    SELECT id, role_id, fullname, email, phone, avatar, is_active, is_verified, created_at 
+    FROM users 
+    WHERE id = ?
+  `
+  const [rows] = await pool.execute(query, [userId])
+  return rows[0] // Trả về object thông tin của user đó
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -126,5 +136,6 @@ export const userModel = {
   updateNewPassword,
   updateProfile,
   getUpdatedUserFields,
-  removeRefreshToken
+  removeRefreshToken,
+  getUserProfileById
 }
