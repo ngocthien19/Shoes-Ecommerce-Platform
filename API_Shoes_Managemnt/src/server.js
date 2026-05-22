@@ -3,6 +3,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { env } from '~/config/environment'
 import { connectDB } from '~/config/db'
+
+// import UserRoutes
 import { authRouter } from '~/routes/auth/authRoute'
 import { userRouter } from '~/routes/user/userRoute'
 import { categoryRouter } from '~/routes/user/categoryRoute'
@@ -10,11 +12,15 @@ import { productRouter } from '~/routes/user/productRoute'
 import { cartRouter } from '~/routes/user/cartRoute'
 import { orderRouter } from '~/routes/user/orderRoute'
 import { promotionRouter } from '~/routes/user/promotionRoute'
+
+// import VendorRoutes
 import { vendorStoreRouter } from '~/routes/vendor/vendorStoreRoute'
 import { vendorProductRouter } from '~/routes/vendor/vendorProductRoute'
 import { vendorOrderRouter } from '~/routes/vendor/vendorOrderRoute'
 import { vendorPromotionRouter } from '~/routes/vendor/vendorPromotionRoute'
-import { vendorReviewRouter } from './routes/vendor/vendorReviewRoute'
+import { vendorReviewRouter } from '~/routes/vendor/vendorReviewRoute'
+import { vendorFavoriteRouter } from '~/routes/vendor/vendorFavoriteRoute'
+import { vendorAnalyticsRouter } from './routes/vendor/vendorAnalyticsRoute'
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -49,6 +55,8 @@ const START_SERVER = () => {
   app.use('/api/vendor/orders', vendorOrderRouter)
   app.use('/api/vendor/promotions', vendorPromotionRouter)
   app.use('/api/vendor/reviews', vendorReviewRouter)
+  app.use('/api/vendor/favorites', vendorFavoriteRouter)
+  app.use('/api/vendor/analytics', vendorAnalyticsRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
