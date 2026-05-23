@@ -16,12 +16,14 @@ const getStoresList = async (filters) => {
     offset
   }
 
-  const [stores, totalItems] = await Promise.all([
+  const [stores, totalItems, overviewStats] = await Promise.all([
     managerStoreModel.getStoresForManager(filterParams),
-    managerStoreModel.countStoresForManager(filterParams)
+    managerStoreModel.countStoresForManager(filterParams),
+    managerStoreModel.getStoresOverviewStats()
   ])
 
   return {
+    overview: overviewStats,
     pagination: {
       totalItems,
       totalPages: Math.ceil(totalItems / limit),
@@ -183,9 +185,37 @@ const banStoresBulk = async (storeIds) => {
   }
 }
 
+const getStoreDetail = async (storeId) => {
+  if (!storeId) throw new Error('Mã cửa hàng (ID) không hợp lệ.')
+
+  const store = await managerStoreModel.getStoreDetailForManager(storeId)
+  if (!store) throw new Error('Cửa hàng không tồn tại trên hệ thống.')
+
+  return store
+}
+
+// Duyệt đơn lẻ 1 cửa hàng
+const approveStoreSingle = async (storeId) => {
+  return await approveStoresBulk([Number(storeId)])
+}
+
+// Từ chối đơn lẻ 1 cửa hàng
+const rejectStoreSingle = async (storeId, reason) => {
+  return await rejectStoresBulk([Number(storeId)], reason)
+}
+
+// Khóa quyền lẻ 1 cửa hàng vi phạm
+const banStoreSingle = async (storeId, reason) => {
+  return await banStoresBulk([Number(storeId)], reason)
+}
+
 export const managerStoreService = {
   getStoresList,
   approveStoresBulk,
   banStoresBulk,
-  rejectStoresBulk
+  rejectStoresBulk,
+  getStoreDetail,
+  approveStoreSingle,
+  rejectStoreSingle,
+  banStoreSingle
 }

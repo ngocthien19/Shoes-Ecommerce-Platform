@@ -20,10 +20,11 @@ import { vendorOrderRouter } from '~/routes/vendor/vendorOrderRoute'
 import { vendorPromotionRouter } from '~/routes/vendor/vendorPromotionRoute'
 import { vendorReviewRouter } from '~/routes/vendor/vendorReviewRoute'
 import { vendorFavoriteRouter } from '~/routes/vendor/vendorFavoriteRoute'
-import { vendorAnalyticsRouter } from './routes/vendor/vendorAnalyticsRoute'
+import { vendorAnalyticsRouter } from '~/routes/vendor/vendorAnalyticsRoute'
 
 // import ManagerRoutes
 import { managerStoreRouter } from '~/routes/manager/managerStoreRoute'
+import { managerProductRouter } from '~/routes/manager/managerProductRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
@@ -64,6 +65,7 @@ const START_SERVER = () => {
 
   // Định tuyến hệ thống API cho MANAGER (Quản lý)
   app.use('/api/manager/stores', managerStoreRouter)
+  app.use('/api/manager/products', managerProductRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
