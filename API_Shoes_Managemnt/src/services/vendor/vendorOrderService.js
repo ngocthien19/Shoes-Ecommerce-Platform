@@ -1,4 +1,5 @@
-import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel.js'
+import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel'
+import { ORDER_STATUS } from '~/utils/constants'
 
 const getVerifiedStoreId = async (userId) => {
   const store = await vendorOrderModel.getStoreByOwnerId(userId)
@@ -67,13 +68,13 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
   if (!currentStatus) throw new Error('Đơn hàng không tồn tại.')
 
   // Kiểm tra tính hợp lệ của luồng trạng thái
-  const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+  const validStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELED]
   if (!validStatuses.includes(newStatus)) {
     throw new Error('Trạng thái cập nhật không hợp lệ.')
   }
 
   // Chặn không cho cập nhật nếu đơn đã hoàn thành hoặc đã hủy
-  if (currentStatus === 'delivered' || currentStatus === 'cancelled') {
+  if (currentStatus === ORDER_STATUS.DELIVERED || currentStatus === ORDER_STATUS.CANCELED) {
     throw new Error('Không thể thay đổi trạng thái của đơn hàng đã hoàn thành hoặc đã hủy.')
   }
 
@@ -94,20 +95,20 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   if (!currentStatus) throw new Error('Đơn hàng không tồn tại.')
 
   // TRƯỜNG HỢP 1: Đơn hàng đang ở trạng thái Chờ duyệt (pending) -> HỦY THẲNG
-  if (currentStatus === 'pending') {
+  if (currentStatus === ORDER_STATUS.PENDING) {
     const finalReason = reason ? `HỦY TỰ ĐỘNG (PENDING): ${reason}` : 'HỦY TỰ ĐỘNG: Hệ thống hủy đơn trực tiếp từ trạng thái chờ duyệt.'
-    await vendorOrderModel.updateOrderStatus(orderId, 'cancelled', finalReason)
+    await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELED, finalReason)
     return { message: 'Đơn hàng đang ở trạng thái chờ duyệt, hệ thống đã thực hiện hủy trực tiếp.' }
   }
 
   // TRƯỜNG HỢP 2: Đơn hàng đang chờ Vendor phê duyệt hủy (cancel_requested)
-  if (currentStatus === 'cancel_requested') {
+  if (currentStatus === ORDER_STATUS.CANCEL_REQUESTED) {
     if (decision === 'accept') {
       // Nếu có truyền reason thì lấy reason, không thì để chuỗi mặc định sạch sẽ
       const finalReason = reason ? reason : 'Người bán chấp nhận yêu cầu hủy từ khách hàng.'
 
       // Chuyển trạng thái sang 'cancelled' và nạp lý do sạch vào DB
-      await vendorOrderModel.updateOrderStatus(orderId, 'cancelled', finalReason)
+      await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELED, finalReason)
       return { message: 'Đã chấp nhận yêu cầu hủy đơn hàng từ khách hàng.' }
 
     } else if (decision === 'reject') {
@@ -115,7 +116,7 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
       const rejectNote = reason ? reason : 'Hàng đã được đóng gói và bàn giao cho đơn vị vận chuyển.'
 
       // Từ chối hủy, đưa trạng thái đơn hàng quay về lại 'processing' và nạp lý do từ chối vào DB
-      await vendorOrderModel.updateOrderStatus(orderId, 'processing', rejectNote)
+      await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.PROCESSING, rejectNote)
       return { message: 'Đã từ chối yêu cầu hủy đơn hàng, trạng thái đơn hàng quay về Đang xử lý.' }
 
     } else {
@@ -125,7 +126,7 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
 
   // TRƯỜNG HỢP KHÁC: Đơn hàng đang ở trạng thái processing bình thường (chưa có yêu cầu hủy)
   // hoặc đã đi giao (shipped, delivered...) thì Vendor không được tự ý gọi API xử lý hủy này.
-  if (currentStatus === 'processing') {
+  if (currentStatus === ORDER_STATUS.PROCESSING) {
     throw new Error('Đơn hàng này chưa gửi yêu cầu hủy. Không thể thực hiện phê duyệt.')
   } else {
     throw new Error('Đơn hàng đã chuyển sang giai đoạn vận chuyển, không thể xử lý hủy.')
