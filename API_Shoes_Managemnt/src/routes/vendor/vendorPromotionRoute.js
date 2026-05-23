@@ -16,4 +16,8 @@ router.put('/update/:id', vendorPromotionController.updatePromotion)
 
 router.delete('/delete/:id', vendorPromotionController.deletePromotion)
 
+router.patch('/:id/toggle-active', vendorPromotionController.togglePromotionActiveSingle) // Nút gạt đơn lẻ
+router.patch('/toggle-active-bulk', vendorPromotionController.togglePromotionsActiveBulk)
+router.delete('/delete-bulk', vendorPromotionController.deletePromotionsBulk)
+
 export const vendorPromotionRouter = router

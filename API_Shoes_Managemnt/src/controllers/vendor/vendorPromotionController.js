@@ -82,10 +82,50 @@ const getVendorPromotions = async (req, res) => {
   }
 }
 
+// 6. PATCH: Checkbox thay đổi trạng thái hoạt động hàng loạt
+const togglePromotionsActiveBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { promotionIds, isActive } = req.body
+    const result = await vendorPromotionService.togglePromotionsActiveBulk(userId, promotionIds, isActive)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xử lý trạng thái khuyến mãi loạt: ${error.message}` })
+  }
+}
+
+// 7. DELETE: Checkbox xóa hàng loạt khuyến mãi
+const deletePromotionsBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { promotionIds } = req.body
+    const result = await vendorPromotionService.deletePromotionsBulk(userId, promotionIds)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xóa hàng loạt khuyến mãi: ${error.message}` })
+  }
+}
+
+// 8. PATCH: Nút gạt trạng thái đơn lẻ cuối dòng Table
+const togglePromotionActiveSingle = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { id } = req.params
+    const { isActive } = req.body
+    const result = await vendorPromotionService.togglePromotionActiveSingle(userId, id, isActive)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi cập nhật trạng thái khuyến mãi: ${error.message}` })
+  }
+}
+
 export const vendorPromotionController = {
   createPromotion,
   updatePromotion,
   deletePromotion,
   getPromotionById,
-  getVendorPromotions
+  getVendorPromotions,
+  togglePromotionsActiveBulk,
+  deletePromotionsBulk,
+  togglePromotionActiveSingle
 }
