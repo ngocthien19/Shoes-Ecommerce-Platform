@@ -1,5 +1,5 @@
 import express from 'express'
-import { managerStoreController } from '~/controllers/manager/managerStoreController.js'
+import { managerStoreController } from '~/controllers/manager/managerStoreController'
 import { authGuard } from '~/middlewares/authGuard'
 
 const router = express.Router()
@@ -15,5 +15,13 @@ router.patch('/reject-bulk', managerStoreController.rejectStoresBulk)
 
 // 3. Khóa hàng loạt các shop vi phạm
 router.patch('/ban-bulk', managerStoreController.banStoresBulk)
+
+router.get('/:id', managerStoreController.getStoreDetail)
+
+router.put('/:id/approve', managerStoreController.approveStoreSingle)
+
+router.delete('/:id/reject', managerStoreController.rejectStoreSingle)
+
+router.put('/:id/ban', managerStoreController.banStoreSingle)
 
 export const managerStoreRouter = router
