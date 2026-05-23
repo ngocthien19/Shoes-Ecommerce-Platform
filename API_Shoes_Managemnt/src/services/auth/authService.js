@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt'
 import { userModel } from '~/models/user/userModel'
 import { EmailProvider } from '~/providers/EmailProvider'
 import { JwtProvider } from '~/providers/JwtProvider'
-import { ROLE_ID } from '~/utils/constants/roleConstant'
+import { ROLE_ID } from '~/utils/constants'
 import { env } from '~/config/environment'
 import generateOTP from '~/utils/otpGenerator'
 

@@ -1,0 +1,148 @@
+import pool from '~/config/db'
+
+// 1. Lấy danh sách cửa hàng + Phân trang + Tìm kiếm đa năng + Lọc khoảng ngày đăng ký
+const getStoresForManager = async ({ search, isActive, startDate, endDate, limit, offset }) => {
+  let query = `
+    SELECT s.id, s.owner_id, u.fullname AS owner_name, u.email AS owner_email,
+           s.name AS store_name, s.bio, s.logo, s.banner, s.address, s.balance, 
+           s.is_active, s.rating_average, s.created_at
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
+    WHERE 1=1
+  `
+  const queryParams = []
+
+  // Tìm kiếm theo tên cửa hàng hoặc tên chủ cửa hàng
+  if (search) {
+    query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
+    queryParams.push(`%${search}%`, `%${search}%`)
+  }
+
+  // Lọc theo trạng thái active (0: Chờ duyệt/Khóa, 1: Đang hoạt động)
+  if (isActive !== undefined && isActive !== null) {
+    query += ' AND s.is_active = ?'
+    queryParams.push(Number(isActive))
+  }
+
+  // Lọc theo khoảng ngày đăng ký mở tiệm
+  if (startDate) {
+    query += ' AND s.created_at >= ?'
+    queryParams.push(`${startDate} 00:00:00`)
+  }
+  if (endDate) {
+    query += ' AND s.created_at <= ?'
+    queryParams.push(`${endDate} 23:59:59`)
+  }
+
+  query += ' ORDER BY s.created_at DESC LIMIT ? OFFSET ?'
+  queryParams.push(String(limit), String(offset))
+
+  const [rows] = await pool.execute(query, queryParams)
+  return rows
+}
+
+// 2. Đếm tổng số cửa hàng thỏa mãn bộ lọc để Frontend phân trang
+const countStoresForManager = async ({ search, isActive, startDate, endDate }) => {
+  let query = `
+    SELECT COUNT(*) as total 
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
+    WHERE 1=1
+  `
+  const queryParams = []
+
+  if (search) {
+    query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
+    queryParams.push(`%${search}%`, `%${search}%`)
+  }
+  if (isActive !== undefined && isActive !== null) {
+    query += ' AND s.is_active = ?'
+    queryParams.push(Number(isActive))
+  }
+  if (startDate) {
+    query += ' AND s.created_at >= ?'
+    queryParams.push(`${startDate} 00:00:00`)
+  }
+  if (endDate) {
+    query += ' AND s.created_at <= ?'
+    queryParams.push(`${endDate} 23:59:59`)
+  }
+
+  const [rows] = await pool.execute(query, queryParams)
+  return rows[0].total
+}
+
+// 3. Xử lý cập nhật trạng thái hoạt động hàng loạt (Checkbox phê duyệt hoặc Khóa loạt)
+const updateStoresStatusBulk = async (storeIds, isActive) => {
+  // Tránh lỗi chạy câu lệnh SQL rỗng nếu FE truyền mảng trống
+  if (!storeIds || storeIds.length === 0) return 0
+
+  const query = `UPDATE stores SET is_active = ? WHERE id IN (${storeIds.map(() => '?').join(',')})`
+  const [result] = await pool.execute(query, [isActive, ...storeIds])
+  return result.affectedRows
+}
+
+// 4. Tìm các user_id là chủ của danh sách các store này để sau này nâng quyền lên VENDOR
+const getOwnerIdsByStoreIds = async (storeIds) => {
+  if (!storeIds || storeIds.length === 0) return []
+  const query = `SELECT owner_id FROM stores WHERE id IN (${storeIds.map(() => '?').join(',')})`
+  const [rows] = await pool.execute(query, storeIds)
+  return rows.map(row => row.owner_id)
+}
+
+// 5. Cập nhật role_id của các chủ shop lên VENDOR khi được duyệt thành công
+const updateUserRolesBulk = async (userIds, roleId) => {
+  if (!userIds || userIds.length === 0) return 0
+  const query = `UPDATE users SET role_id = ? WHERE id IN (${userIds.map(() => '?').join(',')})`
+  const [result] = await pool.execute(query, [roleId, ...userIds])
+  return result.affectedRows
+}
+
+// 6. Lấy id của Role dựa vào tên (Ví dụ: truyền 'VENDOR' lấy ra id tương ứng)
+const getRoleIdByName = async (roleName) => {
+  const query = 'SELECT id FROM roles WHERE name = ?'
+  const [rows] = await pool.execute(query, [roleName])
+  return rows[0] ? rows[0].id : null
+}
+
+const getStoresAndOwnersInfo = async (storeIds) => {
+  if (!storeIds || storeIds.length === 0) return []
+
+  const query = `
+    SELECT s.name AS store_name, u.fullname, u.email 
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
+    WHERE s.id IN (${storeIds.map(() => '?').join(',')})
+  `
+  const [rows] = await pool.execute(query, storeIds)
+  return rows
+}
+
+// Ẩn toàn bộ sản phẩm thuộc danh sách các cửa hàng bị khóa (is_active = false)
+const disableProductsByStoreIds = async (storeIds) => {
+  if (!storeIds || storeIds.length === 0) return 0
+
+  const query = `UPDATE products SET is_active = FALSE WHERE store_id IN (${storeIds.map(() => '?').join(',')})`
+  const [result] = await pool.execute(query, storeIds)
+  return result.affectedRows
+}
+
+// Xóa hoàn toàn các bản ghi store bị từ chối khỏi hệ thống để giải phóng cờ UNIQUE cho owner_id
+const deleteStoresBulk = async (storeIds) => {
+  if (!storeIds || storeIds.length === 0) return 0
+  const query = `DELETE FROM stores WHERE id IN (${storeIds.map(() => '?').join(',')})`
+  const [result] = await pool.execute(query, storeIds)
+  return result.affectedRows
+}
+
+export const managerStoreModel = {
+  getStoresForManager,
+  countStoresForManager,
+  updateStoresStatusBulk,
+  getOwnerIdsByStoreIds,
+  updateUserRolesBulk,
+  getRoleIdByName,
+  getStoresAndOwnersInfo,
+  disableProductsByStoreIds,
+  deleteStoresBulk
+}

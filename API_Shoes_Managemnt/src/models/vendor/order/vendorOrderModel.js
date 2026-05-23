@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { ORDER_STATUS } from '~/utils/constants'
 
 // Lấy thông tin shop dựa vào owner_id của Vendor
 const getStoreByOwnerId = async (ownerId) => {
@@ -131,19 +132,30 @@ const getOrderStatus = async (orderId) => {
 const getOrdersOverviewStats = async (storeId) => {
   const query = `
     SELECT 
-      SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pendingOrders,
-      SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processingOrders,
-      SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) AS shippedOrders,
-      SUM(CASE WHEN status = 'cancel_requested' THEN 1 ELSE 0 END) AS cancelRequestedOrders,
-      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelledOrders
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS pendingOrders,
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS processingOrders,
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS shippedOrders,
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS deliveredOrders,
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS cancelRequestedOrders,
+      SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) AS cancelledOrders
     FROM orders
     WHERE store_id = ?
   `
-  const [rows] = await pool.execute(query, [storeId])
+  const [rows] = await pool.execute(query, [
+    ORDER_STATUS.PENDING,
+    ORDER_STATUS.PROCESSING,
+    ORDER_STATUS.SHIPPED,
+    ORDER_STATUS.DELIVERED,
+    ORDER_STATUS.CANCEL_REQUESTED,
+    ORDER_STATUS.CANCELED,
+    storeId
+  ])
+
   return {
     pendingOrders: Number(rows[0].pendingOrders) || 0,
     processingOrders: Number(rows[0].processingOrders) || 0,
     shippedOrders: Number(rows[0].shippedOrders) || 0,
+    deliveredOrders: Number(rows[0].deliveredOrders) || 0,
     cancelRequestedOrders: Number(rows[0].cancelRequestedOrders) || 0,
     cancelledOrders: Number(rows[0].cancelledOrders) || 0
   }
