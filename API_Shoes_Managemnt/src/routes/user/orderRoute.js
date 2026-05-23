@@ -2,6 +2,7 @@ import express from 'express'
 import { orderController } from '~/controllers/user/orderController'
 import { orderTrackingController } from '~/controllers/user/orderTrackingController'
 import { reviewController } from '~/controllers/user/reviewController'
+import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { authGuard } from '~/middlewares/authGuard'
 
 const router = express.Router()
@@ -16,7 +17,8 @@ router.put('/cancel/:orderId', orderTrackingController.cancelOrderByUser)
 
 router.put('/cancel-withdraw/:orderId', orderTrackingController.withdrawCancelRequest)
 
-router.post('/:orderId/reviews', reviewController.createReview)
+router.post('/:orderId/reviews', CloudinaryProvider.uploadReviewFields,
+  reviewController.createReview)
 
 router.post('/:orderId/store-reviews', reviewController.createStoreReview)
 
