@@ -47,7 +47,7 @@ const getPromotionById = async (id, storeId) => {
 }
 
 // 5. Danh sách khuyến mãi + Phân trang + Tìm kiếm + Lọc đa điều kiện
-const getVendorPromotions = async (storeId, { search, isActive, startDate, endDate, limit, offset }) => {
+const getVendorPromotions = async (storeId, { search, isActive, startDate, endDate, sortBy, sortOrder, limit, offset }) => {
   let query = 'SELECT * FROM promotions WHERE store_id = ?'
   const queryParams = [storeId]
 
@@ -61,18 +61,23 @@ const getVendorPromotions = async (storeId, { search, isActive, startDate, endDa
     query += ' AND is_active = ?'
     queryParams.push(Number(isActive))
   }
-  // Lọc theo ngày bắt đầu (Tìm các mã hoạt động từ ngày này trở đi)
+  // Lọc theo ngày bắt đầu
   if (startDate) {
     query += ' AND start_date >= ?'
     queryParams.push(`${startDate} 00:00:00`)
   }
-  // Lọc theo ngày kết thúc (Tìm các mã hết hạn trước hoặc trong ngày này)
+  // Lọc theo ngày kết thúc
   if (endDate) {
     query += ' AND end_date <= ?'
     queryParams.push(`${endDate} 23:59:59`)
   }
 
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  const allowSortFields = ['created_at', 'discount_value', 'end_date']
+  const finalSortBy = allowSortFields.includes(sortBy) ? sortBy : 'created_at'
+  const finalSortOrder = (sortOrder?.toUpperCase() === 'ASC') ? 'ASC' : 'DESC'
+
+  // Nối chuỗi sắp xếp động vào Query câu lệnh
+  query += ` ORDER BY ${finalSortBy} ${finalSortOrder} LIMIT ? OFFSET ?`
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)

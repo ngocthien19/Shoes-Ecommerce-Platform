@@ -85,11 +85,12 @@ const getVendorPromotions = async (userId, filters) => {
     isActive: filters.isActive !== undefined ? filters.isActive : null,
     startDate: filters.startDate || null,
     endDate: filters.endDate || null,
+    sortBy: filters.sortBy || 'created_at',
+    sortOrder: filters.sortOrder || 'DESC',
     limit,
     offset
   }
 
-  // Chạy song song cả 3 câu lệnh truy vấn để tối ưu hiệu năng tối đa
   const [promotions, totalItems, overviewStats] = await Promise.all([
     vendorPromotionModel.getVendorPromotions(storeId, filterParams),
     vendorPromotionModel.countVendorPromotions(storeId, filterParams),

@@ -15,11 +15,14 @@ const getVendorReviews = async (userId, filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
   const offset = (page - 1) * limit
-  const reviewType = filters.type || 'product' // Mặc định là 'product', ngoài ra có 'store'
+  const reviewType = filters.type || 'product'
 
+  // Gom các tham số bộ lọc bổ sung trường mới
   const filterParams = {
     search: filters.search || null,
     rating: filters.rating || null,
+    isActive: filters.isActive !== undefined ? filters.isActive : null,
+    isReported: filters.isReported !== undefined ? filters.isReported : null,
     limit,
     offset
   }
@@ -27,12 +30,11 @@ const getVendorReviews = async (userId, filters) => {
   let reviews = []
   let totalItems = 0
 
-  // Chạy song song lấy số liệu tổng quan (Widget) phục vụ đầu trang
   const [overviewStats] = await Promise.all([
     vendorReviewModel.getReviewsOverviewStats(storeId)
   ])
 
-  // Rẽ nhánh xử lý dựa vào phân loại Tab đầu trang của Frontend
+  // Rẽ nhánh xử lý dựa vào phân loại Tab
   if (reviewType === 'product') {
     [reviews, totalItems] = await Promise.all([
       vendorReviewModel.getProductReviews(storeId, filterParams),
@@ -77,31 +79,54 @@ const getReviewDetail = async (userId, reviewId, reviewType) => {
 }
 
 // Đệ trình đơn tố cáo, báo cáo vi phạm bình luận lên sàn quản trị
-const reportReview = async (userId, reviewId, reviewType, reportReason) => {
+const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) => {
   const storeId = await getVerifiedStoreId(userId)
-  let isReported = false
+
+  if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
+    throw new Error('Danh sách ID đánh giá không hợp lệ hoặc đang trống.')
+  }
 
   if (!reportReason || reportReason.trim() === '') {
-    throw new Error('Vui lòng cung cấp lý do bạn báo cáo vi phạm bình luận này.')
+    throw new Error('Vui lòng cung cấp lý do bạn báo cáo vi phạm các bình luận này.')
   }
+
+  let affectedRows = 0
 
   if (reviewType === 'product') {
-    isReported = await vendorReviewModel.reportProductReview(reviewId, storeId, reportReason)
+    // Kiểm tra tính chính chủ hàng loạt của mảng ID review sản phẩm
+    const isAllOwner = await vendorReviewModel.checkMultipleProductReviewsOwnership(reviewIds, storeId)
+    if (!isAllOwner) throw new Error('Danh sách chứa đánh giá sản phẩm không thuộc quyền quản lý của shop bạn.')
+
+    // Thực thi cập nhật cờ hàng loạt dưới DB
+    affectedRows = await vendorReviewModel.reportProductReviewsBulk(reviewIds, storeId, reportReason)
+
   } else if (reviewType === 'store') {
-    isReported = await vendorReviewModel.reportStoreReview(reviewId, storeId, reportReason)
+    // Kiểm tra tính chính chủ hàng loạt của mảng ID review cửa hàng
+    const isAllOwner = await vendorReviewModel.checkMultipleStoreReviewsOwnership(reviewIds, storeId)
+    if (!isAllOwner) throw new Error('Danh sách chứa đánh giá cửa hàng không thuộc về shop bạn.')
+
+    // Thực thi cập nhật cờ hàng loạt dưới DB
+    affectedRows = await vendorReviewModel.reportStoreReviewsBulk(reviewIds, storeId, reportReason)
+
   } else {
-    throw new Error('Loại đánh giá không hợp lệ để thực hiện gửi khiếu nại.')
+    throw new Error('Loại đánh giá không hợp lệ để thực hiện gửi khiếu nại hàng loạt.')
   }
 
-  if (!isReported) {
-    throw new Error('Gửi báo cáo thất bại. Bản ghi không tồn tại hoặc không thuộc quyền quản lý của shop.')
+  if (affectedRows === 0) {
+    throw new Error('Gửi báo cáo thất bại. Không có bản ghi nào phù hợp được cập nhật.')
   }
 
-  return { message: 'Đã gửi báo cáo vi phạm lên ban quản trị hệ thống. Nội dung đang được kiểm duyệt.' }
+  return { message: `Đã gửi báo cáo vi phạm thành công cho ${affectedRows} đánh giá lên ban quản trị hệ thống.` }
+}
+
+// 4. Đệ trình đơn tố cáo đơn lẻ (Tối ưu bằng cách tái sử dụng hàm Bulk)
+const reportReview = async (userId, reviewId, reviewType, reportReason) => {
+  return await reportReviewsBulk(userId, [Number(reviewId)], reviewType, reportReason)
 }
 
 export const vendorReviewService = {
   getVendorReviews,
   getReviewDetail,
-  reportReview
+  reportReview,
+  reportReviewsBulk
 }

@@ -52,6 +52,20 @@ const uploadProduct = multer({
   limits: { fileSize: 3 * 1024 * 1024 }
 })
 
+// 4. Cấu hình lưu trữ hình ảnh Feedback Đánh giá từ Khách hàng
+const reviewStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'shoes_store_reviews',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 800, height: 800, crop: 'limit' }]
+  }
+})
+const uploadReview = multer({
+  storage: reviewStorage,
+  limits: { fileSize: 3 * 1024 * 1024 }
+})
+
 export const CloudinaryProvider = {
   cloudinary,
   streamUpload: uploadAvatar.single('avatar'),
@@ -59,5 +73,6 @@ export const CloudinaryProvider = {
     { name: 'logo', maxCount: 1 },
     { name: 'banner', maxCount: 1 }
   ]),
-  uploadProductFields: uploadProduct.array('images', 5)
+  uploadProductFields: uploadProduct.array('images', 10),
+  uploadReviewFields: uploadReview.array('reviewImages', 10)
 }
