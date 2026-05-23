@@ -19,4 +19,10 @@ router.get('/', vendorProductController.getVendorProducts)
 
 router.get('/detail/:id', vendorProductController.getProductDetail)
 
+router.patch('/:id/toggle-active', vendorProductController.toggleProductActiveSingle)
+
+router.patch('/toggle-active-bulk', vendorProductController.toggleProductsActiveBulk)
+
+router.delete('/delete-bulk', vendorProductController.deleteProductsBulk)
+
 export const vendorProductRouter = router
