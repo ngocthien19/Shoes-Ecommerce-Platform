@@ -1,6 +1,7 @@
 import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel'
 import { ORDER_STATUS } from '~/utils/constants'
 
+// Hàm tiện ích xác minh shop hoạt động và lấy store_id
 const getVerifiedStoreId = async (userId) => {
   const store = await vendorOrderModel.getStoreByOwnerId(userId)
   if (!store) throw new Error('Tài khoản chưa đăng ký cửa hàng.')
@@ -8,7 +9,7 @@ const getVerifiedStoreId = async (userId) => {
   return store.id
 }
 
-// Lấy danh sách đơn hàng kèm chi tiết sản phẩm của từng đơn
+// 1. Lấy danh sách đơn hàng kèm chi tiết sản phẩm của từng đơn (Giữ nguyên của b)
 const getVendorOrders = async (userId, filters) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -57,7 +58,35 @@ const getVendorOrders = async (userId, filters) => {
   }
 }
 
-// Cập nhật trạng thái đơn hàng (Theo tuần tự luồng vận đơn)
+// 2. Cập nhật trạng thái hàng loạt cho mảng ID từ Checkbox
+const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    throw new Error('Danh sách mã đơn hàng (IDs) không hợp lệ hoặc đang trống.')
+  }
+
+  // A. Kiểm tra tính hợp lệ của trạng thái đích truyền lên
+  const validStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED]
+  if (!validStatuses.includes(targetStatus)) {
+    throw new Error('Trạng thái cập nhật hàng loạt không hợp lệ.')
+  }
+
+  // B. Chặn bảo mật: Xác minh toàn bộ mảng đơn hàng này 100% thuộc về shop này
+  const isAllOwner = await vendorOrderModel.checkMultipleOrdersOwnership(orderIds, storeId)
+  if (!isAllOwner) {
+    throw new Error('Danh sách đơn hàng chứa mã không thuộc quyền quản lý của shop bạn.')
+  }
+
+  // C. Thực thi cập nhật trạng thái đồng loạt dưới DB bằng toán tử IN
+  const affectedRows = await vendorOrderModel.updateOrderStatusBulk(orderIds, targetStatus, storeId)
+
+  return {
+    message: `Đã cập nhật trạng thái sang [${targetStatus}] thành công cho ${affectedRows} đơn hàng.`
+  }
+}
+
+// 3. Cập nhật trạng thái đơn lẻ (Giữ nguyên logic kiểm tra chặt chẽ ban đầu của b)
 const updateOrderStatus = async (userId, orderId, newStatus) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -82,7 +111,7 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
   return { message: 'Cập nhật trạng thái đơn hàng thành công.' }
 }
 
-// Xử lý yêu cầu hủy đơn từ khách hàng
+// 4. Xử lý yêu cầu hủy đơn từ khách hàng (Giữ nguyên logic phân luồng trường hợp của b)
 const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -104,18 +133,12 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   // TRƯỜNG HỢP 2: Đơn hàng đang chờ Vendor phê duyệt hủy (cancel_requested)
   if (currentStatus === ORDER_STATUS.CANCEL_REQUESTED) {
     if (decision === 'accept') {
-      // Nếu có truyền reason thì lấy reason, không thì để chuỗi mặc định sạch sẽ
       const finalReason = reason ? reason : 'Người bán chấp nhận yêu cầu hủy từ khách hàng.'
-
-      // Chuyển trạng thái sang 'cancelled' và nạp lý do sạch vào DB
       await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELED, finalReason)
       return { message: 'Đã chấp nhận yêu cầu hủy đơn hàng từ khách hàng.' }
 
     } else if (decision === 'reject') {
-      // Nếu có lý do từ chối thì lưu lý do đó, không thì dùng câu mặc định
       const rejectNote = reason ? reason : 'Hàng đã được đóng gói và bàn giao cho đơn vị vận chuyển.'
-
-      // Từ chối hủy, đưa trạng thái đơn hàng quay về lại 'processing' và nạp lý do từ chối vào DB
       await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.PROCESSING, rejectNote)
       return { message: 'Đã từ chối yêu cầu hủy đơn hàng, trạng thái đơn hàng quay về Đang xử lý.' }
 
@@ -125,7 +148,6 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   }
 
   // TRƯỜNG HỢP KHÁC: Đơn hàng đang ở trạng thái processing bình thường (chưa có yêu cầu hủy)
-  // hoặc đã đi giao (shipped, delivered...) thì Vendor không được tự ý gọi API xử lý hủy này.
   if (currentStatus === ORDER_STATUS.PROCESSING) {
     throw new Error('Đơn hàng này chưa gửi yêu cầu hủy. Không thể thực hiện phê duyệt.')
   } else {
@@ -136,5 +158,6 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
 export const vendorOrderService = {
   getVendorOrders,
   updateOrderStatus,
-  handleCancelRequest
+  handleCancelRequest,
+  updateOrderStatusBulk
 }

@@ -8,8 +8,10 @@ router.use(authGuard.isAuthorized)
 
 router.get('/', vendorOrderController.getVendorOrders)
 
-router.put('/:id/status', vendorOrderController.updateOrderStatus)
+router.put('/:id/update-status', vendorOrderController.updateOrderStatus)
 
 router.put('/:id/handle-cancel', vendorOrderController.handleCancelRequest)
+
+router.patch('/update-status-bulk', vendorOrderController.updateOrderStatusBulk)
 
 export const vendorOrderRouter = router
