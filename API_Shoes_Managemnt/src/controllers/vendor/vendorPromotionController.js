@@ -68,13 +68,14 @@ const getPromotionById = async (req, res) => {
 const getVendorPromotions = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { page, limit, search, is_active, start_date, end_date } = req.query
+    const { page, limit, search, is_active, start_date, end_date, sortBy, sortOrder } = req.query
 
     const result = await vendorPromotionService.getVendorPromotions(userId, {
       page, limit, search,
       isActive: is_active,
       startDate: start_date,
-      endDate: end_date
+      endDate: end_date,
+      sortBy, sortOrder
     })
     return res.status(200).json(result)
   } catch (error) {

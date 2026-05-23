@@ -4,10 +4,10 @@ import { vendorReviewService } from '~/services/vendor/vendorReviewService'
 const getVendorReviews = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { page, limit, type, rating, search } = req.query
+    const { page, limit, type, rating, search, isActive, isReported } = req.query
 
     const result = await vendorReviewService.getVendorReviews(userId, {
-      page, limit, type, rating, search
+      page, limit, type, rating, search, isActive, isReported
     })
     return res.status(200).json(result)
   } catch (error) {
@@ -52,8 +52,34 @@ const reportReview = async (req, res) => {
   }
 }
 
+// 4. PATCH gửi đơn tố cáo hàng loạt từ tích chọn Checkbox
+const reportReviewsBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { type } = req.query
+    const { reviewIds, reason } = req.body
+
+    if (!type) {
+      return res.status(400).json({ message: 'Tham số phân loại đánh giá (type=product/store) là bắt buộc.' })
+    }
+
+    if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
+      return res.status(400).json({ message: 'Danh sách mã đánh giá (reviewIds) phải là một mảng và không được trống.' })
+    }
+
+    // Chặn undefined cho lý do báo cáo vi phạm, ép về câu lý do mặc định sạch sẽ nếu trống
+    const finalReason = reason !== undefined ? reason : 'Nội dung đánh giá không phù hợp hoặc chứa từ ngữ vi phạm tiêu chuẩn cộng đồng.'
+
+    const result = await vendorReviewService.reportReviewsBulk(userId, reviewIds, type, finalReason)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi gửi báo cáo khiếu nại hàng loạt đánh giá: ${error.message}` })
+  }
+}
+
 export const vendorReviewController = {
   getVendorReviews,
   getReviewDetail,
-  reportReview
+  reportReview,
+  reportReviewsBulk
 }
