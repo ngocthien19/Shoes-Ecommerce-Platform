@@ -54,9 +54,56 @@ const rejectStoresBulk = async (req, res) => {
   }
 }
 
+const getStoreDetail = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await managerStoreService.getStoreDetail(id)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi lấy chi tiết gian hàng: ${error.message}` })
+  }
+}
+
+const approveStoreSingle = async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await managerStoreService.approveStoreSingle(id)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi phê duyệt cửa hàng: ${error.message}` })
+  }
+}
+
+const rejectStoreSingle = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body // Nhận lý do từ chối đăng ký
+    const result = await managerStoreService.rejectStoreSingle(id, reason)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi từ chối đơn đăng ký: ${error.message}` })
+  }
+}
+
+const banStoreSingle = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { reason } = req.body // Nhận lý do khóa shop
+    const result = await managerStoreService.banStoreSingle(id, reason)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khóa cửa hàng vi phạm: ${error.message}` })
+  }
+}
+
 export const managerStoreController = {
   getStoresList,
   approveStoresBulk,
   banStoresBulk,
-  rejectStoresBulk
+  rejectStoresBulk,
+  getStoreDetail,
+  approveStoreSingle,
+  rejectStoreSingle,
+  banStoreSingle
 }

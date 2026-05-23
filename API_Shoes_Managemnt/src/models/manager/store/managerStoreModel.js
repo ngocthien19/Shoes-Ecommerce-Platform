@@ -135,6 +135,50 @@ const deleteStoresBulk = async (storeIds) => {
   return result.affectedRows
 }
 
+// Thống kê số liệu cửa hàng chuẩn xác 100% phục vụ các thẻ Widget của Manager
+const getStoresOverviewStats = async () => {
+  const query = `
+    SELECT 
+      COUNT(s.id) AS totalStores,
+      SUM(CASE WHEN s.is_active = 1 THEN 1 ELSE 0 END) AS activeStores,
+      SUM(CASE WHEN s.is_active = 0 AND u.role_id = (SELECT id FROM roles WHERE name = 'USER' LIMIT 1) THEN 1 ELSE 0 END) AS pendingStores,
+      SUM(CASE WHEN s.is_active = 0 AND u.role_id = (SELECT id FROM roles WHERE name = 'VENDOR' LIMIT 1) THEN 1 ELSE 0 END) AS bannedStores
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
+  `
+  const [rows] = await pool.execute(query)
+  return {
+    totalStores: Number(rows[0].totalStores) || 0,
+    activeStores: Number(rows[0].activeStores) || 0,
+    pendingStores: Number(rows[0].pendingStores) || 0,
+    bannedStores: Number(rows[0].bannedStores) || 0
+  }
+}
+
+// Lấy thông tin chi tiết của 1 cửa hàng cụ thể kèm thông tin chủ shop và tổng số sản phẩm
+const getStoreDetailForManager = async (storeId) => {
+  const query = `
+    SELECT 
+      s.*,
+      u.fullname AS owner_name,
+      u.email AS owner_email,
+      u.phone AS owner_phone,
+      u.created_at AS owner_joined_at,
+      (SELECT COUNT(*) FROM products WHERE store_id = s.id) AS total_products
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
+    WHERE s.id = ?
+  `
+  const [rows] = await pool.execute(query, [storeId])
+  return rows[0] || null
+}
+
+const updateStoreStatusSingle = async (storeId, isActive) => {
+  const query = 'UPDATE stores SET is_active = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [isActive, storeId])
+  return result.affectedRows
+}
+
 export const managerStoreModel = {
   getStoresForManager,
   countStoresForManager,
@@ -144,5 +188,8 @@ export const managerStoreModel = {
   getRoleIdByName,
   getStoresAndOwnersInfo,
   disableProductsByStoreIds,
-  deleteStoresBulk
+  deleteStoresBulk,
+  getStoresOverviewStats,
+  getStoreDetailForManager,
+  updateStoreStatusSingle
 }
