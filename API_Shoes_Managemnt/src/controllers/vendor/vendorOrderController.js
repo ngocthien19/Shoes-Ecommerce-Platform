@@ -59,8 +59,26 @@ const handleCancelRequest = async (req, res) => {
   }
 }
 
+// PATCH xử lý hàng loạt đơn hàng từ tích chọn Checkbox
+const updateOrderStatusBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { orderIds, targetStatus } = req.body
+
+    if (!Array.isArray(orderIds) || orderIds.length === 0 || !targetStatus) {
+      return res.status(400).json({ message: 'Danh sách mã đơn hàng (mảng) và trạng thái đích là bắt buộc.' })
+    }
+
+    const result = await vendorOrderService.updateOrderStatusBulk(userId, orderIds, targetStatus)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi cập nhật hàng loạt đơn hàng: ${error.message}` })
+  }
+}
+
 export const vendorOrderController = {
   getVendorOrders,
   updateOrderStatus,
-  handleCancelRequest
+  handleCancelRequest,
+  updateOrderStatusBulk
 }

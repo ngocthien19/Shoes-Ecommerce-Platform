@@ -161,6 +161,23 @@ const getOrdersOverviewStats = async (storeId) => {
   }
 }
 
+// Toàn bộ danh sách mã đơn hàng này có phải đều đặt tại Shop này không
+const checkMultipleOrdersOwnership = async (orderIds, storeId) => {
+  if (!orderIds || orderIds.length === 0) return false
+
+  const query = 'SELECT COUNT(*) AS validCount FROM orders WHERE id IN (?) AND store_id = ?'
+  const [rows] = await pool.query(query, [orderIds, storeId])
+
+  return rows[0].validCount === orderIds.length
+}
+
+// Cập nhật trạng thái hàng loạt cho mảng ID đơn hàng từ Checkbox
+const updateOrderStatusBulk = async (orderIds, status, storeId) => {
+  const query = 'UPDATE orders SET status = ? WHERE id IN (?) AND store_id = ?'
+  const [result] = await pool.query(query, [status, orderIds, storeId])
+  return result.affectedRows
+}
+
 export const vendorOrderModel = {
   getStoreByOwnerId,
   getVendorOrders,
@@ -169,5 +186,7 @@ export const vendorOrderModel = {
   updateOrderStatus,
   checkOrderOwnership,
   getOrderStatus,
-  getOrdersOverviewStats
+  getOrdersOverviewStats,
+  checkMultipleOrdersOwnership,
+  updateOrderStatusBulk
 }
