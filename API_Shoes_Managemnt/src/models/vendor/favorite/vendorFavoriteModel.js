@@ -106,9 +106,41 @@ const getFavoritesOverviewStats = async (storeId) => {
   }
 }
 
+// 4. Lấy danh sách chi tiết những khách hàng đã thả tim vào một sản phẩm cụ thể (Có phân trang)
+const getUsersWhoFavoritedProduct = async (productId, { limit, offset }) => {
+  const query = `
+    SELECT f.user_id, u.fullname, u.email, u.avatar, f.product_id, p.name AS product_name, p.slug AS product_slug
+    FROM favorites f
+    JOIN users u ON f.user_id = u.id
+    JOIN products p ON f.product_id = p.id
+    WHERE f.product_id = ?
+    ORDER BY u.fullname ASC
+    LIMIT ? OFFSET ?
+  `
+  const [rows] = await pool.execute(query, [productId, String(limit), String(offset)])
+  return rows
+}
+
+// 5. Đếm tổng số lượng khách hàng đã thả tim vào sản phẩm đó để tính tổng số trang
+const countUsersWhoFavoritedProduct = async (productId) => {
+  const query = 'SELECT COUNT(*) AS total FROM favorites WHERE product_id = ?'
+  const [rows] = await pool.execute(query, [productId])
+  return rows[0].total
+}
+
+// 6. Kiểm tra xem một sản phẩm bất kỳ có thuộc quyền sở hữu của Store này không
+const checkProductBelongsToStore = async (productId, storeId) => {
+  const query = 'SELECT id FROM products WHERE id = ? AND store_id = ?'
+  const [rows] = await pool.execute(query, [productId, storeId])
+  return rows.length > 0
+}
+
 export const vendorFavoriteModel = {
   getStoreByOwnerId,
   getMostFavoritedProducts,
   countFavoritedProductsUnique,
-  getFavoritesOverviewStats
+  getFavoritesOverviewStats,
+  getUsersWhoFavoritedProduct,
+  countUsersWhoFavoritedProduct,
+  checkProductBelongsToStore
 }

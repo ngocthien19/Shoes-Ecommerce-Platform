@@ -8,4 +8,6 @@ router.use(authGuard.isAuthorized)
 
 router.get('/', vendorFavoriteController.getFavoriteAnalytics)
 
+router.get('/:id/users', vendorFavoriteController.getProductFavoriteDetail)
+
 export const vendorFavoriteRouter = router
