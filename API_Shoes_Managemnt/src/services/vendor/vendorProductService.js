@@ -162,11 +162,70 @@ const getProductDetail = async (userId, productId) => {
   return productDetail
 }
 
+// Bật/Tắt trạng thái hoạt động hàng loạt (is_active = 1 hoặc 0)
+const toggleProductsActiveBulk = async (userId, productIds, isActive) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  // Kiểm tra tính chính chủ của toàn bộ mảng ID sản phẩm
+  const isAllOwner = await vendorProductModel.checkMultipleProductsOwnership(productIds, storeId)
+  if (!isAllOwner) {
+    throw new Error('Danh sách sản phẩm chứa mã không thuộc quyền sở hữu của cửa hàng bạn.')
+  }
+
+  const affectedRows = await vendorProductModel.updateProductsStatusBulk(productIds, Number(isActive), storeId)
+
+  return {
+    message: isActive
+      ? `Đã mở bán lại thành công ${affectedRows} sản phẩm đã chọn.`
+      : `Đã tạm ẩn hiển thị thành công ${affectedRows} sản phẩm đã chọn.`
+  }
+}
+
+// Xóa cứng hàng loạt sản phẩm + Dọn sạch kho ảnh Cloudinary
+const deleteProductsBulk = async (userId, productIds) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  const isAllOwner = await vendorProductModel.checkMultipleProductsOwnership(productIds, storeId)
+  if (!isAllOwner) {
+    throw new Error('Danh sách sản phẩm chứa mã không thuộc quyền sở hữu của cửa hàng bạn.')
+  }
+
+  // 1. Quét qua DB lấy toàn bộ mảng ảnh của đống sản phẩm này để xóa sạch trên Cloudinary trước
+  const productsImageList = await vendorProductModel.getMultipleProductImages(productIds, storeId)
+
+  for (const p of productsImageList) {
+    if (p.images) {
+      try {
+        const imagesArray = JSON.parse(p.images)
+        for (const img of imagesArray) {
+          if (img.public_id) {
+            await CloudinaryProvider.cloudinary.uploader.destroy(img.public_id)
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi phát sinh khi dọn ảnh bulk trên Cloudinary:', err.message)
+      }
+    }
+  }
+
+  // 2. Thực hiện xóa cứng đồng loạt dưới MySQL
+  const affectedRows = await vendorProductModel.hardDeleteProductsBulk(productIds, storeId)
+
+  return { message: `Đã xóa hoàn toàn dữ liệu của ${affectedRows} sản phẩm thành công.` }
+}
+
+const toggleProductActiveSingle = async (userId, productId, isActive) => {
+  return await toggleProductsActiveBulk(userId, [Number(productId)], isActive)
+}
+
 export const vendorProductService = {
   createProduct,
   updateProduct,
   deleteProduct,
   createVariant,
   getVendorProducts,
-  getProductDetail
+  getProductDetail,
+  toggleProductsActiveBulk,
+  deleteProductsBulk,
+  toggleProductActiveSingle
 }

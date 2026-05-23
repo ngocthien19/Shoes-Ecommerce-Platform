@@ -184,6 +184,39 @@ const getProductsOverviewStats = async (storeId) => {
   }
 }
 
+// 12. Kiểm tra danh sách ID sản phẩm từ Checkbox xem có hoàn toàn thuộc về Store này không
+const checkMultipleProductsOwnership = async (productIds, storeId) => {
+  if (!productIds || productIds.length === 0) return false
+
+  // Đếm xem trong mảng productIds truyền lên, có bao nhiêu sản phẩm thuộc storeId này
+  const query = 'SELECT COUNT(*) AS validCount FROM products WHERE id IN (?) AND store_id = ?'
+  const [rows] = await pool.query(query, [productIds, storeId])
+
+  // Nếu số lượng khớp 100% với độ dài mảng gửi lên -> Toàn bộ sản phẩm là chính chủ
+  return rows[0].validCount === productIds.length
+}
+
+// 13. Cập nhật trạng thái (is_active = TRUE/FALSE) hàng loạt cho Checkbox
+const updateProductsStatusBulk = async (productIds, isActive, storeId) => {
+  const query = 'UPDATE products SET is_active = ? WHERE id IN (?) AND store_id = ?'
+  const [result] = await pool.query(query, [isActive, productIds, storeId])
+  return result.affectedRows
+}
+
+// 14. Lấy toàn bộ thông tin hình ảnh của danh sách sản phẩm trước khi xóa hàng loạt
+const getMultipleProductImages = async (productIds, storeId) => {
+  const query = 'SELECT images FROM products WHERE id IN (?) AND store_id = ?'
+  const [rows] = await pool.query(query, [productIds, storeId])
+  return rows
+}
+
+// 15. Xóa cứng hàng loạt sản phẩm từ Checkbox
+const hardDeleteProductsBulk = async (productIds, storeId) => {
+  const query = 'DELETE FROM products WHERE id IN (?) AND store_id = ?'
+  const [result] = await pool.query(query, [productIds, storeId])
+  return result.affectedRows
+}
+
 export const vendorProductModel = {
   getStoreByOwnerId,
   checkProductOwnership,
@@ -195,5 +228,9 @@ export const vendorProductModel = {
   getVendorProductsWithFilters,
   countVendorProductsWithFilters,
   getProductDetailWithVariants,
-  getProductsOverviewStats
+  getProductsOverviewStats,
+  checkMultipleProductsOwnership,
+  updateProductsStatusBulk,
+  getMultipleProductImages,
+  hardDeleteProductsBulk
 }
