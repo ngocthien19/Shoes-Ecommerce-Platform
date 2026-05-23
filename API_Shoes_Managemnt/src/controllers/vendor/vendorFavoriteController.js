@@ -22,6 +22,20 @@ const getFavoriteAnalytics = async (req, res) => {
   }
 }
 
+const getProductFavoriteDetail = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { id } = req.params
+    const { page, limit } = req.query
+
+    const result = await vendorFavoriteService.getProductFavoriteDetail(userId, Number(id), { page, limit })
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải chi tiết danh sách người thích sản phẩm: ${error.message}` })
+  }
+}
+
 export const vendorFavoriteController = {
-  getFavoriteAnalytics
+  getFavoriteAnalytics,
+  getProductFavoriteDetail
 }

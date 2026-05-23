@@ -41,6 +41,38 @@ const getFavoriteAnalytics = async (userId, filters) => {
   }
 }
 
+const getProductFavoriteDetail = async (userId, productId, paginationFilters) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  // 🌟 ĐÃ SỬA: Gọi hàm từ Model thay vì viết câu lệnh SQL trực tiếp tại đây
+  const isOwner = await vendorFavoriteModel.checkProductBelongsToStore(productId, storeId)
+  if (!isOwner) {
+    throw new Error('Sản phẩm không tồn tại hoặc không thuộc quyền sở hữu của cửa hàng bạn.')
+  }
+
+  const page = Number(paginationFilters.page) || 1
+  const limit = Number(paginationFilters.limit) || 10
+  const offset = (page - 1) * limit
+
+  // Chạy song song bốc danh sách user và đếm tổng số lượng
+  const [users, totalItems] = await Promise.all([
+    vendorFavoriteModel.getUsersWhoFavoritedProduct(productId, { limit, offset }),
+    vendorFavoriteModel.countUsersWhoFavoritedProduct(productId)
+  ])
+
+  return {
+    productId,
+    pagination: {
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
+      currentPage: page,
+      limit
+    },
+    users
+  }
+}
+
 export const vendorFavoriteService = {
-  getFavoriteAnalytics
+  getFavoriteAnalytics,
+  getProductFavoriteDetail
 }
