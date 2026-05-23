@@ -125,6 +125,35 @@ const getPromotionsOverviewStats = async (storeId) => {
   }
 }
 
+// 8. Kiểm tra tính chính chủ của một danh sách ID khuyến mãi từ Checkbox
+const checkMultiplePromotionsOwnership = async (promotionIds, storeId) => {
+  if (!promotionIds || promotionIds.length === 0) return false
+  const query = 'SELECT COUNT(*) AS validCount FROM promotions WHERE id IN (?) AND store_id = ?'
+  const [rows] = await pool.query(query, [promotionIds, storeId])
+  return rows[0].validCount === promotionIds.length
+}
+
+// 9. Cập nhật trạng thái (is_active) hàng loạt cho Checkbox
+const updatePromotionsStatusBulk = async (promotionIds, isActive, storeId) => {
+  const query = 'UPDATE promotions SET is_active = ? WHERE id IN (?) AND store_id = ?'
+  const [result] = await pool.query(query, [isActive, promotionIds, storeId])
+  return result.affectedRows
+}
+
+// 10. Xóa cứng hàng loạt chương trình khuyến mãi từ Checkbox (product_promotions tự động xóa theo cascade)
+const deletePromotionsBulk = async (promotionIds, storeId) => {
+  const query = 'DELETE FROM promotions WHERE id IN (?) AND store_id = ?'
+  const [result] = await pool.query(query, [promotionIds, storeId])
+  return result.affectedRows
+}
+
+// 11. Cập nhật trạng thái ẩn/hiện đơn lẻ (Phục vụ nút gạt Switch trên từng dòng Table)
+const updatePromotionStatusSingle = async (id, isActive, storeId) => {
+  const query = 'UPDATE promotions SET is_active = ? WHERE id = ? AND store_id = ?'
+  const [result] = await pool.execute(query, [isActive, id, storeId])
+  return result.affectedRows > 0
+}
+
 export const vendorPromotionModel = {
   getStoreByOwnerId,
   createPromotion,
@@ -133,5 +162,9 @@ export const vendorPromotionModel = {
   getPromotionById,
   getVendorPromotions,
   countVendorPromotions,
-  getPromotionsOverviewStats
+  getPromotionsOverviewStats,
+  checkMultiplePromotionsOwnership,
+  updatePromotionsStatusBulk,
+  deletePromotionsBulk,
+  updatePromotionStatusSingle
 }

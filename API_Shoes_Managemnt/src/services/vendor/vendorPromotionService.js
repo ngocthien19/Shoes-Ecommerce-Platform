@@ -1,4 +1,4 @@
-import { vendorPromotionModel } from '~/models/vendor/promotion/vendorPromotionModel.js'
+import { vendorPromotionModel } from '~/models/vendor/promotion/vendorPromotionModel'
 
 const getVerifiedStoreId = async (userId) => {
   const store = await vendorPromotionModel.getStoreByOwnerId(userId)
@@ -108,10 +108,53 @@ const getVendorPromotions = async (userId, filters) => {
   }
 }
 
+// 6. Checkbox hành động 1: Thay đổi trạng thái hoạt động hàng loạt
+const togglePromotionsActiveBulk = async (userId, promotionIds, isActive) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  if (!Array.isArray(promotionIds) || promotionIds.length === 0) throw new Error('Danh sách ID không hợp lệ.')
+
+  const isAllOwner = await vendorPromotionModel.checkMultiplePromotionsOwnership(promotionIds, storeId)
+  if (!isAllOwner) throw new Error('Danh sách khuyến mãi chứa mã không thuộc quyền sở hữu của shop bạn.')
+
+  const affectedRows = await vendorPromotionModel.updatePromotionsStatusBulk(promotionIds, Number(isActive), storeId)
+  return {
+    message: isActive
+      ? `Đã kích hoạt hoạt động hàng loạt ${affectedRows} mã khuyến mãi.`
+      : `Đã tạm dừng hoạt động hàng loạt ${affectedRows} mã khuyến mãi.`
+  }
+}
+
+// 7. Checkbox hành động 2: Xóa cứng hàng loạt khuyến mãi được chọn
+const deletePromotionsBulk = async (userId, promotionIds) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  if (!Array.isArray(promotionIds) || promotionIds.length === 0) throw new Error('Danh sách ID cần xóa trống.')
+
+  const isAllOwner = await vendorPromotionModel.checkMultiplePromotionsOwnership(promotionIds, storeId)
+  if (!isAllOwner) throw new Error('Danh sách khuyến mãi chứa mã không thuộc quyền sở hữu của shop bạn.')
+
+  const affectedRows = await vendorPromotionModel.deletePromotionsBulk(promotionIds, storeId)
+  return { message: `Đã xóa hoàn toàn dữ liệu của ${affectedRows} chiến dịch khuyến mãi thành công.` }
+}
+
+// 8. Thay đổi trạng thái ẩn/hiện đơn lẻ
+const togglePromotionActiveSingle = async (userId, promotionId, isActive) => {
+  const storeId = await getVerifiedStoreId(userId)
+
+  const success = await vendorPromotionModel.updatePromotionStatusSingle(promotionId, Number(isActive), storeId)
+  if (!success) throw new Error('Cập nhật trạng thái thất bại hoặc mã không tồn tại.')
+
+  return { message: isActive ? 'Đã kích hoạt chương trình khuyến mãi.' : 'Đã tạm dừng chương trình khuyến mãi.' }
+}
+
 export const vendorPromotionService = {
   createPromotion,
   updatePromotion,
   deletePromotion,
   getPromotionById,
-  getVendorPromotions
+  getVendorPromotions,
+  togglePromotionsActiveBulk,
+  deletePromotionsBulk,
+  togglePromotionActiveSingle
 }
