@@ -25,4 +25,6 @@ router.patch('/toggle-active-bulk', vendorProductController.toggleProductsActive
 
 router.delete('/delete-bulk', vendorProductController.deleteProductsBulk)
 
+router.patch('/request-reapproval-bulk', vendorProductController.requestProductsReapprovalBulk)
+
 export const vendorProductRouter = router

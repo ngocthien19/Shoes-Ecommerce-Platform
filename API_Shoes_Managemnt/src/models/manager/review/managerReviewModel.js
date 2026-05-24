@@ -107,8 +107,20 @@ const getProductReviewDetail = async (reviewId) => {
 
 // 3. Xử lý hàng loạt Đánh giá sản phẩm (Giữ nguyên phom của b)
 const handleProductReviewsBulk = async (reviewIds, isActive) => {
-  const query = 'UPDATE product_reviews SET is_active = ?, is_reported = FALSE WHERE id IN (?)'
-  const [result] = await pool.query(query, [isActive, reviewIds])
+  const placeholders = reviewIds.map(() => '?').join(', ')
+
+  // - Nếu isActive = true (Manager muốn mở lại) -> Chỉ quét những dòng có is_active = FALSE (0)
+  // - Nếu isActive = false (Manager muốn ẩn bài) -> Chỉ quét những dòng có is_active = TRUE (1)
+  const currentActiveRequired = isActive ? 0 : 1
+
+  const query = `
+    UPDATE product_reviews 
+    SET is_active = ?, is_reported = FALSE 
+    WHERE id IN (${placeholders}) AND is_reported = TRUE AND is_active = ?
+  `
+
+  // Nạp tham số khớp lệnh theo thứ tự các dấu ?
+  const [result] = await pool.execute(query, [isActive, ...reviewIds, currentActiveRequired])
   return result.affectedRows
 }
 
@@ -208,8 +220,17 @@ const getStoreReviewDetail = async (reviewId) => {
 
 // 3. Xử lý hàng loạt Đánh giá cửa hàng
 const handleStoreReviewsBulk = async (reviewIds, isActive) => {
-  const query = 'UPDATE store_reviews SET is_active = ?, is_reported = FALSE WHERE id IN (?)'
-  const [result] = await pool.query(query, [isActive, reviewIds])
+  const placeholders = reviewIds.map(() => '?').join(', ')
+
+  const currentActiveRequired = isActive ? 0 : 1
+
+  const query = `
+    UPDATE store_reviews 
+    SET is_active = ?, is_reported = FALSE 
+    WHERE id IN (${placeholders}) AND is_reported = TRUE AND is_active = ?
+  `
+
+  const [result] = await pool.execute(query, [isActive, ...reviewIds, currentActiveRequired])
   return result.affectedRows
 }
 

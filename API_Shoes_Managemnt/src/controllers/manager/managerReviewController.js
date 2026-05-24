@@ -6,7 +6,7 @@ const getReportedReviews = async (req, res) => {
   try {
     const { page, limit, type, rating, search, storeId, startDate, endDate, sortBy, sortOrder } = req.query
 
-    // 🌟 Đã bọc thêm validate type ngay tại danh sách để chặn request bậy bạ làm hỏng SQL ngầm
+    // Đã bọc thêm validate type ngay tại danh sách để chặn request bậy bạ làm hỏng SQL ngầm
     if (type && !Object.values(REVIEW_TYPES).includes(type)) {
       return res.status(400).json({ message: 'Tham số phân loại \'type\' không hợp lệ. Chỉ chấp nhận product hoặc store.' })
     }
@@ -47,8 +47,8 @@ const resolveReviewsBulk = async (req, res) => {
       return res.status(400).json({ message: 'Tham số phân loại \'type\' không hợp lệ. Chỉ chấp nhận product hoặc store.' })
     }
 
-    if (!action || !['accept', 'reject'].includes(action)) {
-      return res.status(400).json({ message: 'Hành động \'action\' không hợp lệ. Chỉ chấp nhận \'accept\' hoặc \'reject\'.' })
+    if (!action || !['approved', 'banned'].includes(action)) {
+      return res.status(400).json({ message: 'Hành động \'action\' không hợp lệ. Chỉ chấp nhận \'approved\' hoặc \'banned\'.' })
     }
 
     const result = await managerReviewService.resolveReviewsBulk(reviewIds, type, action)

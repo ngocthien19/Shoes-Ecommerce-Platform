@@ -77,9 +77,28 @@ const reportReviewsBulk = async (req, res) => {
   }
 }
 
+// 5. PATCH: Gửi yêu cầu mở lại các đánh giá bị ẩn (Hỗ trợ cả nút bấm lẻ 1 hàng lẫn Checkbox hàng loạt)
+const requestReviewsReopenBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { type } = req.query
+    const { reviewIds, reason } = req.body
+
+    if (!type) {
+      return res.status(400).json({ message: 'Tham số phân loại đánh giá (type=product/store) là bắt buộc.' })
+    }
+
+    const result = await vendorReviewService.requestReviewsReopenBulk(userId, reviewIds, type, reason)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi gửi yêu cầu mở lại đánh giá: ${error.message}` })
+  }
+}
+
 export const vendorReviewController = {
   getVendorReviews,
   getReviewDetail,
   reportReview,
-  reportReviewsBulk
+  reportReviewsBulk,
+  requestReviewsReopenBulk
 }

@@ -174,6 +174,14 @@ const toggleProductsActiveBulk = async (userId, productIds, isActive) => {
 
   const affectedRows = await vendorProductModel.updateProductsStatusBulk(productIds, Number(isActive), storeId)
 
+  if (affectedRows < productIds.length) {
+    // Nếu Vendor đang bật hoạt động lại (isActive = true) mà bị hụt số dòng ảnh hưởng
+    if (isActive) {
+      throw new Error(
+        'Không thể tự kích hoạt lại hoạt động! Trong danh sách có sản phẩm đã bị Ban quản trị khóa (Banned). Vui lòng gửi yêu cầu phê duyệt để được mở lại.'
+      )
+    }
+  }
   return {
     message: isActive
       ? `Đã mở bán lại thành công ${affectedRows} sản phẩm đã chọn.`
@@ -218,6 +226,30 @@ const toggleProductActiveSingle = async (userId, productId, isActive) => {
   return await toggleProductsActiveBulk(userId, [Number(productId)], isActive)
 }
 
+const requestProductsReapprovalBulk = async (userId, productIds) => {
+  const store = await vendorProductModel.getStoreByOwnerId(userId)
+  if (!store) throw new Error('Cửa hàng không tồn tại trên hệ thống.')
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    throw new Error('Danh sách ID sản phẩm gửi yêu cầu không hợp lệ.')
+  }
+
+  // 1. Kiểm tra tính chính chủ sở hữu của mảng ID sản phẩm
+  const isAllOwner = await vendorProductModel.checkMultipleProductsOwnership(productIds, store.id)
+  if (!isAllOwner) throw new Error('Danh sách chứa sản phẩm không thuộc quyền quản lý của shop.')
+
+  // 2. Thực thi cập nhật status sang 'pending_reapproval' dưới DB
+  const affectedRows = await vendorProductModel.requestProductsReapprovalBulk(productIds, store.id)
+
+  if (affectedRows === 0) {
+    throw new Error('Gửi yêu cầu thất bại. Có thể các sản phẩm được chọn không nằm trong trạng thái bị Banned.')
+  }
+
+  return {
+    message: `Đã gửi yêu cầu phê duyệt lại thành công cho ${affectedRows} sản phẩm lên Ban quản trị sàn.`
+  }
+}
+
 export const vendorProductService = {
   createProduct,
   updateProduct,
@@ -227,5 +259,6 @@ export const vendorProductService = {
   getProductDetail,
   toggleProductsActiveBulk,
   deleteProductsBulk,
-  toggleProductActiveSingle
+  toggleProductActiveSingle,
+  requestProductsReapprovalBulk
 }

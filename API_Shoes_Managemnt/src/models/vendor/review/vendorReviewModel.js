@@ -253,6 +253,31 @@ const reportStoreReviewsBulk = async (reviewIds, storeId, reportReason) => {
   return result.affectedRows
 }
 
+// 12. Gửi yêu cầu mở lại Đánh giá sản phẩm bị ẩn (Chỉ áp dụng khi is_active = FALSE và chưa bị report lại)
+const requestProductReviewReopenBulk = async (reviewIds, storeId, reason) => {
+  const placeholders = reviewIds.map(() => '?').join(', ')
+  const query = `
+    UPDATE product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    SET pr.is_reported = TRUE, pr.report_reason = ?
+    WHERE pr.id IN (${placeholders}) AND p.store_id = ? AND pr.is_active = FALSE AND pr.is_reported = FALSE
+  `
+  const [result] = await pool.query(query, [reason, ...reviewIds, storeId])
+  return result.affectedRows
+}
+
+// 13. Gửi yêu cầu mở lại Đánh giá cửa hàng bị ẩn (Chỉ áp dụng khi is_active = FALSE và chưa bị report lại)
+const requestStoreReviewReopenBulk = async (reviewIds, storeId, reason) => {
+  const placeholders = reviewIds.map(() => '?').join(', ')
+  const query = `
+    UPDATE store_reviews 
+    SET is_reported = TRUE, report_reason = ?
+    WHERE id IN (${placeholders}) AND store_id = ? AND is_active = FALSE AND is_reported = FALSE
+  `
+  const [result] = await pool.query(query, [reason, ...reviewIds, storeId])
+  return result.affectedRows
+}
+
 export const vendorReviewModel = {
   getStoreByOwnerId,
   getProductReviews,
@@ -267,5 +292,7 @@ export const vendorReviewModel = {
   checkMultipleProductReviewsOwnership,
   reportProductReviewsBulk,
   checkMultipleStoreReviewsOwnership,
-  reportStoreReviewsBulk
+  reportStoreReviewsBulk,
+  requestProductReviewReopenBulk,
+  requestStoreReviewReopenBulk
 }
