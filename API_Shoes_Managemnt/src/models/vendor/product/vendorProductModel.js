@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 
 // 1. Lấy thông tin shop dựa vào owner_id của Vendor để lấy store_id và kiểm tra quyền
 const getStoreByOwnerId = async (ownerId) => {
@@ -198,8 +199,12 @@ const checkMultipleProductsOwnership = async (productIds, storeId) => {
 
 // 13. Cập nhật trạng thái (is_active = TRUE/FALSE) hàng loạt cho Checkbox
 const updateProductsStatusBulk = async (productIds, isActive, storeId) => {
-  const query = 'UPDATE products SET is_active = ? WHERE id IN (?) AND store_id = ?'
-  const [result] = await pool.query(query, [isActive, productIds, storeId])
+  const query = `
+    UPDATE products 
+    SET is_active = ? 
+    WHERE id IN (?) AND store_id = ? AND status = ?
+  `
+  const [result] = await pool.query(query, [isActive, productIds, storeId, PRODUCT_MODERATION_STATUS.APPROVED])
   return result.affectedRows
 }
 
@@ -214,6 +219,26 @@ const getMultipleProductImages = async (productIds, storeId) => {
 const hardDeleteProductsBulk = async (productIds, storeId) => {
   const query = 'DELETE FROM products WHERE id IN (?) AND store_id = ?'
   const [result] = await pool.query(query, [productIds, storeId])
+  return result.affectedRows
+}
+
+// 16. Vendor gửi yêu cầu phê duyệt lại cho danh sách sản phẩm bị Banned
+const requestProductsReapprovalBulk = async (productIds, storeId) => {
+  const placeholders = productIds.map(() => '?').join(', ')
+
+  const query = `
+    UPDATE products 
+    SET status = ? 
+    WHERE id IN (${placeholders}) AND store_id = ? AND status = ?
+  `
+
+  const [result] = await pool.execute(query, [
+    PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL,
+    ...productIds,
+    storeId,
+    PRODUCT_MODERATION_STATUS.BANNED
+  ])
+
   return result.affectedRows
 }
 
@@ -232,5 +257,6 @@ export const vendorProductModel = {
   checkMultipleProductsOwnership,
   updateProductsStatusBulk,
   getMultipleProductImages,
-  hardDeleteProductsBulk
+  hardDeleteProductsBulk,
+  requestProductsReapprovalBulk
 }

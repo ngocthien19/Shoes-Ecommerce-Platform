@@ -14,4 +14,6 @@ router.put('/:id/report', vendorReviewController.reportReview)
 
 router.patch('/report-bulk', vendorReviewController.reportReviewsBulk)
 
+router.patch('/request-reopen-bulk', vendorReviewController.requestReviewsReopenBulk)
+
 export const vendorReviewRouter = router

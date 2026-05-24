@@ -207,6 +207,18 @@ const toggleProductActiveSingle = async (req, res) => {
   }
 }
 
+const requestProductsReapprovalBulk = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { productIds } = req.body
+
+    const result = await vendorProductService.requestProductsReapprovalBulk(userId, productIds)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi gửi khiếu nại sản phẩm: ${error.message}` })
+  }
+}
+
 export const vendorProductController = {
   createProduct,
   updateProduct,
@@ -216,5 +228,6 @@ export const vendorProductController = {
   getProductDetail,
   toggleProductsActiveBulk,
   deleteProductsBulk,
-  toggleProductActiveSingle
+  toggleProductActiveSingle,
+  requestProductsReapprovalBulk
 }
