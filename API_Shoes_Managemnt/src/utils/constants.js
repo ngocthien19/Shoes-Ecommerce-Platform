@@ -26,7 +26,8 @@ export const ORDER_STATUS = {
 // Trạng thái phê duyệt sản phẩm của Manager
 export const PRODUCT_MODERATION_STATUS = {
   APPROVED: 'approved',
-  BANNED: 'banned'
+  BANNED: 'banned',
+  PENDING_REAPPROVAL: 'pending_reapproval'
 }
 
 // Phân loại đánh giá hệ thống (Dùng cho cả User viết bài, Vendor xem và Manager phân xử khiếu nại)

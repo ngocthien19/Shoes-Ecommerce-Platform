@@ -2,7 +2,7 @@ import { managerProductModel } from '~/models/manager/product/managerProductMode
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 import { EmailProvider } from '~/providers/EmailProvider'
 
-// 1. Lấy danh sách sản phẩm toàn sàn (Có phân trang + Đa bộ lọc)
+// 1. Lấy danh sách sản phẩm toàn sàn (Có phân trang, bộ lọc vĩ mô và Widgets hiển thị)
 const getProductsList = async (filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
@@ -19,6 +19,7 @@ const getProductsList = async (filters) => {
     offset
   }
 
+  // Chạy song song bốc danh sách, đếm tổng và nạp thông số 4 thẻ Widget
   const [products, totalItems, overviewStats] = await Promise.all([
     managerProductModel.getProductsForManager(filterParams),
     managerProductModel.countProductsForManager(filterParams),
@@ -37,15 +38,17 @@ const getProductsList = async (filters) => {
   }
 }
 
-// 2. Ép Ẩn / Khóa hoặc Mở khóa sản phẩm vi phạm quy định sàn
+// 2. Phê duyệt hoặc Khóa ĐƠN LẺ một sản phẩm (Có gửi mail thông báo chính chủ)
 const toggleProductActive = async (productId, currentStatus, reason) => {
+  // Xác định trạng thái tiếp theo dựa trên hành động bấm đổi của Manager
   const nextStatus = currentStatus === PRODUCT_MODERATION_STATUS.APPROVED
     ? PRODUCT_MODERATION_STATUS.BANNED
     : PRODUCT_MODERATION_STATUS.APPROVED
 
   const affectedRows = await managerProductModel.updateProductModerationStatus(productId, nextStatus)
-  if (affectedRows === 0) throw new Error('Không tìm thấy sản phẩm hoặc cập nhật thất bại.')
+  if (affectedRows === 0) throw new Error('Không tìm thấy sản phẩm hoặc cập nhật trạng thái thất bại.')
 
+  // Nếu bị hạ bài (BANNED) -> Tiến hành gửi thư cảnh báo chi tiết lý do cho chủ shop
   if (nextStatus === PRODUCT_MODERATION_STATUS.BANNED) {
     const info = await managerProductModel.getProductAndOwnerInfo(productId)
 
@@ -95,7 +98,7 @@ const toggleProductActive = async (productId, currentStatus, reason) => {
   }
 }
 
-// 3. Xem chi tiết sản phẩm theo Slug
+// 3. Xem chi tiết thông tin sản phẩm phục vụ trang đối soát tư liệu theo Slug
 const getProductDetail = async (productSlug) => {
   if (!productSlug) throw new Error('Đường dẫn sản phẩm (Slug) không hợp lệ.')
 
@@ -104,21 +107,25 @@ const getProductDetail = async (productSlug) => {
   return product
 }
 
-// 4. Xử lý Checkbox cập nhật trạng thái hàng loạt (Đồng bộ Email)
+// 4. Xử lý Checkbox cập nhật trạng thái HÀNG LOẠT (Gom nhóm gửi Email tối ưu)
 const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
   if (!Array.isArray(productIds) || productIds.length === 0) {
     throw new Error('Danh sách mã sản phẩm (IDs) không hợp lệ hoặc trống.')
   }
 
-  // 1. Cập nhật mảng ID dưới DB bằng toán tử IN
-  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus)
-  if (affectedRows === 0) throw new Error('Không có sản phẩm nào được cập nhật.')
+  if (!Object.values(PRODUCT_MODERATION_STATUS).includes(targetStatus)) {
+    throw new Error('Trạng thái kiểm duyệt mục tiêu không hợp lệ.')
+  }
 
-  // 2. Nếu trạng thái mục tiêu là BANNED -> Tiến hành gom nhóm gửi email
+  // 1. Cập nhật trạng thái kiểm duyệt loạt dưới DB (Chạy qua hàm IN mượt mà an toàn mới fix)
+  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus)
+  if (affectedRows === 0) throw new Error('Không có sản phẩm nào được cập nhật trạng thái.')
+
+  // 2. Nếu trạng thái mục tiêu xử lý loạt là BANNED -> Tiến hành phân loại gom nhóm gửi mail độc lập
   if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) {
     const listInfo = await managerProductModel.getProductsAndOwnersInfoBulk(productIds)
 
-    // Dùng Object để nhóm các sản phẩm có cùng email Vendor
+    // Nhóm các sản phẩm có cùng chung một email Vendor để tránh spam hòm thư của họ
     const groupedEmails = {}
 
     listInfo.forEach(info => {
@@ -129,19 +136,17 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
           products: []
         }
       }
-      // Đẩy sản phẩm vi phạm vào mảng của shop đó
       groupedEmails[info.email].products.push({
         id: info.product_id,
         name: info.product_name
       })
     })
 
-    //  Giờ mỗi email (mỗi shop) chỉ chạy qua đúng 1 lần duy nhất
+    // Lặp qua danh sách đã nhóm để bắn duy nhất 1 email tổng hợp cho mỗi chủ shop
     Object.keys(groupedEmails).forEach(email => {
       const shopData = groupedEmails[email]
       const finalReason = reason?.trim() ? reason : 'Hình ảnh sản phẩm không đúng chuẩn mực, hoặc nội dung mô tả chứa từ khóa vi phạm tiêu chuẩn cộng đồng trong đợt rà soát hàng loạt.'
 
-      // Tự động dựng các dòng <li> danh sách sản phẩm bị khóa của shop đó
       const productListHtml = shopData.products
         .map(p => `<li><strong>ID:</strong> ${p.id} - <span style="color: #d9534f;">${p.name}</span></li>`)
         .join('')
@@ -149,11 +154,11 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
       const htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <div style="text-align: center; background-color: #d9534f; padding: 12px 0; border-radius: 4px 4px 0 0;">
-            <h3 style="color: #ffffff; margin: 0;">Shoes Store - Cảnh Báo Bản Tin Sản Phầm Vi Phạm Hàng Loạt</h3>
+            <h3 style="color: #ffffff; margin: 0;">Shoes Store - Cảnh Báo Bản Tin Sản Phẩm Vi Phạm Hàng Loạt</h3>
           </div>
           <div style="padding: 20px 0; line-height: 1.6; color: #333333;">
             <p>Xin chào chủ gian hàng <strong>${shopData.store_name}</strong> (${shopData.fullname}),</p>
-            <p>Qua quá trình tuần tra và quét chất lượng hàng hóa tự động trên hệ thống, Ban quản trị phát hiện **danh sách ${shopData.products.length} sản phẩm** sau của bạn đã vi phạm quy chế hiển thị:</p>
+            <p>Qua quá trình tuần tra và quét chất lượng hàng hóa tự động trên hệ thống, Ban quản trị phát hiện <strong>danh sách ${shopData.products.length} sản phẩm</strong> sau của bạn đã vi phạm quy chế hiển thị:</p>
             
             <ul style="background-color: #f9f9f9; padding: 15px 15px 15px 30px; border-radius: 4px; border: 1px solid #eee; margin: 15px 0;">
               ${productListHtml}
@@ -173,7 +178,6 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
         </div>
       `
 
-      // Bắn email duy nhất cho chủ shop này
       EmailProvider.sendEmail(
         email,
         '[Shoes Store] Thông báo khóa danh sách sản phẩm vi phạm chính sách của gian hàng',

@@ -72,11 +72,14 @@ const resolveReviewsBulk = async (reviewIds, reviewType, action) => {
     throw new Error('Danh sách ID đánh giá cần xử lý không hợp lệ.')
   }
 
-  // Khớp lệnh hành động: accept = Ẩn hiển thị (is_active = false) | reject = Giữ bài (is_active = true)
   let isActiveTarget = true
-  if (action === 'accept') isActiveTarget = false
-  else if (action === 'reject') isActiveTarget = true
-  else throw new Error('Hành động xử lý (action) không hợp lệ. Chỉ chấp nhận \'accept\' hoặc \'reject\'.')
+  if (action === 'banned') {
+    isActiveTarget = false
+  } else if (action === 'approved') {
+    isActiveTarget = true
+  } else {
+    throw new Error('Hành động xử lý (action) không hợp lệ. Chỉ chấp nhận \'approved\' hoặc \'banned\'.')
+  }
 
   let affectedRows = 0
 
@@ -88,10 +91,18 @@ const resolveReviewsBulk = async (reviewIds, reviewType, action) => {
     throw new Error('Loại đánh giá không hợp lệ để xử lý khớp lệnh.')
   }
 
+  if (affectedRows === 0) {
+    throw new Error(
+      action === 'banned'
+        ? 'Thao tác thất bại! Đánh giá này có thể đã bị ẩn từ trước hoặc chưa được gửi báo cáo vi phạm.'
+        : 'Thao tác thất bại! Đánh giá này hiện đang hiển thị bình thường, không cần duyệt mở lại.'
+    )
+  }
+
   return {
-    message: action === 'accept'
-      ? `Đã chấp nhận khiếu nại, tiến hành ẨN hiển thị hoàn toàn ${affectedRows} đánh giá vi phạm.`
-      : `Đã bác bỏ khiếu nại, GIỮ NGUYÊN hiển thị bình thường cho ${affectedRows} đánh giá.`
+    message: isActiveTarget === false
+      ? `Đã xử lý thành công! Tiến hành ẨN hiển thị hoàn toàn ${affectedRows} đánh giá vi phạm khỏi hệ thống.`
+      : `Đã xử lý thành công! Đã khôi phục lệnh ẩn và MỞ HIỂN THỊ lại bình thường cho ${affectedRows} đánh giá.`
   }
 }
 
