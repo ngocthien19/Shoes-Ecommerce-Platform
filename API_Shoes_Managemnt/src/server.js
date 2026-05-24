@@ -25,6 +25,7 @@ import { vendorAnalyticsRouter } from '~/routes/vendor/vendorAnalyticsRoute'
 // import ManagerRoutes
 import { managerStoreRouter } from '~/routes/manager/managerStoreRoute'
 import { managerProductRouter } from '~/routes/manager/managerProductRoute'
+import { managerReviewRouter } from '~/routes/manager/managerReviewRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
@@ -66,6 +67,7 @@ const START_SERVER = () => {
   // Định tuyến hệ thống API cho MANAGER (Quản lý)
   app.use('/api/manager/stores', managerStoreRouter)
   app.use('/api/manager/products', managerProductRouter)
+  app.use('/api/manager/reviews', managerReviewRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
