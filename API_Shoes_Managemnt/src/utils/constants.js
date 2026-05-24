@@ -28,3 +28,9 @@ export const PRODUCT_MODERATION_STATUS = {
   APPROVED: 'approved',
   BANNED: 'banned'
 }
+
+// Phân loại đánh giá hệ thống (Dùng cho cả User viết bài, Vendor xem và Manager phân xử khiếu nại)
+export const REVIEW_TYPES = {
+  PRODUCT: 'product',
+  STORE: 'store'
+}
