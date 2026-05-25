@@ -44,3 +44,10 @@ export const APPEAL_STATUS = {
   APPROVED: 'approved',
   REJECTED: 'rejected'
 }
+
+// Trạng thái lệnh rút tiền của Vendor (Dùng cho Admin quản lý và Vendor theo dõi)
+export const PAYOUT_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+}
