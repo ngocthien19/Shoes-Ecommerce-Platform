@@ -35,3 +35,10 @@ export const REVIEW_TYPES = {
   PRODUCT: 'product',
   STORE: 'store'
 }
+
+// Bộ trạng thái cho đơn khiếu nại cứu xét cửa hàng (Dùng cho Manager/Admin xử lý và Vendor theo dõi)
+export const APPEAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+}
