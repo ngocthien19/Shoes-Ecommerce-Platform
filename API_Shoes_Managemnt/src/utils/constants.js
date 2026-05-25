@@ -25,7 +25,9 @@ export const ORDER_STATUS = {
 
 // Trạng thái phê duyệt sản phẩm của Manager
 export const PRODUCT_MODERATION_STATUS = {
+  PENDING: 'pending',
   APPROVED: 'approved',
+  REJECTED: 'rejected',
   BANNED: 'banned',
   PENDING_REAPPROVAL: 'pending_reapproval'
 }
