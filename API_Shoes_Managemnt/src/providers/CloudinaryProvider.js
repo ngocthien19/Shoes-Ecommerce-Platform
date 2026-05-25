@@ -80,6 +80,20 @@ const uploadAppeal = multer({
   limits: { fileSize: 3 * 1024 * 1024 } // Giới hạn 3MB mỗi ảnh bằng chứng
 })
 
+// 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm (Nếu có)
+const categoryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'shoes_categories',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'fill' }]
+  }
+})
+const uploadCategory = multer({
+  storage: categoryStorage,
+  limits: { fileSize: 3 * 1024 * 1024 }
+})
+
 export const CloudinaryProvider = {
   cloudinary,
   streamUpload: uploadAvatar.single('avatar'),
@@ -89,5 +103,6 @@ export const CloudinaryProvider = {
   ]),
   uploadProductFields: uploadProduct.array('images', 10),
   uploadReviewFields: uploadReview.array('reviewImages', 10),
-  uploadAppealFields: uploadAppeal.array('evidenceImages', 5)
+  uploadAppealFields: uploadAppeal.array('evidenceImages', 5),
+  streamUploadCategory: uploadCategory.single('categoryImage')
 }

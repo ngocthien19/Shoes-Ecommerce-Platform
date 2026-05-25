@@ -8,7 +8,6 @@ const router = express.Router()
 
 router.use(authGuard.isAuthorized)
 
-// 1. Vendor đăng nhập gửi đơn khiếu nại (Tự bốc ID từ Token)
 router.post(
   '/submit',
   CloudinaryProvider.uploadAppealFields,
