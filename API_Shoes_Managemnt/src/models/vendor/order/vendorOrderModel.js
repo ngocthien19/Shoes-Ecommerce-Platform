@@ -178,6 +178,53 @@ const updateOrderStatusBulk = async (orderIds, status, storeId) => {
   return result.affectedRows
 }
 
+// Hàm xử lý kết thúc đơn hàng: Lật trạng thái paid + Cộng tiền vào ví Store (Bọc trong Transaction)
+const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
+  const connection = await pool.getConnection()
+  try {
+    // 1. Khởi động Transaction
+    await connection.beginTransaction()
+
+    // 2. Lấy tỷ lệ hoa hồng (commission_rate) hiện tại của cửa hàng
+    const [storeRows] = await connection.execute(
+      'SELECT commission_rate FROM stores WHERE id = ?',
+      [storeId]
+    )
+    if (storeRows.length === 0) throw new Error('Cửa hàng không tồn tại.')
+    const commissionRate = Number(storeRows[0].commission_rate) || 10.00
+
+    // 3. Tính toán dòng tiền thực tế Vendor nhận được sau khi trừ "tiền phế" của Admin
+    const adminCommission = totalAmount * (commissionRate / 100)
+    const vendorNetProfit = totalAmount - adminCommission
+
+    // 4. Cập nhật đơn hàng sang delivered và payment_status sang paid
+    await connection.execute(
+      `UPDATE orders 
+       SET status = 'delivered', payment_status = 'paid' 
+       WHERE id = ?`,
+      [orderId]
+    )
+
+    // 5. Bơm tiền thực nhận vào ví balance của Store
+    await connection.execute(
+      `UPDATE stores 
+       SET balance = balance + ? 
+       WHERE id = ?`,
+      [vendorNetProfit, storeId]
+    )
+
+    // 6. Chốt đơn thành công, lưu lại mọi thay đổi vào DB
+    await connection.commit()
+    return { adminCommission, vendorNetProfit }
+  } catch (error) {
+    // Nếu có bất kỳ lỗi gì xảy ra, lập tức khôi phục lại dữ liệu ban đầu
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
+  }
+}
+
 export const vendorOrderModel = {
   getStoreByOwnerId,
   getVendorOrders,
@@ -188,5 +235,6 @@ export const vendorOrderModel = {
   getOrderStatus,
   getOrdersOverviewStats,
   checkMultipleOrdersOwnership,
-  updateOrderStatusBulk
+  updateOrderStatusBulk,
+  completeOrderAndCreditStore
 }

@@ -21,6 +21,7 @@ import { vendorPromotionRouter } from '~/routes/vendor/vendorPromotionRoute'
 import { vendorReviewRouter } from '~/routes/vendor/vendorReviewRoute'
 import { vendorFavoriteRouter } from '~/routes/vendor/vendorFavoriteRoute'
 import { vendorAnalyticsRouter } from '~/routes/vendor/vendorAnalyticsRoute'
+import { vendorPayoutRouter } from '~/routes/vendor/vendorPayoutRoute'
 
 // import ManagerRoutes
 import { managerStoreRouter } from '~/routes/manager/managerStoreRoute'
@@ -33,6 +34,8 @@ import { adminStoreRouter } from '~/routes/admin/adminStoreRoute'
 import { adminAppealRouter } from '~/routes/admin/adminAppealRoute'
 import { adminCategoryRouter } from '~/routes/admin/adminCategoryRoute'
 import { adminAttributeRouter } from '~/routes/admin/adminAttributeRoute'
+import { adminFinancialRouter } from '~/routes/admin/adminFinancialRoute'
+import { adminPayoutRouter } from '~/routes/admin/adminPayoutRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
@@ -71,6 +74,7 @@ const START_SERVER = () => {
   app.use('/api/vendor/reviews', vendorReviewRouter)
   app.use('/api/vendor/favorites', vendorFavoriteRouter)
   app.use('/api/vendor/analytics', vendorAnalyticsRouter)
+  app.use('/api/vendor/payouts', vendorPayoutRouter)
 
   // Định tuyến hệ thống API cho MANAGER (Quản lý)
   app.use('/api/manager/stores', managerStoreRouter)
@@ -83,6 +87,8 @@ const START_SERVER = () => {
   app.use('/api/admin/appeals', adminAppealRouter)
   app.use('/api/admin/categories', adminCategoryRouter)
   app.use('/api/admin/attributes', adminAttributeRouter)
+  app.use('/api/admin/financial', adminFinancialRouter)
+  app.use('/api/admin/payouts', adminPayoutRouter)
 
   // Thêm middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
