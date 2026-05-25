@@ -27,6 +27,9 @@ import { managerStoreRouter } from '~/routes/manager/managerStoreRoute'
 import { managerProductRouter } from '~/routes/manager/managerProductRoute'
 import { managerReviewRouter } from '~/routes/manager/managerReviewRoute'
 
+// Định tuyến hệ thống API cho ADMIN (Quản trị viên)
+import { adminUserRouter } from '~/routes/admin/adminUserRoute'
+
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 
@@ -68,6 +71,9 @@ const START_SERVER = () => {
   app.use('/api/manager/stores', managerStoreRouter)
   app.use('/api/manager/products', managerProductRouter)
   app.use('/api/manager/reviews', managerReviewRouter)
+
+  // Định tuyến hệ thống API cho ADMIN (Quản trị viên)
+  app.use('/api/admin/users', adminUserRouter)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
