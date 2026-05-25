@@ -31,9 +31,12 @@ import { managerReviewRouter } from '~/routes/manager/managerReviewRoute'
 import { adminUserRouter } from '~/routes/admin/adminUserRoute'
 import { adminStoreRouter } from '~/routes/admin/adminStoreRoute'
 import { adminAppealRouter } from '~/routes/admin/adminAppealRoute'
+import { adminCategoryRouter } from '~/routes/admin/adminCategoryRoute'
+import { adminAttributeRouter } from '~/routes/admin/adminAttributeRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
+import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware'
 
 dotenv.config()
 
@@ -78,6 +81,11 @@ const START_SERVER = () => {
   app.use('/api/admin/users', adminUserRouter)
   app.use('/api/admin/stores', adminStoreRouter)
   app.use('/api/admin/appeals', adminAppealRouter)
+  app.use('/api/admin/categories', adminCategoryRouter)
+  app.use('/api/admin/attributes', adminAttributeRouter)
+
+  // Thêm middleware xử lý lỗi tập trung
+  app.use(errorHandlingMiddleware)
 
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
