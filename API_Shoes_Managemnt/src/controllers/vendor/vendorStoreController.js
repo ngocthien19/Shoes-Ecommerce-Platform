@@ -6,7 +6,7 @@ const registerStore = async (req, res) => {
     const { name, bio, address } = req.body
 
     if (!name || !address) {
-      return res.status(400).json({ message: 'Tên cửa hàng và địa chỉ cửa hàng là bắt buộc nha.' })
+      return res.status(400).json({ message: 'Tên cửa hàng và địa chỉ cửa hàng là bắt buộc.' })
     }
 
     let logoUrl = null

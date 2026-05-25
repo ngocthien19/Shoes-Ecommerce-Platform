@@ -21,7 +21,7 @@ const avatarStorage = new CloudinaryStorage({
 })
 const uploadAvatar = multer({
   storage: avatarStorage,
-  limits: { fileSize: 2 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
 // Logo & Banner của Shop
@@ -49,7 +49,7 @@ const productStorage = new CloudinaryStorage({
 })
 const uploadProduct = multer({
   storage: productStorage,
-  limits: { fileSize: 3 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
 // 4. Cấu hình lưu trữ hình ảnh Feedback Đánh giá từ Khách hàng
@@ -63,7 +63,7 @@ const reviewStorage = new CloudinaryStorage({
 })
 const uploadReview = multer({
   storage: reviewStorage,
-  limits: { fileSize: 3 * 1024 * 1024 }
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
 export const CloudinaryProvider = {
