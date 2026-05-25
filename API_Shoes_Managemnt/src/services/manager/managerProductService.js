@@ -2,7 +2,7 @@ import { managerProductModel } from '~/models/manager/product/managerProductMode
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 import { EmailProvider } from '~/providers/EmailProvider'
 
-// 1. Lấy danh sách sản phẩm toàn sàn (Có phân trang, bộ lọc vĩ mô và Widgets hiển thị)
+// 1. GET: Lấy danh sách sản phẩm kèm dữ liệu phân trang và bộ chỉ số Widgets toàn diện
 const getProductsList = async (filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
@@ -19,7 +19,6 @@ const getProductsList = async (filters) => {
     offset
   }
 
-  // Chạy song song bốc danh sách, đếm tổng và nạp thông số 4 thẻ Widget
   const [products, totalItems, overviewStats] = await Promise.all([
     managerProductModel.getProductsForManager(filterParams),
     managerProductModel.countProductsForManager(filterParams),
@@ -38,159 +37,174 @@ const getProductsList = async (filters) => {
   }
 }
 
-// 2. Phê duyệt hoặc Khóa ĐƠN LẺ một sản phẩm (Có gửi mail thông báo chính chủ)
-const toggleProductActive = async (productId, currentStatus, reason) => {
-  // Xác định trạng thái tiếp theo dựa trên hành động bấm đổi của Manager
-  const nextStatus = currentStatus === PRODUCT_MODERATION_STATUS.APPROVED
-    ? PRODUCT_MODERATION_STATUS.BANNED
-    : PRODUCT_MODERATION_STATUS.APPROVED
+// 2. Tiếp nhận targetStatus chuyển đổi trạng thái chủ động
+const toggleProductActive = async (productId, targetStatus, reason) => {
+  if (!Object.values(PRODUCT_MODERATION_STATUS).includes(targetStatus)) {
+    throw new Error('Trạng thái mục tiêu kiểm duyệt sản phẩm không hợp lệ.')
+  }
 
-  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, nextStatus)
-  if (affectedRows === 0) throw new Error('Không tìm thấy sản phẩm hoặc cập nhật trạng thái thất bại.')
+  const info = await managerProductModel.getProductAndOwnerInfo(productId)
+  if (!info) throw new Error('Sản phẩm yêu cầu kiểm duyệt không tồn tại trên hệ thống.')
 
-  // Nếu bị hạ bài (BANNED) -> Tiến hành gửi thư cảnh báo chi tiết lý do cho chủ shop
-  if (nextStatus === PRODUCT_MODERATION_STATUS.BANNED) {
-    const info = await managerProductModel.getProductAndOwnerInfo(productId)
+  const oldStatus = info.status
 
-    if (info) {
-      const finalReason = reason?.trim() ? reason : 'Hình ảnh sản phẩm không đúng chuẩn mực, hoặc nội dung mô tả chứa từ khóa vi phạm tiêu chuẩn cộng đồng.'
+  // Cập nhật trạng thái mới xuống Database
+  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus)
+  if (affectedRows === 0) throw new Error('Cập nhật trạng thái sản phẩm thất bại.')
 
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <div style="text-align: center; background-color: #d9534f; padding: 12px 0; border-radius: 4px 4px 0 0;">
-            <h3 style="color: #ffffff; margin: 0;">Shoes Store - Cảnh Báo Bản Tin Sản Phẩm Vi Phạm</h3>
-          </div>
-          <div style="padding: 20px 0; line-height: 1.6; color: #333333;">
-            <p>Xin chào chủ gian hàng <strong>${info.store_name}</strong> (${info.fullname}),</p>
-            <p>Qua quá trình tuần tra và rà soát chất lượng hàng hóa công khai trên sàn, Ban quản trị phát hiện sản phẩm sau của bạn đã vi phạm nghiêm trọng quy chế hiển thị:</p>
-            
-            <p style="padding-left: 10px; border-left: 3px solid #d9534f;">
-              <strong>Tên sản phẩm:</strong> <span style="color: #d9534f;">${info.product_name}</span><br/>
-              <strong>Mã sản phẩm (ID):</strong> ${productId}
-            </p>
+  // Xây dựng kịch bản Mail thương mại điện tử chuyên nghiệp
+  let emailSubject = ''
+  let htmlContent = ''
+  const finalReason = reason?.trim() ? reason : 'Hình ảnh sản phẩm cần rõ ràng hơn hoặc mô tả sản phẩm chưa đúng quy chuẩn thương hiệu.'
 
-            <div style="background-color: #fcf8e3; border-left: 4px solid #f0ad4e; padding: 15px; margin: 20px 0; border-radius: 4px; color: #8a6d3b;">
-              <h4 style="margin: 0 0 8px 0;">Lý do xử phạt gỡ bỏ từ Điều hành viên:</h4>
-              <p style="margin: 0; font-style: italic;">"${finalReason}"</p>
-            </div>
+  // KỊCH BẢN APPROVED: Phê duyệt mở bán công khai
+  if (targetStatus === PRODUCT_MODERATION_STATUS.APPROVED) {
+    const isFromBan = (oldStatus === PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL || oldStatus === PRODUCT_MODERATION_STATUS.BANNED)
 
-            <p><strong>⚠️ Chế tài áp dụng:</strong> Sản phẩm đã bị chuyển sang trạng thái <code>BANNED</code> và ẩn hoàn toàn khỏi thanh tìm kiếm toàn sàn. Quyền tự kích hoạt lại của bạn đã bị khóa.</p>
-            <p>Để mở lại sản phẩm, bạn vui lòng truy cập vào trang quản trị chỉnh sửa lại hình ảnh/nội dung theo đúng chính sách của Shoes Store và gửi yêu cầu phê duyệt lại.</p>
-          </div>
-          <div style="text-align: center; border-top: 1px solid #e0e0e0; padding-top: 15px; font-size: 12px; color: #777777;">
-            <p>© 2026 Shoes Store. All Rights Reserved.</p>
-          </div>
+    emailSubject = isFromBan
+      ? `[ShoesStore] 🎉 Chúc mừng: Sản phẩm [${info.product_name}] đã được gỡ bỏ án phạt thành công!`
+      : `[ShoesStore] ✨ Thông báo: Sản phẩm [${info.product_name}] đã vượt qua vòng kiểm duyệt`
+
+    htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #0f766e; padding: 20px; text-align: center; color: #ffffff;">
+          <h2 style="margin: 0; font-size: 20px;">SHOES STORE MARKETPLACE</h2>
         </div>
-      `
-
-      EmailProvider.sendEmail(
-        info.email,
-        `[Shoes Store] Thông báo khóa sản phẩm vi phạm chính sách: ${info.product_name}`,
-        htmlContent
-      ).catch(err => console.error('Lỗi gửi mail ban sản phẩm:', err.message))
-    }
+        <div style="padding: 30px; background-color: #ffffff; color: #334155; line-height: 1.6;">
+          <h3 style="color: #0f766e; margin-top: 0;">${isFromBan ? '🚀 PHÊ DUYỆT LẠI THÀNH CÔNG (GỠ PHẠT)' : '🎉 SẢN PHẨM ĐÃ ĐƯỢC PHÊ DUYỆT ĐĂNG BÁN!'}</h3>
+          <p>Xin chào <strong>${info.fullname}</strong> (Chủ gian hàng ${info.store_name}),</p>
+          <p>${isFromBan ? 'Hội đồng quản trị đã xem xét lại đơn chỉnh sửa sản phẩm vi phạm của bạn và chấp thuận kích hoạt lại mặt hàng này:' : 'Yêu cầu đăng tải mặt hàng mới của bạn đã được rà soát và phê duyệt thành công công khai toàn sàn:'}</p>
+          <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 0;">🏪 <strong>Mặt hàng:</strong> ${info.product_name}</p>
+            <p style="margin: 4px 0 0 0;">🆔 <strong>Mã số hàng hóa (ID):</strong> ${productId}</p>
+            <p style="margin: 4px 0 0 0;">⚡ <strong>Chế độ:</strong> <span style="color: #16a34a; font-weight: bold;">Đang hoạt động - Khách hàng có thể tìm kiếm & đặt mua</span></p>
+          </div>
+          <p>Chúc gian hàng của bạn bùng nổ doanh số cùng Shoes Store!</p>
+        </div>
+      </div>
+    `
+  }
+  // KỊCH BẢN REJECTED: Từ chối duyệt đăng bán lần đầu
+  else if (targetStatus === PRODUCT_MODERATION_STATUS.REJECTED) {
+    emailSubject = `[ShoesStore] 🛑 Phản hồi: Từ chối cấp phép hiển thị sản phẩm [${info.product_name}]`
+    htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #d97706; padding: 20px; text-align: center; color: #ffffff;">
+          <h2 style="margin: 0; font-size: 20px;">SHOES STORE OPERATIONS</h2>
+        </div>
+        <div style="padding: 30px; background-color: #ffffff; color: #334155; line-height: 1.6;">
+          <h3 style="color: #d97706; margin-top: 0;">❌ SẢN PHẨM CHƯA ĐẠT TIÊU CHUẨN HIỂN THỊ</h3>
+          <p>Xin chào quản trị viên gian hàng <strong>${info.store_name}</strong>,</p>
+          <p>Yêu cầu đăng bán sản phẩm <strong>${info.product_name}</strong> (ID: ${productId}) tạm thời bị từ chối công khai do vấp phải lỗi chính sách hiển thị sau:</p>
+          <div style="background-color: #fffbeb; border-left: 4px solid #d97706; padding: 15px; margin: 20px 0; border-radius: 4px; color: #b45309;">
+            <strong>⚠️ Lý do chi tiết từ Manager:</strong> "${finalReason}"
+          </div>
+          <p><strong>🛠️ Hướng khắc phục:</strong> Sản phẩm đã được chuyển về trạng thái <code>Từ chối (Rejected)</code> dưới dạng nháp. Bạn vui lòng vào trang quản lý sản phẩm của Vendor, cập nhật lại dữ liệu/hình ảnh và bấm gửi duyệt lại nhé b.</p>
+        </div>
+      </div>
+    `
+  }
+  // KỊCH BẢN BANNED: Phát hiện vi phạm nặng, khóa hạ bài ngay lập tức
+  else if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) {
+    emailSubject = `[🚨 CẢNH BÁO HẠ BÀI] ShoesStore đã đình chỉ sản phẩm: ${info.product_name}`
+    htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #be123c; padding: 20px; text-align: center; color: #ffffff;">
+          <h2 style="margin: 0; font-size: 20px;">SHOES STORE TRUST & SAFETY</h2>
+        </div>
+        <div style="padding: 30px; background-color: #ffffff; color: #334155; line-height: 1.6;">
+          <h3 style="color: #be123c; margin-top: 0;">🛑 SẢN PHẨM BỊ KHÓA DO VI PHẠM CHÍNH SÁCH</h3>
+          <p>Xin chào chủ shop <strong>${info.store_name}</strong>,</p>
+          <p>Hệ thống ghi nhận sản phẩm đang kinh doanh của bạn mang tên <strong>${info.product_name}</strong> (ID: ${productId}) đã vi phạm nghiêm trọng quy chế hoạt động của sàn hoặc nhận đơn khiếu nại bản quyền:</p>
+          <div style="background-color: #fff1f2; border-left: 4px solid #e11d48; padding: 15px; margin: 20px 0; border-radius: 4px; color: #9f1239;">
+            <strong>🚨 Biên bản vi phạm hành chính:</strong> "${finalReason}"
+          </div>
+          <p><strong>🔒 Biện pháp chế tài:</strong> Mặt hàng trên đã bị chuyển trạng thái thành <code>BANNED</code>, lập tức ẩn hoàn toàn khỏi thanh tìm kiếm và trang bán hàng công khai toàn sàn.</p>
+          <p><strong>🛠️ Luồng cứu xét giải trình:</strong> Bạn phải tiến hành chỉnh sửa làm sạch nội dung/hình ảnh hợp pháp. Sau đó, nhấn vào nút <strong>"Gửi yêu cầu giải trình cứu xét"</strong> để đưa sản phẩm về trạng thái <code>Chờ duyệt lại (Pending Reapproval)</code> chờ Manager mở khóa.</p>
+        </div>
+      </div>
+    `
   }
 
-  return {
-    message: nextStatus === PRODUCT_MODERATION_STATUS.BANNED
-      ? 'Đã khóa quyền hiển thị và hạ sản phẩm vi phạm thành công.'
-      : 'Đã tháo gỡ lệnh cấm, sản phẩm được phép hiển thị bình thường.'
+  // Bắn email bất đồng bộ chạy ngầm (Chống block luồng API chính)
+  if (emailSubject && htmlContent) {
+    EmailProvider.sendEmail(info.email, emailSubject, htmlContent)
+      .catch(err => console.error(`Lỗi gửi mail đơn lẻ [${targetStatus}]:`, err.message))
   }
+
+  return { message: `Đã xử lý chuyển trạng thái sản phẩm sang phân hệ [${targetStatus}] thành công!` }
 }
 
-// 3. Xem chi tiết thông tin sản phẩm phục vụ trang đối soát tư liệu theo Slug
+// 3. GET: Chi tiết cấu trúc một sản phẩm theo đường dẫn Slug (Giữ nguyên)
 const getProductDetail = async (productSlug) => {
-  if (!productSlug) throw new Error('Đường dẫn sản phẩm (Slug) không hợp lệ.')
-
+  if (!productSlug) throw new Error('Đường dẫn cấu trúc sản phẩm (Slug) không hợp lệ.')
   const product = await managerProductModel.getProductDetailForManager(productSlug)
-  if (!product) throw new Error('Sản phẩm không tồn tại trên hệ thống.')
+  if (!product) throw new Error('Không tồn tại sản phẩm này trên hệ thống dữ liệu.')
   return product
 }
 
-// 4. Xử lý Checkbox cập nhật trạng thái HÀNG LOẠT (Gom nhóm gửi Email tối ưu)
+// 4. Xử lý mảng Checkbox hàng loạt (APPROVED, REJECTED, BANNED)
 const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
   if (!Array.isArray(productIds) || productIds.length === 0) {
-    throw new Error('Danh sách mã sản phẩm (IDs) không hợp lệ hoặc trống.')
+    throw new Error('Mảng danh sách mã sản phẩm (IDs) trống hoặc không hợp lệ.')
   }
-
   if (!Object.values(PRODUCT_MODERATION_STATUS).includes(targetStatus)) {
-    throw new Error('Trạng thái kiểm duyệt mục tiêu không hợp lệ.')
+    throw new Error('Trạng thái áp dụng hàng loạt không hợp lệ.')
   }
 
-  // 1. Cập nhật trạng thái kiểm duyệt loạt dưới DB (Chạy qua hàm IN mượt mà an toàn mới fix)
+  // Thực thi cập nhật đồng bộ hàng loạt dưới Database qua câu lệnh IN
   const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus)
-  if (affectedRows === 0) throw new Error('Không có sản phẩm nào được cập nhật trạng thái.')
+  if (affectedRows === 0) throw new Error('Không có sản phẩm nào được thay đổi trạng thái.')
 
-  // 2. Nếu trạng thái mục tiêu xử lý loạt là BANNED -> Tiến hành phân loại gom nhóm gửi mail độc lập
-  if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) {
-    const listInfo = await managerProductModel.getProductsAndOwnersInfoBulk(productIds)
+  // Gọi Model bốc thông tin lên để gom nhóm chống spam hòm thư Vendor
+  const listInfo = await managerProductModel.getProductsAndOwnersInfoBulk(productIds)
+  const groupedEmails = {}
 
-    // Nhóm các sản phẩm có cùng chung một email Vendor để tránh spam hòm thư của họ
-    const groupedEmails = {}
+  listInfo.forEach(info => {
+    if (!groupedEmails[info.email]) {
+      groupedEmails[info.email] = { fullname: info.fullname, store_name: info.store_name, products: [] }
+    }
+    groupedEmails[info.email].products.push({ id: info.product_id, name: info.product_name })
+  })
 
-    listInfo.forEach(info => {
-      if (!groupedEmails[info.email]) {
-        groupedEmails[info.email] = {
-          fullname: info.fullname,
-          store_name: info.store_name,
-          products: []
-        }
-      }
-      groupedEmails[info.email].products.push({
-        id: info.product_id,
-        name: info.product_name
-      })
-    })
+  // Quét map bắn email tổng kết cho từng Shop nhận đợt kiểm duyệt hàng loạt
+  Object.keys(groupedEmails).forEach(email => {
+    const shopData = groupedEmails[email]
+    const finalReason = reason?.trim() ? reason : 'Nội dung hoặc hình ảnh sản phẩm chưa đồng bộ quy chế xét duyệt danh mục hàng loạt.'
 
-    // Lặp qua danh sách đã nhóm để bắn duy nhất 1 email tổng hợp cho mỗi chủ shop
-    Object.keys(groupedEmails).forEach(email => {
-      const shopData = groupedEmails[email]
-      const finalReason = reason?.trim() ? reason : 'Hình ảnh sản phẩm không đúng chuẩn mực, hoặc nội dung mô tả chứa từ khóa vi phạm tiêu chuẩn cộng đồng trong đợt rà soát hàng loạt.'
+    const productListHtml = shopData.products
+      .map(p => `<li><strong>ID:</strong> ${p.id} - <span style="color:#0f172a;">${p.name}</span></li>`)
+      .join('')
 
-      const productListHtml = shopData.products
-        .map(p => `<li><strong>ID:</strong> ${p.id} - <span style="color: #d9534f;">${p.name}</span></li>`)
-        .join('')
+    let headerColor = '#0f766e'
+    let titleText = 'Thông báo phê duyệt hàng loạt sản phẩm thành công'
+    if (targetStatus === PRODUCT_MODERATION_STATUS.REJECTED) { headerColor = '#d97706'; titleText = 'Từ chối cấp phép hàng loạt sản phẩm đăng bán' }
+    if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) { headerColor = '#be123c'; titleText = 'Đình chỉ và khóa hàng loạt mã sản phẩm vi phạm' }
 
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <div style="text-align: center; background-color: #d9534f; padding: 12px 0; border-radius: 4px 4px 0 0;">
-            <h3 style="color: #ffffff; margin: 0;">Shoes Store - Cảnh Báo Bản Tin Sản Phẩm Vi Phạm Hàng Loạt</h3>
-          </div>
-          <div style="padding: 20px 0; line-height: 1.6; color: #333333;">
-            <p>Xin chào chủ gian hàng <strong>${shopData.store_name}</strong> (${shopData.fullname}),</p>
-            <p>Qua quá trình tuần tra và quét chất lượng hàng hóa tự động trên hệ thống, Ban quản trị phát hiện <strong>danh sách ${shopData.products.length} sản phẩm</strong> sau của bạn đã vi phạm quy chế hiển thị:</p>
-            
-            <ul style="background-color: #f9f9f9; padding: 15px 15px 15px 30px; border-radius: 4px; border: 1px solid #eee; margin: 15px 0;">
-              ${productListHtml}
-            </ul>
-
-            <div style="background-color: #fcf8e3; border-left: 4px solid #f0ad4e; padding: 15px; margin: 20px 0; border-radius: 4px; color: #8a6d3b;">
-              <h4 style="margin: 0 0 8px 0;">Lý do xử phạt gỡ bỏ từ Điều hành viên:</h4>
-              <p style="margin: 0; font-style: italic;">"${finalReason}"</p>
-            </div>
-
-            <p><strong>⚠️ Chế tài áp dụng:</strong> Các sản phẩm trên đã bị chuyển sang trạng thái <code>BANNED</code> và ẩn hoàn toàn khỏi thanh tìm kiếm toàn sàn. Quyền tự kích hoạt lại của bạn đã bị khóa.</p>
-            <p>Để mở lại sản phẩm, bạn vui lòng truy cập vào trang quản trị chỉnh sửa lại hình ảnh/nội dung theo đúng chính sách của Shoes Store và gửi yêu cầu phê duyệt lại.</p>
-          </div>
-          <div style="text-align: center; border-top: 1px solid #e0e0e0; padding-top: 15px; font-size: 12px; color: #777777;">
-            <p>© 2026 Shoes Store. All Rights Reserved.</p>
-          </div>
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: ${headerColor}; padding: 20px; text-align: center; color: #ffffff;">
+          <h3 style="margin: 0; font-size: 16px;">SHOES STORE SYSTEM - MANAGEMENT</h3>
         </div>
-      `
+        <div style="padding: 25px; background-color: #ffffff; color: #334155; line-height: 1.6;">
+          <p>Xin chào chủ cửa hàng đối tác <strong>${shopData.store_name}</strong>,</p>
+          <p>Ban điều hành sàn vừa thực hiện đợt rà soát và xử lý hàng loạt. Sau đây là kết quả áp dụng đối với <strong>${shopData.products.length} sản phẩm</strong> của gian hàng:</p>
+          
+          <ul style="background-color: #f8fafc; padding: 15px 15px 15px 30px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px;">
+            ${productListHtml}
+          </ul>
 
-      EmailProvider.sendEmail(
-        email,
-        '[Shoes Store] Thông báo khóa danh sách sản phẩm vi phạm chính sách của gian hàng',
-        htmlContent
-      ).catch(err => console.error('Lỗi gửi mail bulk ban gom nhóm:', err.message))
-    })
-  }
+          <p>⚡ <strong>Trạng thái quy chuẩn mới:</strong> <span style="font-weight: bold; color: ${headerColor}; text-transform: uppercase;">${targetStatus}</span></p>
+          <p>📝 <strong>Ghi chú phản hồi tổng hợp từ Manager:</strong> <em>"${finalReason}"</em></p>
+        </div>
+      </div>
+    `
 
-  return {
-    message: targetStatus === PRODUCT_MODERATION_STATUS.BANNED
-      ? `Đã khóa quyền hiển thị hàng loạt ${affectedRows} sản phẩm thành công.`
-      : `Đã phê duyệt hiển thị hàng loạt ${affectedRows} sản phẩm thành công.`
-  }
+    EmailProvider.sendEmail(email, `[ShoesStore] ${titleText}`, htmlContent)
+      .catch(err => console.error('Lỗi bắn email hàng loạt:', err.message))
+  })
+
+  return { message: `Đã xử lý hàng loạt thành công, di dời ${affectedRows} sản phẩm sang phân hệ [${targetStatus}].` }
 }
 
 export const managerProductService = {
