@@ -66,6 +66,20 @@ const uploadReview = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 })
 
+// 5. Cấu hình lưu trữ hình ảnh bằng chứng khiếu nại từ Khách hàng
+const appealStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'shoes_store_appeals',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+  }
+})
+const uploadAppeal = multer({
+  storage: appealStorage,
+  limits: { fileSize: 3 * 1024 * 1024 } // Giới hạn 3MB mỗi ảnh bằng chứng
+})
+
 export const CloudinaryProvider = {
   cloudinary,
   streamUpload: uploadAvatar.single('avatar'),
@@ -74,5 +88,6 @@ export const CloudinaryProvider = {
     { name: 'banner', maxCount: 1 }
   ]),
   uploadProductFields: uploadProduct.array('images', 10),
-  uploadReviewFields: uploadReview.array('reviewImages', 10)
+  uploadReviewFields: uploadReview.array('reviewImages', 10),
+  uploadAppealFields: uploadAppeal.array('evidenceImages', 5)
 }

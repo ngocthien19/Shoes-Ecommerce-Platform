@@ -1,4 +1,4 @@
-import { adminUserModel } from '~/models/admin/adminUserModel'
+import { adminUserModel } from '~/models/admin/user/adminUserModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { ROLE_ID } from '~/utils/constants'
 import bcrypt from 'bcrypt'
@@ -64,7 +64,7 @@ const createUserByAdmin = async (userData) => {
   if (isEmailExist) throw new Error('Email này đã được đăng ký trên hệ thống!')
 
   // Mã hóa mật khẩu tạo sẵn cho nhân sự
-  const salt = await bcrypt.genSalt(10)
+  const salt = await bcrypt.genSalt(8)
   const hashedPassword = await bcrypt.hash(userData.password, salt)
 
   const avatarJson = userData.avatarFile
