@@ -1,6 +1,7 @@
 import pool from '~/config/db'
+import { ROLE_ID } from '~/utils/constants'
 
-// 1. Lấy danh sách cửa hàng + Phân trang + Tìm kiếm đa năng + Lọc khoảng ngày đăng ký
+// 1. Lấy danh sách cửa hàng + Bọc logic cô lập Shop bị Admin khóa
 const getStoresForManager = async ({ search, isActive, startDate, endDate, limit, offset }) => {
   let query = `
     SELECT s.id, s.owner_id, u.fullname AS owner_name, u.email AS owner_email,
@@ -12,19 +13,21 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
   `
   const queryParams = []
 
-  // Tìm kiếm theo tên cửa hàng hoặc tên chủ cửa hàng
   if (search) {
     query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
     queryParams.push(`%${search}%`, `%${search}%`)
   }
 
-  // Lọc theo trạng thái active (0: Chờ duyệt/Khóa, 1: Đang hoạt động)
   if (isActive !== undefined && isActive !== null) {
     query += ' AND s.is_active = ?'
     queryParams.push(Number(isActive))
+
+    if (Number(isActive) === 0) {
+      query += ' AND u.role_id = ?'
+      queryParams.push(ROLE_ID.USER)
+    }
   }
 
-  // Lọc theo khoảng ngày đăng ký mở tiệm
   if (startDate) {
     query += ' AND s.created_at >= ?'
     queryParams.push(`${startDate} 00:00:00`)
@@ -41,7 +44,7 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
   return rows
 }
 
-// 2. Đếm tổng số cửa hàng thỏa mãn bộ lọc để Frontend phân trang
+// 2. Đếm tổng số cửa hàng thỏa mãn bộ lọc (Đồng bộ logic cô lập)
 const countStoresForManager = async ({ search, isActive, startDate, endDate }) => {
   let query = `
     SELECT COUNT(*) as total 
@@ -55,10 +58,17 @@ const countStoresForManager = async ({ search, isActive, startDate, endDate }) =
     query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
     queryParams.push(`%${search}%`, `%${search}%`)
   }
+
   if (isActive !== undefined && isActive !== null) {
     query += ' AND s.is_active = ?'
     queryParams.push(Number(isActive))
+
+    if (Number(isActive) === 0) {
+      query += ' AND u.role_id = ?'
+      queryParams.push(ROLE_ID.USER)
+    }
   }
+
   if (startDate) {
     query += ' AND s.created_at >= ?'
     queryParams.push(`${startDate} 00:00:00`)
