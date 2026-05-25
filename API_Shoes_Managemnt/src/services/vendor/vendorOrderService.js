@@ -58,7 +58,7 @@ const getVendorOrders = async (userId, filters) => {
   }
 }
 
-// 2. Cập nhật trạng thái hàng loạt cho mảng ID từ Checkbox
+// 2. Cập nhật trạng thái HÀNG LOẠT cho mảng ID từ Checkbox (Có tích hợp dòng tiền)
 const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -78,7 +78,34 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
     throw new Error('Danh sách đơn hàng chứa mã không thuộc quyền quản lý của shop bạn.')
   }
 
-  // C. Thực thi cập nhật trạng thái đồng loạt dưới DB bằng toán tử IN
+  if (targetStatus === ORDER_STATUS.DELIVERED) {
+    let successCount = 0
+    let totalCredited = 0
+
+    // Duyệt qua từng đơn hàng để kích nổ dòng tiền an toàn qua Transaction đơn lẻ
+    for (const orderId of orderIds) {
+      const currentStatus = await vendorOrderModel.getOrderStatus(orderId)
+      const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
+
+      // Chỉ xử lý những đơn đang ở trạng thái 'shipped' và chưa bị lật trước đó
+      if (currentStatus === ORDER_STATUS.SHIPPED && orderDetail.length > 0) {
+        const cashFlow = await vendorOrderModel.completeOrderAndCreditStore(
+          orderId,
+          storeId,
+          Number(orderDetail[0].total_amount)
+        )
+        totalCredited += cashFlow.vendorNetProfit
+        successCount++
+      }
+    }
+
+    return {
+      message: `Xử lý giao hàng loạt thành công cho ${successCount}/${orderIds.length} đơn hàng đủ điều kiện. Tổng tiền doanh thu sạch đã được cộng vào ví balance của cửa hàng.`,
+      creditedAmount: totalCredited
+    }
+  }
+
+  // C. Các trạng thái khác (processing, shipped...) thì cập nhật đồng loạt bằng toán tử IN như cũ
   const affectedRows = await vendorOrderModel.updateOrderStatusBulk(orderIds, targetStatus, storeId)
 
   return {
@@ -86,7 +113,7 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   }
 }
 
-// 3. Cập nhật trạng thái đơn lẻ (Giữ nguyên logic kiểm tra chặt chẽ ban đầu của b)
+// 3. Cập nhật trạng thái ĐƠN LẺ (Có tích hợp dòng tiền)
 const updateOrderStatus = async (userId, orderId, newStatus) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -102,13 +129,38 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
     throw new Error('Trạng thái cập nhật không hợp lệ.')
   }
 
-  // Chặn không cho cập nhật nếu đơn đã hoàn thành hoặc đã hủy
+  // Chặn không cho cập nhật nếu đơn đã hoàn thành hoặc đã hủy trước đó
   if (currentStatus === ORDER_STATUS.DELIVERED || currentStatus === ORDER_STATUS.CANCELED) {
+
     throw new Error('Không thể thay đổi trạng thái của đơn hàng đã hoàn thành hoặc đã hủy.')
   }
 
+  if (newStatus === ORDER_STATUS.DELIVERED) {
+    // Chặn chặt chẽ: Phải giao đi (shipped) thì mới được bấm thành công
+    if (currentStatus !== ORDER_STATUS.SHIPPED) {
+      throw new Error('Đơn hàng phải được chuyển sang trạng thái "Đang giao hàng (shipped)" trước khi xác nhận Giao thành công.')
+    }
+
+    // Bốc thông tin đơn hàng để lấy total_amount chạy tính toán hoa hồng
+    const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
+    if (orderDetail.length === 0) throw new Error('Không thể bốc thông tin giá trị đơn hàng.')
+
+    // Gọi hàm Transaction: lật status đơn sang delivered + lật payment_status sang paid + cộng ví balance
+    const cashFlow = await vendorOrderModel.completeOrderAndCreditStore(
+      orderId,
+      storeId,
+      Number(orderDetail[0].total_amount)
+    )
+
+    return {
+      message: 'Xác nhận giao hàng thành công! Trạng thái thanh toán đã lật sang [PAID] và tiền doanh thu thực nhận đã được nạp vào ví balance của cửa hàng.',
+      data: cashFlow
+    }
+  }
+
+  // Đối với các trạng thái vận đơn thông thường (processing, shipped, cancelled...)
   await vendorOrderModel.updateOrderStatus(orderId, newStatus)
-  return { message: 'Cập nhật trạng thái đơn hàng thành công.' }
+  return { message: `Cập nhật trạng thái đơn hàng sang [${newStatus}] thành công.` }
 }
 
 // 4. Xử lý yêu cầu hủy đơn từ khách hàng (Giữ nguyên logic phân luồng trường hợp của b)
