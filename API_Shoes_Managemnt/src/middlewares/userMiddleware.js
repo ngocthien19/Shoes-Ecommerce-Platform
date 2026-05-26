@@ -17,34 +17,6 @@ const uploadAvatar = (req, res, next) => {
   })
 }
 
-const validateUpdateProfile = (req, res, next) => {
-  const { fullname, phone, address, password } = req.body
-
-  // 1. Kiểm tra không được để trống các trường bắt buộc
-  if (!fullname || !phone || !address) {
-    return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin: fullname, phone, address' })
-  }
-
-  // 2. Validate số điện thoại chuẩn Việt Nam (10 số, bắt đầu bằng số 0)
-  const phoneRegex = /^0[0-9]{9}$/
-  if (!phoneRegex.test(phone)) {
-    return res.status(400).json({ message: 'Số điện thoại không hợp lệ. Phải bắt đầu bằng số 0 và có đúng 10 chữ số' })
-  }
-
-  // 3. Nếu người dùng có truyền password lên (muốn đổi mật khẩu)
-  if (password) {
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Mật khẩu mới phải chứa ít nhất 6 ký tự' })
-    }
-    if (password.trim().length === 0) {
-      return res.status(400).json({ message: 'Mật khẩu mới không được chỉ chứa khoảng trắng' })
-    }
-  }
-
-  next()
-}
-
 export const userMiddleware = {
-  uploadAvatar,
-  validateUpdateProfile
+  uploadAvatar
 }
