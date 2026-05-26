@@ -39,6 +39,7 @@ import { adminAttributeRouter } from '~/routes/admin/adminAttributeRoute'
 import { adminFinancialRouter } from '~/routes/admin/adminFinancialRoute'
 import { adminPayoutRouter } from '~/routes/admin/adminPayoutRoute'
 import { adminSystemSettingRouter } from '~/routes/admin/systemSettingRoute'
+import { adminOrderRouter } from '~/routes/admin/adminOrderRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
@@ -95,6 +96,7 @@ const START_SERVER = () => {
   app.use('/api/admin/financial', adminFinancialRouter)
   app.use('/api/admin/payouts', adminPayoutRouter)
   app.use('/api/admin/system-settings', adminSystemSettingRouter)
+  app.use('/api/admin/orders', adminOrderRouter)
 
   // Thêm middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
