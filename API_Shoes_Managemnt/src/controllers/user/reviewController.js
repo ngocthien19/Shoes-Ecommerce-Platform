@@ -16,11 +16,6 @@ const extractImagesFromReqFiles = (reqFiles) => {
 const getProductReviews = async (req, res) => {
   try {
     const { slug } = req.params
-
-    if (!slug) {
-      return res.status(400).json({ message: 'Slug sản phẩm là bắt buộc.' })
-    }
-
     const result = await reviewService.getReviewsByProductSlug(slug)
     return res.status(200).json(result)
   } catch (error) {
@@ -34,14 +29,9 @@ const createReview = async (req, res) => {
     const { orderId } = req.params
     const { rating, comment } = req.body
 
+    // Bốc mảng file ảnh đã qua bộ lọc Cloudinary Provider
     const images = extractImagesFromReqFiles(req.files)
 
-    // Validate dữ liệu đầu vào cơ bản
-    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
-      return res.status(400).json({ message: 'Số sao đánh giá là bắt buộc và phải nằm trong khoảng từ 1 đến 5 sao.' })
-    }
-
-    // Gửi mảng images đã bốc tách xuống tầng Service xử lý (Tầng service và model của b đã viết chuẩn JSON.stringify sẵn nên giữ nguyên)
     const result = await reviewService.createReview(userId, Number(orderId), {
       rating: Number(rating),
       comment,
@@ -59,10 +49,6 @@ const createStoreReview = async (req, res) => {
     const userId = req.jwtDecoded?.id
     const { orderId } = req.params
     const { rating, comment } = req.body
-
-    if (!rating || Number(rating) < 1 || Number(rating) > 5) {
-      return res.status(400).json({ message: 'Số sao đánh giá cửa hàng là bắt buộc (từ 1 đến 5 sao).' })
-    }
 
     const result = await reviewService.createStoreReview(userId, Number(orderId), {
       rating: Number(rating),

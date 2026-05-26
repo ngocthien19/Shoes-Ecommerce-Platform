@@ -5,10 +5,6 @@ const addToCart = async (req, res) => {
     const userId = req.jwtDecoded.id
     const { variantId, quantity } = req.body
 
-    if (!variantId || !quantity) {
-      return res.status(400).json({ message: 'variantId và quantity là bắt buộc.' })
-    }
-
     const result = await cartService.addToCart(userId, Number(variantId), Number(quantity))
     return res.status(200).json(result)
   } catch (error) {
@@ -30,10 +26,6 @@ const updateQuantity = async (req, res) => {
   try {
     const userId = req.jwtDecoded.id
     const { variantId, quantity } = req.body
-
-    if (!variantId || quantity === undefined) {
-      return res.status(400).json({ message: 'variantId và quantity là bắt buộc.' })
-    }
 
     const result = await cartService.updateQuantity(userId, Number(variantId), Number(quantity))
     return res.status(200).json(result)
