@@ -23,6 +23,12 @@ export const ORDER_STATUS = {
   CANCEL_REQUESTED: 'cancel_requested'
 }
 
+export const PAYMENT_STATUS = {
+  UNPAID: 'unpaid',
+  PAID: 'paid',
+  REFUNDED: 'refunded'
+}
+
 // Trạng thái phê duyệt sản phẩm của Manager
 export const PRODUCT_MODERATION_STATUS = {
   PENDING: 'pending',
