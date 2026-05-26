@@ -4,6 +4,8 @@ import dotenv from 'dotenv'
 import { env } from '~/config/environment'
 import { connectDB } from '~/config/db'
 
+import { checkMaintenance } from '~/middlewares/maintenanceMiddleware'
+
 // import UserRoutes
 import { authRouter } from '~/routes/auth/authRoute'
 import { userRouter } from '~/routes/user/userRoute'
@@ -36,6 +38,7 @@ import { adminCategoryRouter } from '~/routes/admin/adminCategoryRoute'
 import { adminAttributeRouter } from '~/routes/admin/adminAttributeRoute'
 import { adminFinancialRouter } from '~/routes/admin/adminFinancialRoute'
 import { adminPayoutRouter } from '~/routes/admin/adminPayoutRoute'
+import { adminSystemSettingRouter } from '~/routes/admin/systemSettingRoute'
 
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
@@ -56,6 +59,8 @@ const START_SERVER = () => {
 
   //Giúp giải mã dữ liệu text từ form-data (Postman/Frontend gửi lên)
   app.use(express.urlencoded({ extended: true }))
+
+  app.use(checkMaintenance)
 
   // Định tuyến hệ thống API cho USER
   app.use('/api/auth', authRouter)
@@ -89,6 +94,7 @@ const START_SERVER = () => {
   app.use('/api/admin/attributes', adminAttributeRouter)
   app.use('/api/admin/financial', adminFinancialRouter)
   app.use('/api/admin/payouts', adminPayoutRouter)
+  app.use('/api/admin/system-settings', adminSystemSettingRouter)
 
   // Thêm middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)

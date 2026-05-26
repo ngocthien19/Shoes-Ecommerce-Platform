@@ -1,8 +1,9 @@
 import pool from '~/config/db'
 import { orderModel } from '~/models/user/order/orderModel'
 
-const createOrderCOD = async (userId, shippingAddress) => {
-  // BƯỚC 1: Lấy toàn bộ hàng trong giỏ của user ra
+const createOrderCOD = async (userId, { recipientName, recipientPhone, shippingAddress, discountAmount = 0 }) => {
+
+  // BƯỚC 1: Lấy toàn bộ hàng trong giỏ của user ra (Lúc này đã có thêm s.commission_rate nhờ hàm model mới)
   const cartItems = await orderModel.getCartItemsForCheckout(userId)
   if (!cartItems || cartItems.length === 0) {
     throw new Error('Giỏ hàng của bạn đang trống rỗng, không thể thanh toán.')
@@ -15,7 +16,7 @@ const createOrderCOD = async (userId, shippingAddress) => {
     }
   }
 
-  // BƯỚC 3: Nhóm các sản phẩm trong giỏ theo từng `store_id` (Tách đơn tự động)
+  // BƯỚC 3: Nhóm các sản phẩm trong giỏ theo từng `store_id` (Tách đơn tự động theo từng Shop)
   const itemsByStore = cartItems.reduce((acc, item) => {
     if (!acc[item.store_id]) acc[item.store_id] = []
     acc[item.store_id].push(item)
@@ -33,15 +34,27 @@ const createOrderCOD = async (userId, shippingAddress) => {
     for (const storeId in itemsByStore) {
       const storeItems = itemsByStore[storeId]
 
-      // Tính tổng tiền của đơn hàng thuộc shop này
-      const totalAmount = storeItems.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
+      // A. Tính tổng tiền giày gốc của đơn hàng thuộc shop này
+      const subTotal = storeItems.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
 
-      // 1. Tạo bản ghi bảng orders
+      // B. Xử lý phân bổ discount_amount (Nếu b có giải thuật chia đều voucher cho từng shop thì áp dụng,
+      // ở đây mặc định nếu mua lẻ đơn hoặc tính đơn giản sẽ trừ thẳng vào tổng tiền, tối thiểu tổng tiền bằng 0)
+      const totalAmount = Math.max(0, subTotal - Number(discountAmount))
+
+      // C. Bốc tỷ lệ hoa hồng snapshot của chính cửa hàng này từ item đầu tiên trong nhóm
+      const commissionRateSnapshot = storeItems[0].commission_rate || 10.00
+
+      // 1. 🌟 TẠO ĐƠN HÀNG MỚI: Truyền đầy đủ các trường dữ liệu bọc lót bảo mật tài chính xuống Model
       const orderId = await orderModel.createOrder(connection, {
         userId,
+        recipientName,
+        recipientPhone,
         storeId: Number(storeId),
         totalAmount,
-        shippingAddress
+        discount_amount: Number(discountAmount),
+        commission_rate_snapshot: commissionRateSnapshot,
+        shippingAddress,
+        paymentMethod: 'COD'
       })
 
       createdOrderIds.push(orderId)

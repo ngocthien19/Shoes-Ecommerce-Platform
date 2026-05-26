@@ -1,4 +1,5 @@
 import { vendorStoreModel } from '~/models/vendor/store/vendorStoreModel'
+import { systemSettingModel } from '~/models/admin/system/systemSettingModel'
 
 const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   const hasStore = await vendorStoreModel.checkStoreExistByOwnerId(userId)
@@ -6,13 +7,17 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
     throw new Error('Tài khoản của bạn đã đăng ký một cửa hàng trước đó rồi, không thể tạo thêm.')
   }
 
+  const systemSettings = await systemSettingModel.getSettings()
+  const defaultCommissionRate = systemSettings ? systemSettings.global_commission_rate : 10.00 // Phòng hờ lỗi thì lấy 10%
+
   await vendorStoreModel.createStore({
     ownerId: userId,
     name,
     bio,
     logo,
     banner,
-    address
+    address,
+    commissionRate: defaultCommissionRate
   })
 
   return {
