@@ -8,11 +8,11 @@ const getStoreByOwnerId = async (ownerId) => {
   return rows[0]
 }
 
-// 1. Lấy danh sách đơn hàng thuộc về Shop (Phân trang + Lọc trạng thái)
+// 1. Lấy danh sách đơn hàng thuộc về Shop (Phân trang + Lọc trạng thái + Nạp thông tin khuyến mãi)
 const getVendorOrders = async (storeId, { status, searchOrderId, paymentMethod, startDate, endDate, limit, offset }) => {
   let query = `
-    SELECT id, user_id, total_amount, status, payment_status, payment_method, 
-           shipping_address, cancel_reason, created_at
+    SELECT id, user_id, total_amount, discount_amount, commission_rate_snapshot, status, 
+           payment_status, payment_method, shipping_address, cancel_reason, created_at
     FROM orders
     WHERE store_id = ?
   `
@@ -128,7 +128,7 @@ const getOrderStatus = async (orderId) => {
   return rows[0] ? rows[0].status : null
 }
 
-// Thống kê nhanh các số liệu đơn hàng phục vụ 5 thẻ Widget ở đầu trang
+// Thống kê nhanh các số liệu đơn hàng phục vụ các thẻ Widget ở đầu trang
 const getOrdersOverviewStats = async (storeId) => {
   const query = `
     SELECT 
@@ -147,7 +147,7 @@ const getOrdersOverviewStats = async (storeId) => {
     ORDER_STATUS.SHIPPED,
     ORDER_STATUS.DELIVERED,
     ORDER_STATUS.CANCEL_REQUESTED,
-    ORDER_STATUS.CANCELED,
+    ORDER_STATUS.CANCELLED,
     storeId
   ])
 
@@ -178,26 +178,25 @@ const updateOrderStatusBulk = async (orderIds, status, storeId) => {
   return result.affectedRows
 }
 
-// Hàm xử lý kết thúc đơn hàng: Lật trạng thái paid + Cộng tiền vào ví Store (Bọc trong Transaction)
+// Bẻ sang đọc trực tiếp Snapshot tài chính của Đơn hàng
 const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
   const connection = await pool.getConnection()
   try {
-    // 1. Khởi động Transaction
     await connection.beginTransaction()
 
-    // 2. Lấy tỷ lệ hoa hồng (commission_rate) hiện tại của cửa hàng
-    const [storeRows] = await connection.execute(
-      'SELECT commission_rate FROM stores WHERE id = ?',
-      [storeId]
+    // 1. Đọc trực tiếp tỷ lệ chiết khấu snapshot được neo vào đơn hàng lúc mua
+    const [orderRows] = await connection.execute(
+      'SELECT commission_rate_snapshot FROM orders WHERE id = ?',
+      [orderId]
     )
-    if (storeRows.length === 0) throw new Error('Cửa hàng không tồn tại.')
-    const commissionRate = Number(storeRows[0].commission_rate) || 10.00
+    if (orderRows.length === 0) throw new Error('Không tìm thấy thông tin đơn hàng đối soát.')
+    const commissionRate = Number(orderRows[0].commission_rate_snapshot) || 10.00
 
-    // 3. Tính toán dòng tiền thực tế Vendor nhận được sau khi trừ "tiền phế" của Admin
+    // 2. Tính toán dòng tiền sạch: total_amount này chính là số tiền người mua thực trả sau khi áp mã
     const adminCommission = totalAmount * (commissionRate / 100)
     const vendorNetProfit = totalAmount - adminCommission
 
-    // 4. Cập nhật đơn hàng sang delivered và payment_status sang paid
+    // 3. Cập nhật đơn hàng sang hoàn thành và lật thanh toán sang PAID
     await connection.execute(
       `UPDATE orders 
        SET status = 'delivered', payment_status = 'paid' 
@@ -205,7 +204,7 @@ const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
       [orderId]
     )
 
-    // 5. Bơm tiền thực nhận vào ví balance của Store
+    // 4. Bơm khoản doanh thu thực nhận (Net Profit) vào ví tài khoản cho Store
     await connection.execute(
       `UPDATE stores 
        SET balance = balance + ? 
@@ -213,11 +212,9 @@ const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
       [vendorNetProfit, storeId]
     )
 
-    // 6. Chốt đơn thành công, lưu lại mọi thay đổi vào DB
     await connection.commit()
     return { adminCommission, vendorNetProfit }
   } catch (error) {
-    // Nếu có bất kỳ lỗi gì xảy ra, lập tức khôi phục lại dữ liệu ban đầu
     await connection.rollback()
     throw error
   } finally {

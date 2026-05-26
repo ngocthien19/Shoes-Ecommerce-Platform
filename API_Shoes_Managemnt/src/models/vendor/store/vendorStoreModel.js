@@ -8,19 +8,19 @@ const checkStoreExistByOwnerId = async (ownerId) => {
 }
 
 // Lưu dữ liệu Shop mới vào MySQL
-const createStore = async ({ ownerId, name, bio, logo, banner, address }) => {
+const createStore = async ({ ownerId, name, bio, logo, banner, address, commissionRate }) => {
   const query = `
-    INSERT INTO stores (owner_id, name, bio, logo, banner, address, is_active, balance, rating_average) 
-    VALUES (?, ?, ?, ?, ?, ?, FALSE, 0.00, 0.00)
+    INSERT INTO stores (owner_id, name, bio, logo, banner, address, is_active, balance, rating_average, commission_rate) 
+    VALUES (?, ?, ?, ?, ?, ?, FALSE, 0.00, 0.00, ?)
   `
-  const [result] = await pool.execute(query, [ownerId, name, bio, logo, banner, address])
+  const [result] = await pool.execute(query, [ownerId, name, bio, logo, banner, address, commissionRate])
   return result
 }
 
 // Lấy thông tin chi tiết gian hàng của chính mình (Dựa vào owner_id)
 const getStoreByOwnerId = async (ownerId) => {
   const query = `
-    SELECT id, owner_id, name, bio, logo, banner, address, balance, is_active, rating_average, created_at 
+    SELECT id, owner_id, name, bio, logo, banner, address, balance, is_active, rating_average, created_at, commission_rate
     FROM stores 
     WHERE owner_id = ?
   `
