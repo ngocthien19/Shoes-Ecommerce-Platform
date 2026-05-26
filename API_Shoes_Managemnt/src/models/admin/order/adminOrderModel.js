@@ -152,7 +152,7 @@ const getOrdersOverviewStatsSystem = async () => {
       SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) AS shippedOrders,
       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS deliveredOrders,
       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelledOrders,
-      COUNT(id) AS totalOrders -- Tổng số đơn hàng từ trước đến nay toàn hệ thống
+      COUNT(id) AS totalOrders 
     FROM orders
   `
   const [rows] = await pool.execute(query)

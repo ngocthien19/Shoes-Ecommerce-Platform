@@ -5,10 +5,6 @@ const toggleFavorite = async (req, res) => {
     const userId = req.jwtDecoded?.id
     const { productId } = req.body
 
-    if (!productId) {
-      return res.status(400).json({ message: 'productId là bắt buộc.' })
-    }
-
     const result = await favoriteService.toggleFavorite(userId, Number(productId))
     return res.status(200).json(result)
   } catch (error) {
