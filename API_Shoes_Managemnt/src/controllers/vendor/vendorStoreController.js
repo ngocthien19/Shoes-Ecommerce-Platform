@@ -5,14 +5,10 @@ const registerStore = async (req, res) => {
     const userId = req.jwtDecoded?.id
     const { name, bio, address } = req.body
 
-    if (!name || !address) {
-      return res.status(400).json({ message: 'Tên cửa hàng và địa chỉ cửa hàng là bắt buộc.' })
-    }
-
     let logoUrl = null
     let bannerUrl = null
 
-    // Đọc file ảnh trường logo nếu có
+    // Đọc file ảnh trường logo nếu có từ Cloudinary
     if (req.files?.['logo']?.[0]) {
       const logoObj = {
         public_id: req.files['logo'][0].filename,
@@ -21,7 +17,7 @@ const registerStore = async (req, res) => {
       logoUrl = JSON.stringify(logoObj)
     }
 
-    // Đọc file ảnh trường banner nếu có
+    // Đọc file ảnh trường banner nếu có từ Cloudinary
     if (req.files?.['banner']?.[0]) {
       const bannerObj = {
         public_id: req.files['banner'][0].filename,
@@ -54,20 +50,15 @@ const getStoreProfile = async (req, res) => {
   }
 }
 
-// 2. Controller cập nhật thông tin shop (Xử lý bốc mảng ảnh req.files từ Cloudinary)
 const updateStoreProfile = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { name, bio, address } = req.body
 
-    // if (!name || !address) {
-    //   return res.status(400).json({ message: 'Tên cửa hàng và địa chỉ cửa hàng là bắt buộc.' })
-    // }
-
     let logoObj = null
     let bannerObj = null
 
-    // Nếu có up logo mới
+    // Nếu có up logo mới qua Cloudinary
     if (req.files?.['logo']?.[0]) {
       logoObj = {
         public_id: req.files['logo'][0].filename,
@@ -75,7 +66,7 @@ const updateStoreProfile = async (req, res) => {
       }
     }
 
-    // Nếu có up banner mới
+    // Nếu có up banner mới qua Cloudinary
     if (req.files?.['banner']?.[0]) {
       bannerObj = {
         public_id: req.files['banner'][0].filename,
