@@ -1,25 +1,42 @@
 import pool from '~/config/db'
 
-// 1. Lấy thông tin chi tiết các item trong giỏ kèm giá, tồn kho và store_id để chuẩn bị check đơn
+// 1. Lấy thông tin chi tiết các item trong giỏ kèm giá, tồn kho và store_id (Có bốc thêm commission_rate hiện tại của shop)
 const getCartItemsForCheckout = async (userId) => {
   const query = `
-    SELECT c.variant_id, c.quantity, pv.stock, pv.product_id, p.price, p.store_id
+    SELECT c.variant_id, c.quantity, pv.stock, pv.product_id, p.price, p.store_id, s.commission_rate
     FROM cart c
     INNER JOIN product_variants pv ON c.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
+    INNER JOIN stores s ON p.store_id = s.id 
     WHERE c.user_id = ?
   `
   const [rows] = await pool.execute(query, [userId])
   return rows
 }
 
-// 2. Tạo một đơn hàng mới
-const createOrder = async (connection, { userId, storeId, totalAmount, shippingAddress }) => {
+// 2. Tạo một đơn hàng mới lưu vết Khuyến mãi, Người nhận và Snapshot hoa hồng
+const createOrder = async (connection, {
+  userId, recipientName, recipientPhone, storeId, totalAmount, discount_amount, commission_rate_snapshot, shippingAddress, paymentMethod
+}) => {
   const query = `
-    INSERT INTO orders (user_id, store_id, total_amount, shipping_address, status, payment_status)
-    VALUES (?, ?, ?, ?, 'pending', 'unpaid')
+    INSERT INTO orders (
+      user_id, recipient_name, recipient_phone, store_id, 
+      total_amount, discount_amount, commission_rate_snapshot, 
+      shipping_address, status, payment_status, payment_method
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?)
   `
-  const [result] = await connection.execute(query, [userId, storeId, totalAmount, shippingAddress])
+  const [result] = await connection.execute(query, [
+    userId,
+    recipientName,
+    recipientPhone,
+    storeId,
+    totalAmount,
+    discount_amount || 0.00,
+    commission_rate_snapshot,
+    shippingAddress,
+    paymentMethod || 'COD'
+  ])
   return result.insertId
 }
 
@@ -38,7 +55,7 @@ const decreaseVariantStock = async (connection, variantId, quantity) => {
   await connection.execute(query, [quantity, variantId])
 }
 
-// 5. Tăng số lượng đã bán (sold) ở bảng sản phẩm tổng quát
+// 5. Tăng số lượng đã bán (sold) ở bảng sản phẩm tổng quát - Giữ nguyên của b
 const increaseProductSold = async (connection, productId, quantity) => {
   const query = 'UPDATE products SET sold = sold + ? WHERE id = ?'
   await connection.execute(query, [quantity, productId])

@@ -19,7 +19,7 @@ export const ORDER_STATUS = {
   PROCESSING: 'processing',
   SHIPPED: 'shipped',
   DELIVERED: 'delivered',
-  CANCELED: 'cancelled',
+  CANCELLED: 'cancelled',
   CANCEL_REQUESTED: 'cancel_requested'
 }
 
