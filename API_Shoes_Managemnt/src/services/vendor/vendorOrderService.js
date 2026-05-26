@@ -1,7 +1,6 @@
 import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel'
 import { ORDER_STATUS } from '~/utils/constants'
 
-// Hàm tiện ích xác minh shop hoạt động và lấy store_id
 const getVerifiedStoreId = async (userId) => {
   const store = await vendorOrderModel.getStoreByOwnerId(userId)
   if (!store) throw new Error('Tài khoản chưa đăng ký cửa hàng.')
@@ -9,7 +8,6 @@ const getVerifiedStoreId = async (userId) => {
   return store.id
 }
 
-// 1. Lấy danh sách đơn hàng kèm chi tiết sản phẩm của từng đơn
 const getVendorOrders = async (userId, filters) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -17,7 +15,6 @@ const getVendorOrders = async (userId, filters) => {
   const limit = Number(filters.limit) || 10
   const offset = (page - 1) * limit
 
-  // Gom các tham số bộ lọc nâng cao
   const filterParams = {
     status: filters.status || null,
     searchOrderId: filters.searchOrderId || null,
@@ -26,21 +23,16 @@ const getVendorOrders = async (userId, filters) => {
     endDate: filters.endDate || null
   }
 
-  // Chạy song song 3 truy vấn độc lập xuống MySQL để đạt hiệu năng tối đa
   const [orders, totalItems, overviewStats] = await Promise.all([
     vendorOrderModel.getVendorOrders(storeId, { ...filterParams, limit, offset }),
     vendorOrderModel.countVendorOrders(storeId, filterParams),
     vendorOrderModel.getOrdersOverviewStats(storeId)
   ])
 
-  // Lấy danh sách sản phẩm chi tiết đi kèm của từng đơn hàng
   const ordersWithItems = await Promise.all(
     orders.map(async (order) => {
       const items = await vendorOrderModel.getOrderItemsByStore(order.id)
-      return {
-        ...order,
-        items
-      }
+      return { ...order, items }
     })
   )
 
@@ -48,46 +40,35 @@ const getVendorOrders = async (userId, filters) => {
 
   return {
     overview: overviewStats,
-    pagination: {
-      totalItems,
-      totalPages,
-      currentPage: page,
-      limit
-    },
+    pagination: { totalItems, totalPages, currentPage: page, limit },
     orders: ordersWithItems
   }
 }
 
-// 2. Cập nhật trạng thái HÀNG LOẠT cho mảng ID từ Checkbox (Có tích hợp dòng tiền)
+// Cập nhật hàng loạt đơn lẻ (Có check vết Admin xích đơn)
 const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   const storeId = await getVerifiedStoreId(userId)
 
-  if (!Array.isArray(orderIds) || orderIds.length === 0) {
-    throw new Error('Danh sách mã đơn hàng (IDs) không hợp lệ hoặc đang trống.')
-  }
-
-  // A. Kiểm tra tính hợp lệ của trạng thái đích truyền lên
-  const validStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED]
-  if (!validStatuses.includes(targetStatus)) {
-    throw new Error('Trạng thái cập nhật hàng loạt không hợp lệ.')
-  }
-
-  // B. Chặn bảo mật: Xác minh toàn bộ mảng đơn hàng này 100% thuộc về shop này
   const isAllOwner = await vendorOrderModel.checkMultipleOrdersOwnership(orderIds, storeId)
   if (!isAllOwner) {
     throw new Error('Danh sách đơn hàng chứa mã không thuộc quyền quản lý của shop bạn.')
+  }
+
+  for (const orderId of orderIds) {
+    const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
+    if (orderDetail[0]?.cancel_reason?.startsWith('[ADMIN FORCE CANCEL]')) {
+      throw new Error(`Đơn hàng #${orderId} đã bị Ban quản trị sàn ép hủy đóng băng hệ thống. Bạn không được phép can thiệp đổi trạng thái nữa.`)
+    }
   }
 
   if (targetStatus === ORDER_STATUS.DELIVERED) {
     let successCount = 0
     let totalCredited = 0
 
-    // Duyệt qua từng đơn hàng để kích nổ dòng tiền an toàn qua Transaction đơn lẻ
     for (const orderId of orderIds) {
       const currentStatus = await vendorOrderModel.getOrderStatus(orderId)
       const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
 
-      // Chỉ xử lý những đơn đang ở trạng thái 'shipped' và chưa bị lật trước đó
       if (currentStatus === ORDER_STATUS.SHIPPED && orderDetail.length > 0) {
         const cashFlow = await vendorOrderModel.completeOrderAndCreditStore(
           orderId,
@@ -100,52 +81,39 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
     }
 
     return {
-      message: `Xử lý giao hàng loạt thành công cho ${successCount}/${orderIds.length} đơn hàng đủ điều kiện. Tổng tiền doanh thu sạch đã được cộng vào ví balance của cửa hàng.`,
+      message: `Xử lý giao hàng loạt thành công cho ${successCount}/${orderIds.length} đơn hàng đủ điều kiện. Doanh thu sạch đã được cộng vào ví balance.`,
       creditedAmount: totalCredited
     }
   }
 
-  // C. Các trạng thái khác (processing, shipped...) thì cập nhật đồng loạt bằng toán tử IN như cũ
   const affectedRows = await vendorOrderModel.updateOrderStatusBulk(orderIds, targetStatus, storeId)
-
-  return {
-    message: `Đã cập nhật trạng thái sang [${targetStatus}] thành công cho ${affectedRows} đơn hàng.`
-  }
+  return { message: `Đã cập nhật trạng thái sang [${targetStatus}] thành công cho ${affectedRows} đơn hàng.` }
 }
 
-// 3. Cập nhật trạng thái ĐƠN LẺ (Có tích hợp dòng tiền)
+// Điều chỉnh trạng thái đơn lẻ (Có check vết Admin xích đơn)
 const updateOrderStatus = async (userId, orderId, newStatus) => {
   const storeId = await getVerifiedStoreId(userId)
 
   const isOwner = await vendorOrderModel.checkOrderOwnership(orderId, storeId)
   if (!isOwner) throw new Error('Đơn hàng không chứa sản phẩm thuộc cửa hàng của bạn.')
 
-  const currentStatus = await vendorOrderModel.getOrderStatus(orderId)
-  if (!currentStatus) throw new Error('Đơn hàng không tồn tại.')
+  const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
+  if (orderDetail.length === 0) throw new Error('Đơn hàng không tồn tại.')
 
-  // Kiểm tra tính hợp lệ của luồng trạng thái
-  const validStatuses = [ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED]
-  if (!validStatuses.includes(newStatus)) {
-    throw new Error('Trạng thái cập nhật không hợp lệ.')
+  if (orderDetail[0].cancel_reason?.startsWith('[ADMIN FORCE CANCEL]')) {
+    throw new Error('Đơn hàng này đã bị Ban quản trị sàn ép hủy tranh chấp vĩ mô. Quyết định của Admin là tối cao, Cửa hàng không có quyền thay đổi trạng thái vận đơn này nữa.')
   }
 
-  // Chặn không cho cập nhật nếu đơn đã hoàn thành hoặc đã hủy trước đó
+  const currentStatus = orderDetail[0].status
   if (currentStatus === ORDER_STATUS.DELIVERED || currentStatus === ORDER_STATUS.CANCELLED) {
-
     throw new Error('Không thể thay đổi trạng thái của đơn hàng đã hoàn thành hoặc đã hủy.')
   }
 
   if (newStatus === ORDER_STATUS.DELIVERED) {
-    // Chặn chặt chẽ: Phải giao đi (shipped) thì mới được bấm thành công
     if (currentStatus !== ORDER_STATUS.SHIPPED) {
       throw new Error('Đơn hàng phải được chuyển sang trạng thái "Đang giao hàng (shipped)" trước khi xác nhận Giao thành công.')
     }
 
-    // Bốc thông tin đơn hàng để lấy total_amount chạy tính toán hoa hồng
-    const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
-    if (orderDetail.length === 0) throw new Error('Không thể bốc thông tin giá trị đơn hàng.')
-
-    // Gọi hàm Transaction: lật status đơn sang delivered + lật payment_status sang paid + cộng ví balance
     const cashFlow = await vendorOrderModel.completeOrderAndCreditStore(
       orderId,
       storeId,
@@ -158,31 +126,32 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
     }
   }
 
-  // Đối với các trạng thái vận đơn thông thường (processing, shipped, cancelled...)
   await vendorOrderModel.updateOrderStatus(orderId, newStatus)
   return { message: `Cập nhật trạng thái đơn hàng sang [${newStatus}] thành công.` }
 }
 
-// 4. Xử lý yêu cầu hủy đơn từ khách hàng (Giữ nguyên logic phân luồng trường hợp của b)
+// Giải quyết đơn yêu cầu hủy (Có check vết Admin xích đơn)
 const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   const storeId = await getVerifiedStoreId(userId)
 
-  // 1. Kiểm tra quyền sở hữu đơn hàng của Shop
   const isOwner = await vendorOrderModel.checkOrderOwnership(orderId, storeId)
   if (!isOwner) throw new Error('Bạn không có quyền xử lý đơn hàng này.')
 
-  // 2. Lấy trạng thái hiện tại của đơn hàng dưới DB
-  const currentStatus = await vendorOrderModel.getOrderStatus(orderId)
-  if (!currentStatus) throw new Error('Đơn hàng không tồn tại.')
+  const orderDetail = await vendorOrderModel.getVendorOrders(storeId, { searchOrderId: orderId, limit: 1, offset: 0 })
+  if (orderDetail.length === 0) throw new Error('Đơn hàng không tồn tại.')
 
-  // TRƯỜNG HỢP 1: Đơn hàng đang ở trạng thái Chờ duyệt (pending) -> HỦY THẲNG
+  if (orderDetail[0].cancel_reason?.startsWith('[ADMIN FORCE CANCEL]')) {
+    throw new Error('Đơn hàng này đã bị Ban quản trị sàn ép hủy đóng băng. Bạn không thể thực hiện phê duyệt hay từ chối hủy luồng đơn này.')
+  }
+
+  const currentStatus = orderDetail[0].status
+
   if (currentStatus === ORDER_STATUS.PENDING) {
     const finalReason = reason ? `HỦY TỰ ĐỘNG (PENDING): ${reason}` : 'HỦY TỰ ĐỘNG: Hệ thống hủy đơn trực tiếp từ trạng thái chờ duyệt.'
     await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELLED, finalReason)
     return { message: 'Đơn hàng đang ở trạng thái chờ duyệt, hệ thống đã thực hiện hủy trực tiếp.' }
   }
 
-  // TRƯỜNG HỢP 2: Đơn hàng đang chờ Vendor phê duyệt hủy (cancel_requested)
   if (currentStatus === ORDER_STATUS.CANCEL_REQUESTED) {
     if (decision === 'accept') {
       const finalReason = reason ? reason : 'Người bán chấp nhận yêu cầu hủy từ khách hàng.'
@@ -193,13 +162,9 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
       const rejectNote = reason ? reason : 'Hàng đã được đóng gói và bàn giao cho đơn vị vận chuyển.'
       await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.PROCESSING, rejectNote)
       return { message: 'Đã từ chối yêu cầu hủy đơn hàng, trạng thái đơn hàng quay về Đang xử lý.' }
-
-    } else {
-      throw new Error('Quyết định xử lý không hợp lệ (chỉ chấp nhận accept hoặc reject).')
     }
   }
 
-  // TRƯỜNG HỢP KHÁC: Đơn hàng đang ở trạng thái processing bình thường (chưa có yêu cầu hủy)
   if (currentStatus === ORDER_STATUS.PROCESSING) {
     throw new Error('Đơn hàng này chưa gửi yêu cầu hủy. Không thể thực hiện phê duyệt.')
   } else {

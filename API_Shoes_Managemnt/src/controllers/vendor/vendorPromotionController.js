@@ -1,4 +1,4 @@
-import { vendorPromotionService } from '/services/vendor/vendorPromotionService'
+import { vendorPromotionService } from '~/services/vendor/vendorPromotionService'
 
 const createPromotion = async (req, res) => {
   try {
@@ -6,10 +6,11 @@ const createPromotion = async (req, res) => {
     const { name, description, discount_value, min_order_value, max_discount_amount, start_date, end_date, is_active } = req.body
 
     const result = await vendorPromotionService.createPromotion(userId, {
-      name, description,
-      discountValue: discount_value,
-      minOrderValue: min_order_value,
-      maxDiscountAmount: max_discount_amount,
+      name,
+      description,
+      discountValue: Number(discount_value),
+      minOrderValue: Number(min_order_value),
+      maxDiscountAmount: max_discount_amount ? Number(max_discount_amount) : null,
       startDate: start_date,
       endDate: end_date,
       isActive: is_active
@@ -27,10 +28,11 @@ const updatePromotion = async (req, res) => {
     const { name, description, discount_value, min_order_value, max_discount_amount, start_date, end_date, is_active } = req.body
 
     const result = await vendorPromotionService.updatePromotion(Number(id), userId, {
-      name, description,
-      discountValue: discount_value,
-      minOrderValue: min_order_value,
-      maxDiscountAmount: max_discount_amount,
+      name,
+      description,
+      discountValue: Number(discount_value),
+      minOrderValue: Number(min_order_value),
+      maxDiscountAmount: max_discount_amount ? Number(max_discount_amount) : null,
       startDate: start_date,
       endDate: end_date,
       isActive: is_active
@@ -71,11 +73,14 @@ const getVendorPromotions = async (req, res) => {
     const { page, limit, search, is_active, start_date, end_date, sortBy, sortOrder } = req.query
 
     const result = await vendorPromotionService.getVendorPromotions(userId, {
-      page, limit, search,
+      page,
+      limit,
+      search,
       isActive: is_active,
       startDate: start_date,
       endDate: end_date,
-      sortBy, sortOrder
+      sortBy,
+      sortOrder
     })
     return res.status(200).json(result)
   } catch (error) {
@@ -83,11 +88,11 @@ const getVendorPromotions = async (req, res) => {
   }
 }
 
-// 6. PATCH: Checkbox thay đổi trạng thái hoạt động hàng loạt
 const togglePromotionsActiveBulk = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { promotionIds, isActive } = req.body
+
     const result = await vendorPromotionService.togglePromotionsActiveBulk(userId, promotionIds, isActive)
     return res.status(200).json(result)
   } catch (error) {
@@ -95,11 +100,11 @@ const togglePromotionsActiveBulk = async (req, res) => {
   }
 }
 
-// 7. DELETE: Checkbox xóa hàng loạt khuyến mãi
 const deletePromotionsBulk = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { promotionIds } = req.body
+
     const result = await vendorPromotionService.deletePromotionsBulk(userId, promotionIds)
     return res.status(200).json(result)
   } catch (error) {
@@ -107,13 +112,13 @@ const deletePromotionsBulk = async (req, res) => {
   }
 }
 
-// 8. PATCH: Nút gạt trạng thái đơn lẻ cuối dòng Table
 const togglePromotionActiveSingle = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { id } = req.params
     const { isActive } = req.body
-    const result = await vendorPromotionService.togglePromotionActiveSingle(userId, id, isActive)
+
+    const result = await vendorPromotionService.togglePromotionActiveSingle(userId, Number(id), isActive)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi cập nhật trạng thái khuyến mãi: ${error.message}` })
