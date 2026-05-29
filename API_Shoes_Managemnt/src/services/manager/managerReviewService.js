@@ -1,5 +1,6 @@
 import { managerReviewModel } from '~/models/manager/review/managerReviewModel'
-import { REVIEW_TYPES } from '~/utils/constants'
+import { REVIEW_TYPES, NOTIFICATION_TYPES } from '~/utils/constants'
+import { notificationService } from '~/services/notification/notificationService'
 
 // 1. Tải danh sách đơn khiếu nại kèm phân trang, tìm kiếm, lọc nâng cao và Widgets
 const getReportedReviewsList = async (filters) => {
@@ -72,37 +73,68 @@ const resolveReviewsBulk = async (reviewIds, reviewType, action) => {
     throw new Error('Danh sách ID đánh giá cần xử lý không hợp lệ.')
   }
 
-  let isActiveTarget = true
-  if (action === 'banned') {
-    isActiveTarget = false
-  } else if (action === 'approved') {
-    isActiveTarget = true
-  } else {
-    throw new Error('Hành động xử lý (action) không hợp lệ. Chỉ chấp nhận \'approved\' hoặc \'banned\'.')
+  if (action !== 'approved' && action !== 'rejected') {
+    throw new Error('Hành động xử lý (action) không hợp lệ. Chỉ chấp nhận \'approved\' hoặc \'rejected\'.')
   }
 
-  let affectedRows = 0
+  const targetsInfo = await managerReviewModel.getReviewOwnersInfoBulk(reviewIds, reviewType)
 
+  let affectedRows = 0
   if (reviewType === REVIEW_TYPES.PRODUCT) {
-    affectedRows = await managerReviewModel.handleProductReviewsBulk(reviewIds, isActiveTarget)
+    affectedRows = await managerReviewModel.handleProductReviewsBulk(reviewIds, action)
   } else if (reviewType === REVIEW_TYPES.STORE) {
-    affectedRows = await managerReviewModel.handleStoreReviewsBulk(reviewIds, isActiveTarget)
+    affectedRows = await managerReviewModel.handleStoreReviewsBulk(reviewIds, action)
   } else {
     throw new Error('Loại đánh giá không hợp lệ để xử lý khớp lệnh.')
   }
 
   if (affectedRows === 0) {
-    throw new Error(
-      action === 'banned'
-        ? 'Thao tác thất bại! Đánh giá này có thể đã bị ẩn từ trước hoặc chưa được gửi báo cáo vi phạm.'
-        : 'Thao tác thất bại! Đánh giá này hiện đang hiển thị bình thường, không cần duyệt mở lại.'
+    throw new Error('Thao tác thất bại! Đánh giá này có thể đã được phân xử hoặc chưa từng bị khiếu nại.')
+  }
+
+  // Đưa khai báo biến vào trong vòng lặp map và làm gọn chuỗi
+  if (targetsInfo.length > 0) {
+    await Promise.all(
+      targetsInfo.map(async (info) => {
+        // Khai báo biến cục bộ bên trong để tránh lỗi Closure Reassignment của ESLint
+        let isBannedStr = ''
+        let notiType = ''
+
+        // Ép kiểu an toàn để né lỗi strict equality (===)
+        const isActive = Number(info.is_active) === 1
+
+        if (action === 'approved') {
+          if (isActive) {
+            isBannedStr = `Đơn tố cáo thành công. Hệ thống đã ẩn đánh giá của khách hàng ${info.reviewer_name}.`
+            notiType = NOTIFICATION_TYPES.REVIEW_RESOLVED_BANNED
+          } else {
+            isBannedStr = `Yêu cầu thành công. Đánh giá của khách hàng ${info.reviewer_name} đã được khôi phục.`
+            notiType = NOTIFICATION_TYPES.REVIEW_RESOLVED_APPROVED
+          }
+        } else if (isActive) {
+          isBannedStr = `Đơn tố cáo bị bác bỏ. Đánh giá của khách hàng ${info.reviewer_name} vẫn hiển thị.`
+          notiType = NOTIFICATION_TYPES.REVIEW_RESOLVED_APPROVED
+        } else {
+          isBannedStr = `Yêu cầu mở lại bị từ chối. Đánh giá của khách hàng ${info.reviewer_name} vẫn bị ẩn.`
+          notiType = NOTIFICATION_TYPES.REVIEW_RESOLVED_BANNED
+        }
+
+        return notificationService.createAndPushNotification({
+          userId: info.owner_id,
+          title: 'Kết quả giải quyết khiếu nại',
+          content: JSON.stringify({
+            message: isBannedStr,
+            image: ''
+          }),
+          type: notiType,
+          referenceId: info.review_id
+        }).catch(err => console.error('Lỗi bắn socket review:', err.message))
+      })
     )
   }
 
   return {
-    message: isActiveTarget === false
-      ? `Đã xử lý thành công! Tiến hành ẨN hiển thị hoàn toàn ${affectedRows} đánh giá vi phạm khỏi hệ thống.`
-      : `Đã xử lý thành công! Đã khôi phục lệnh ẩn và MỞ HIỂN THỊ lại bình thường cho ${affectedRows} đánh giá.`
+    message: `Đã phân xử thành công cho ${affectedRows} đơn khiếu nại đánh giá.`
   }
 }
 

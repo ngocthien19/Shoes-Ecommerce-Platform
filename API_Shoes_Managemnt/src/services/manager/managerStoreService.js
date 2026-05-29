@@ -1,7 +1,7 @@
 import { managerStoreModel } from '~/models/manager/store/managerStoreModel'
 import { EmailProvider } from '~/providers/EmailProvider'
 import { notificationService } from '~/services/notification/notificationService'
-import { STORE_MODERATION_STATUS, ROLE_ID } from '~/utils/constants'
+import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constants'
 
 // A. Lấy danh sách gian hàng (Hỗ trợ phân trang, tìm kiếm búa xua, lọc khoảng ngày)
 const getStoresList = async (filters) => {
@@ -71,7 +71,7 @@ const approveStoresBulk = async (storeIds) => {
         message: `Chúc mừng! Gian hàng "${shop.store_name}" của bạn đã hoạt động.`,
         image: logoUrl
       }),
-      type: STORE_MODERATION_STATUS.APPROVED,
+      type: NOTIFICATION_TYPES.STORE_APPROVED,
       referenceId: shop.store_id
     }).catch(err => console.error(err))
   }
@@ -118,7 +118,7 @@ const rejectStoresBulk = async (storeIds, reason) => {
             message: `Gian hàng "${shop.store_name}" chưa đạt yêu cầu. Lý do: ${finalReason}`,
             image: logoUrl
           }),
-          type: STORE_MODERATION_STATUS.REJECTED,
+          type: NOTIFICATION_TYPES.STORE_REJECTED,
           referenceId: shop.store_id
         }).catch(err => console.error(err))
 
@@ -195,7 +195,7 @@ const banStoresBulk = async (storeIds) => {
             message: `Cửa hàng "${shop.store_name}" của bạn đã bị đình chỉ do vi phạm.`,
             image: logoUrl
           }),
-          type: STORE_MODERATION_STATUS.BANNED,
+          type: NOTIFICATION_TYPES.STORE_BANNED,
           referenceId: shop.store_id
         }).catch(err => console.error(err))
 
