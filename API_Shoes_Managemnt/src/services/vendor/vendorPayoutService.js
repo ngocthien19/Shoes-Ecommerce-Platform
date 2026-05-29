@@ -1,4 +1,7 @@
 import { vendorPayoutModel } from '~/models/vendor/payout/vendorPayoutModel'
+import { userModel } from '~/models/user/userModel'
+import { notificationService } from '~/services/notification/notificationService'
+import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 // Hàm kiểm tra tính chính chủ và trạng thái hoạt động của ví cửa hàng
 const getVerifiedStoreWallet = async (userId) => {
@@ -25,6 +28,34 @@ const createPayoutRequest = async (userId, payoutData) => {
     accountNumber: payoutData.accountNumber,
     accountName: payoutData.accountName.toUpperCase()
   })
+
+  // BẮN THÔNG BÁO CHO TẤT CẢ ADMIN
+  let logoUrl = ''
+  try {
+    const parsedLogo = store.logo ? (typeof store.logo === 'string' ? JSON.parse(store.logo) : store.logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (e) {
+    console.log('Không parse được logo shop')
+  }
+
+  const adminIds = await userModel.getAllAdminIds()
+
+  if (adminIds.length > 0) {
+    await Promise.all(
+      adminIds.map((adminId) => {
+        return notificationService.createAndPushNotification({
+          userId: adminId,
+          title: 'Yêu cầu rút tiền mới',
+          content: JSON.stringify({
+            message: `Gian hàng "${store.store_name}" vừa đặt lệnh rút ${requestAmount.toLocaleString('vi-VN')} VNĐ.`,
+            image: logoUrl
+          }),
+          type: NOTIFICATION_TYPES.PAYOUT_REQUESTED,
+          referenceId: requestId
+        }).catch(err => console.error('Lỗi bắn socket payout báo Admin:', err.message))
+      })
+    )
+  }
 
   return {
     message: 'Gửi yêu cầu rút tiền thành công! Số tiền yêu cầu đã được tạm khóa để chờ ban quản trị sàn phê duyệt chuyển khoản.',

@@ -3,7 +3,7 @@ import { PAYOUT_STATUS } from '~/utils/constants'
 
 // A. Lấy thông tin số dư (balance) và trạng thái hiện tại của Store dựa vào owner_id
 const getStoreWalletDetail = async (ownerId) => {
-  const query = 'SELECT id, balance, is_active FROM stores WHERE owner_id = ?'
+  const query = 'SELECT id, name AS store_name, logo, balance, is_active FROM stores WHERE owner_id = ?'
   const [rows] = await pool.execute(query, [ownerId])
   return rows[0] || null
 }

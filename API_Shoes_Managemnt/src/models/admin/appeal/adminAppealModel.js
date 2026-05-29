@@ -46,7 +46,7 @@ const countAppeals = async (status) => {
 // 4. Xem chi tiết 1 đơn cứu xét
 const getAppealDetailById = async (appealId) => {
   const query = `
-    SELECT a.*, s.name AS store_name, s.is_active AS store_current_status, u.email AS owner_email
+    SELECT a.*, s.name AS store_name, s.logo AS store_logo, s.owner_id, s.is_active AS store_current_status, u.email AS owner_email
     FROM store_appeals a
     JOIN stores s ON a.store_id = s.id
     JOIN users u ON s.owner_id = u.id
@@ -65,7 +65,7 @@ const updateAppealStatus = async (appealId, status, managerNote) => {
 
 // 6. Truy tìm ID và trạng thái Shop của Vendor dựa vào owner_id lấy từ Token đăng nhập
 const getStoreStatusByOwnerId = async (ownerId) => {
-  const query = 'SELECT id, name, is_active FROM stores WHERE owner_id = ?'
+  const query = 'SELECT id, name, logo, is_active FROM stores WHERE owner_id = ?'
   const [rows] = await pool.execute(query, [ownerId])
   return rows[0] || null
 }

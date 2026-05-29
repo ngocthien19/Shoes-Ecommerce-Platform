@@ -1,23 +1,22 @@
 import { adminAppealModel } from '~/models/admin/appeal/adminAppealModel'
 import { adminStoreModel } from '~/models/admin/store/adminStoreModel'
 import { EmailProvider } from '~/providers/EmailProvider'
-import { APPEAL_STATUS } from '~/utils/constants'
+import { APPEAL_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
+import { userModel } from '~/models/user/userModel'
+import { notificationService } from '~/services/notification/notificationService'
 
 // 1. Luồng dành cho Vendor: Gửi đơn khiếu nại xin gỡ cấm công khai
 const submitStoreAppeal = async ({ userId, appealReason, evidenceFiles }) => {
-  // Bước 1: Dùng userId bốc từ token để tìm xem họ đang quản lý Cửa hàng nào
   const store = await adminAppealModel.getStoreStatusByOwnerId(userId)
 
   if (!store) {
     throw new Error('Hành động không hợp lệ! Bạn chưa từng đăng ký khởi tạo cửa hàng nào trên hệ thống.')
   }
 
-  // Bước 2: Chặn trường hợp Shop vẫn đang hoạt động xanh mượt mà lại đi spam gửi đơn khiếu nại
   if (store.is_active === 1) {
     throw new Error(`Cửa hàng [${store.name}] của bạn hiện vẫn đang hoạt động bình thường, không dính lệnh cấm nào để cần cứu xét!`)
   }
 
-  // Bước 3: Đóng gói mảng ảnh bằng chứng (evidenceImages) tải lên Cloudinary nếu có
   let evidenceImagesJson = null
   if (evidenceFiles && evidenceFiles.length > 0) {
     const imagesArray = evidenceFiles.map(file => ({
@@ -27,12 +26,38 @@ const submitStoreAppeal = async ({ userId, appealReason, evidenceFiles }) => {
     evidenceImagesJson = JSON.stringify(imagesArray)
   }
 
-  // Bước 4: Thực thi lưu đơn bọc chặt store_id tìm được vào DB
   await adminAppealModel.createAppeal({
     storeId: store.id,
     appealReason,
     evidenceImages: evidenceImagesJson
   })
+
+  // BẮN SOCKET THÔNG BÁO CHO ADMIN KHI VENDOR NỘP ĐƠN
+  let logoUrl = ''
+  try {
+    const parsedLogo = store.logo ? (typeof store.logo === 'string' ? JSON.parse(store.logo) : store.logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (e) {
+    console.error(`[Appeal] Lỗi parse logo shop ${store.id}:`, e.message)
+  }
+
+  const adminIds = await userModel.getAllAdminIds()
+  if (adminIds.length > 0) {
+    await Promise.all(
+      adminIds.map((adminId) => {
+        return notificationService.createAndPushNotification({
+          userId: adminId,
+          title: 'Yêu cầu cứu xét cửa hàng',
+          content: JSON.stringify({
+            message: `Cửa hàng "${store.name}" vừa nộp đơn khiếu nại xin khôi phục hoạt động.`,
+            image: logoUrl
+          }),
+          type: NOTIFICATION_TYPES.APPEAL_REQUESTED,
+          referenceId: store.id
+        }).catch(err => console.error('Lỗi bắn socket báo Admin:', err.message))
+      })
+    )
+  }
 
   return {
     message: `Gửi đơn khiếu nại thành công! Hồ sơ giải trình của cửa hàng [${store.name}] đã được ghi nhận trên hệ thống.`
@@ -44,7 +69,7 @@ const getAppealsList = async (query) => {
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
   const offset = (page - 1) * limit
-  const status = query.status || null // Lọc theo 'pending', 'approved', 'rejected'
+  const status = query.status || null
 
   const limitStr = String(limit)
   const offsetStr = String(offset)
@@ -64,6 +89,7 @@ const getAppealsList = async (query) => {
     appeals
   }
 }
+
 // 3. Luồng xử lý đơn: Thẩm định (Manager duyệt đơn) -> Kích hoạt mở Shop (Admin) -> Bắn Email kết quả
 const processStoreAppeal = async (appealId, { status, managerNote }) => {
   const appeal = await adminAppealModel.getAppealDetailById(appealId)
@@ -76,7 +102,9 @@ const processStoreAppeal = async (appealId, { status, managerNote }) => {
   let emailSubject = ''
   let emailHtml = ''
 
-  if (status === APPEAL_STATUS.APPROVED) {
+  const isApproved = status === APPEAL_STATUS.APPROVED
+
+  if (isApproved) {
     await adminStoreModel.updateStoreActiveStatusBulk([appeal.store_id], true)
 
     emailSubject = '[ShoesStore] Quyết định phê duyệt: Khôi phục hoạt động Cửa hàng'
@@ -132,10 +160,34 @@ const processStoreAppeal = async (appealId, { status, managerNote }) => {
     `
   }
 
-  await EmailProvider.sendEmail(appeal.owner_email, emailSubject, emailHtml)
+  // Gửi Email (Chạy ngầm)
+  EmailProvider.sendEmail(appeal.owner_email, emailSubject, emailHtml).catch(err => console.error(err))
+
+  // BẮN SOCKET CHO VENDOR (THÔNG BÁO KẾT QUẢ TRỰC TIẾP LÊN MÀN HÌNH)
+  let logoUrl = ''
+  try {
+    const parsedLogo = appeal.store_logo ? (typeof appeal.store_logo === 'string' ? JSON.parse(appeal.store_logo) : appeal.store_logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (e) {
+    console.error(`[Appeal] Lỗi parse logo shop ${appeal.store_id}:`, e.message)
+  }
+
+  const notiType = isApproved ? NOTIFICATION_TYPES.APPEAL_APPROVED : NOTIFICATION_TYPES.APPEAL_REJECTED
+  const notiTitle = isApproved ? 'Khôi phục cửa hàng thành công' : 'Đơn cứu xét bị từ chối'
+  const notiMessage = isApproved
+    ? 'Chúc mừng! Cửa hàng của bạn đã được khôi phục trạng thái hoạt động.'
+    : 'Đơn giải trình của bạn đã bị từ chối. Vui lòng kiểm tra email để biết thêm chi tiết.'
+
+  await notificationService.createAndPushNotification({
+    userId: appeal.owner_id,
+    title: notiTitle,
+    content: JSON.stringify({ message: notiMessage, image: logoUrl }),
+    type: notiType,
+    referenceId: appealId
+  }).catch(err => console.error('Lỗi bắn socket báo Vendor:', err.message))
 
   return {
-    message: status === APPEAL_STATUS.APPROVED
+    message: isApproved
       ? 'Đã duyệt chấp thuận đơn khiếu nại! Shop đã được mở khóa hoạt động và gửi email chúc mừng.'
       : 'Đã từ chối đơn khiếu nại! Hệ thống đã gửi email thông báo bác bỏ cho Vendor.'
   }
