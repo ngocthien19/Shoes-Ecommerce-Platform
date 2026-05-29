@@ -2,6 +2,7 @@ import { vendorStoreModel } from '~/models/vendor/store/vendorStoreModel'
 import { systemSettingModel } from '~/models/admin/system/systemSettingModel'
 import { userModel } from '~/models/user/userModel'
 import { notificationService } from '~/services/notification/notificationService'
+import { STORE_MODERATION_STATUS } from '~/utils/constants'
 
 const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   const hasStore = await vendorStoreModel.checkStoreExistByOwnerId(userId)
@@ -22,7 +23,7 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
     commissionRate: defaultCommissionRate
   })
 
-  // 🌟 TIẾN TRÌNH BẮN SOCKET CHO MANAGER
+  // TIẾN TRÌNH BẮN SOCKET CHO MANAGER
   const newStoreId = result.insertId
 
   // 1. Trích xuất link ảnh từ trường 'logo'
@@ -49,7 +50,7 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
         ownerName: requesterName,
         ownerEmail: requesterEmail
       }),
-      type: 'STORE_PENDING',
+      type: STORE_MODERATION_STATUS.PENDING,
       referenceId: newStoreId
     }).catch(err => console.error('Lỗi báo cho Manager:', err.message))
   }

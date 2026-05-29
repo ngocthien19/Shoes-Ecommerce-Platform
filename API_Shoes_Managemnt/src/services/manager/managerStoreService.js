@@ -53,12 +53,7 @@ const approveStoresBulk = async (storeIds) => {
   const ownerIds = targets.map(t => t.owner_id)
 
   if (ownerIds.length > 0) {
-    // 3. Lấy ID của quyền 'VENDOR' trong bảng roles
-    const vendorRoleId = await managerStoreModel.getRoleIdByName(`${ROLE_ID.VENDOR}`)
-    if (vendorRoleId) {
-      // 4. Thăng chức hàng loạt các tài khoản này từ USER lên thành VENDOR chính thức
-      await managerStoreModel.updateUserRolesBulk(ownerIds, vendorRoleId)
-    }
+    await managerStoreModel.updateUserRolesBulk(ownerIds, ROLE_ID.VENDOR)
   }
 
   // BẮN SOCKET THÔNG BÁO CHO TỪNG CHỦ SHOP
@@ -76,7 +71,7 @@ const approveStoresBulk = async (storeIds) => {
         message: `Chúc mừng! Gian hàng "${shop.store_name}" của bạn đã hoạt động.`,
         image: logoUrl
       }),
-      type: STORE_MODERATION_STATUS.APPROVED, // Sử dụng hằng số
+      type: STORE_MODERATION_STATUS.APPROVED,
       referenceId: shop.store_id
     }).catch(err => console.error(err))
   }
@@ -98,10 +93,7 @@ const rejectStoresBulk = async (storeIds, reason) => {
   // 2. Tự động lấy danh sách chủ shop để đảm bảo giữ nguyên/hạ quyền của họ về USER (role_id = 4)
   const ownerIds = targets.map(t => t.owner_id)
   if (ownerIds.length > 0) {
-    const userRoleId = await managerStoreModel.getRoleIdByName(`${ROLE_ID.USER}`)
-    if (userRoleId) {
-      await managerStoreModel.updateUserRolesBulk(ownerIds, userRoleId)
-    }
+    await managerStoreModel.updateUserRolesBulk(ownerIds, ROLE_ID.USER)
   }
 
   // 3. TIẾN HÀNH XÓA SỔ GIAN HÀNG LỖI (Giải phóng hoàn toàn owner_id UNIQUE)
@@ -126,7 +118,7 @@ const rejectStoresBulk = async (storeIds, reason) => {
             message: `Gian hàng "${shop.store_name}" chưa đạt yêu cầu. Lý do: ${finalReason}`,
             image: logoUrl
           }),
-          type: STORE_MODERATION_STATUS.REJECTED, // Sử dụng hằng số
+          type: STORE_MODERATION_STATUS.REJECTED,
           referenceId: shop.store_id
         }).catch(err => console.error(err))
 
@@ -203,7 +195,7 @@ const banStoresBulk = async (storeIds) => {
             message: `Cửa hàng "${shop.store_name}" của bạn đã bị đình chỉ do vi phạm.`,
             image: logoUrl
           }),
-          type: STORE_MODERATION_STATUS.BANNED, // Sử dụng hằng số
+          type: STORE_MODERATION_STATUS.BANNED,
           referenceId: shop.store_id
         }).catch(err => console.error(err))
 
