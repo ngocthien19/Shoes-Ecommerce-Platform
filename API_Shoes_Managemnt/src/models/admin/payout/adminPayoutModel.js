@@ -38,7 +38,7 @@ const countPayoutRequests = async ({ status }) => {
 // C. Lấy chi tiết thông tin một lệnh rút tiền
 const getPayoutDetail = async (payoutId) => {
   const query = `
-    SELECT pr.*, s.name AS store_name, u.fullname AS vendor_name, u.email AS vendor_email
+    SELECT pr.*, s.name AS store_name, s.logo, s.owner_id, u.fullname AS vendor_name, u.email AS vendor_email
     FROM payout_requests pr
     JOIN stores s ON pr.store_id = s.id
     JOIN users u ON s.owner_id = u.id
