@@ -1,17 +1,19 @@
 import { vendorReviewModel } from '~/models/vendor/review/vendorReviewModel'
-import { REVIEW_TYPES } from '~/utils/constants'
+import { REVIEW_TYPES, NOTIFICATION_TYPES } from '~/utils/constants'
+import { userModel } from '~/models/user/userModel'
+import { notificationService } from '~/services/notification/notificationService'
 
-// Hàm kiểm tra quyền hạn tài khoản Shop
-const getVerifiedStoreId = async (userId) => {
+const getVerifiedStore = async (userId) => {
   const store = await vendorReviewModel.getStoreByOwnerId(userId)
   if (!store) throw new Error('Tài khoản chưa đăng ký hoặc sở hữu cửa hàng.')
   if (!store.is_active) throw new Error('Cửa hàng hiện đang bị khóa hoặc chưa kích hoạt.')
-  return store.id
+  return store
 }
 
 // Lấy danh sách đánh giá phân trang, tìm kiếm văn bản và lọc theo số sao
 const getVendorReviews = async (userId, filters) => {
-  const storeId = await getVerifiedStoreId(userId)
+  const store = await getVerifiedStore(userId)
+  const storeId = store.id
 
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
@@ -64,7 +66,8 @@ const getVendorReviews = async (userId, filters) => {
 
 // Xem chi tiết một đánh giá (Sản phẩm hoặc Cửa hàng)
 const getReviewDetail = async (userId, reviewId, reviewType) => {
-  const storeId = await getVerifiedStoreId(userId)
+  const store = await getVerifiedStore(userId)
+  const storeId = store.id
   let review = null
 
   if (reviewType === REVIEW_TYPES.PRODUCT) {
@@ -81,7 +84,8 @@ const getReviewDetail = async (userId, reviewId, reviewType) => {
 
 // Đệ trình đơn tố cáo, báo cáo vi phạm bình luận lên sàn quản trị
 const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) => {
-  const storeId = await getVerifiedStoreId(userId)
+  const store = await getVerifiedStore(userId)
+  const storeId = store.id
 
   if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
     throw new Error('Danh sách ID đánh giá không hợp lệ hoặc đang trống.')
@@ -94,27 +98,40 @@ const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) =>
   let affectedRows = 0
 
   if (reviewType === REVIEW_TYPES.PRODUCT) {
-    // Kiểm tra tính chính chủ hàng loạt của mảng ID review sản phẩm
     const isAllOwner = await vendorReviewModel.checkMultipleProductReviewsOwnership(reviewIds, storeId)
     if (!isAllOwner) throw new Error('Danh sách chứa đánh giá sản phẩm không thuộc quyền quản lý của shop bạn.')
-
-    // Thực thi cập nhật cờ hàng loạt dưới DB
     affectedRows = await vendorReviewModel.reportProductReviewsBulk(reviewIds, storeId, reportReason)
-
   } else if (reviewType === REVIEW_TYPES.STORE) {
-    // Kiểm tra tính chính chủ hàng loạt của mảng ID review cửa hàng
     const isAllOwner = await vendorReviewModel.checkMultipleStoreReviewsOwnership(reviewIds, storeId)
     if (!isAllOwner) throw new Error('Danh sách chứa đánh giá cửa hàng không thuộc về shop bạn.')
-
-    // Thực thi cập nhật cờ hàng loạt dưới DB
     affectedRows = await vendorReviewModel.reportStoreReviewsBulk(reviewIds, storeId, reportReason)
-
   } else {
     throw new Error('Loại đánh giá không hợp lệ để thực hiện gửi khiếu nại hàng loạt.')
   }
 
   if (affectedRows === 0) {
     throw new Error('Gửi báo cáo thất bại. Không có bản ghi nào phù hợp được cập nhật.')
+  }
+
+  // BẮN THÔNG BÁO CHO TẤT CẢ MANAGER
+  let logoUrl = ''
+  try {
+    const parsedLogo = store.logo ? (typeof store.logo === 'string' ? JSON.parse(store.logo) : store.logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (e) { console.log('Không parse được logo shop') }
+
+  const managerIds = await userModel.getAllManagerIds()
+  for (const managerId of managerIds) {
+    await notificationService.createAndPushNotification({
+      userId: managerId,
+      title: 'Có đơn tố cáo đánh giá mới',
+      content: JSON.stringify({
+        message: `Gian hàng "${store.store_name}" vừa báo cáo vi phạm đối với ${affectedRows} đánh giá.`,
+        image: logoUrl
+      }),
+      type: NOTIFICATION_TYPES.REVIEW_REPORTED,
+      referenceId: store.id
+    }).catch(err => console.error(err))
   }
 
   return { message: `Đã gửi báo cáo vi phạm thành công cho ${affectedRows} đánh giá lên ban quản trị hệ thống.` }
@@ -125,9 +142,10 @@ const reportReview = async (userId, reviewId, reviewType, reportReason) => {
   return await reportReviewsBulk(userId, [Number(reviewId)], reviewType, reportReason)
 }
 
+// 5. Gửi yêu cầu xin mở lại đánh giá bị khóa
 const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
-  // Xác thực ID cửa hàng chính chủ của Vendor
-  const storeId = await getVerifiedStoreId(userId)
+  const store = await getVerifiedStore(userId)
+  const storeId = store.id
 
   if (!Array.isArray(reviewIds) || reviewIds.length === 0) {
     throw new Error('Danh sách mã đánh giá (reviewIds) không hợp lệ hoặc trống.')
@@ -136,7 +154,6 @@ const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
   const finalReason = reason?.trim() ? reason : 'Giải trình: Gian hàng đã xử lý xong khiếu nại với khách, mong Ban quản trị kiểm tra và hiển thị lại đánh giá này.'
   let affectedRows = 0
 
-  // Rẽ nhánh thực thi dựa trên loại hình review
   if (type === REVIEW_TYPES.PRODUCT) {
     affectedRows = await vendorReviewModel.requestProductReviewReopenBulk(reviewIds, storeId, finalReason)
   } else if (type === REVIEW_TYPES.STORE) {
@@ -147,6 +164,27 @@ const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
 
   if (affectedRows === 0) {
     throw new Error('Gửi yêu cầu thất bại. Các đánh giá được chọn có thể không bị ẩn hoặc đang trong trạng thái chờ duyệt sẵn rồi.')
+  }
+
+  // BẮN THÔNG BÁO XIN CỨU XÉT CHO TẤT CẢ MANAGER
+  let logoUrl = ''
+  try {
+    const parsedLogo = store.logo ? (typeof store.logo === 'string' ? JSON.parse(store.logo) : store.logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (e) { console.log('Không parse được logo shop') }
+
+  const managerIds = await userModel.getAllManagerIds()
+  for (const managerId of managerIds) {
+    await notificationService.createAndPushNotification({
+      userId: managerId,
+      title: 'Yêu cầu mở lại đánh giá bị ẩn',
+      content: JSON.stringify({
+        message: `Gian hàng "${store.store_name}" vừa xin mở lại ${affectedRows} đánh giá.`,
+        image: logoUrl
+      }),
+      type: NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED,
+      referenceId: store.id
+    }).catch(err => console.error(err))
   }
 
   return {

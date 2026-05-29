@@ -105,22 +105,28 @@ const getProductReviewDetail = async (reviewId) => {
   return rows[0] || null
 }
 
-// 3. Xử lý hàng loạt Đánh giá sản phẩm (Giữ nguyên phom của b)
-const handleProductReviewsBulk = async (reviewIds, isActive) => {
+// 3. Xử lý hàng loạt Đánh giá sản phẩm
+const handleProductReviewsBulk = async (reviewIds, action) => {
   const placeholders = reviewIds.map(() => '?').join(', ')
 
-  // - Nếu isActive = true (Manager muốn mở lại) -> Chỉ quét những dòng có is_active = FALSE (0)
-  // - Nếu isActive = false (Manager muốn ẩn bài) -> Chỉ quét những dòng có is_active = TRUE (1)
-  const currentActiveRequired = isActive ? 0 : 1
+  let query = ''
+  if (action === 'approved') {
+    // Đồng ý khiếu nại: Lật ngược cờ is_active (1 thành 0, 0 thành 1) và gỡ report
+    query = `
+      UPDATE product_reviews 
+      SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, is_reported = FALSE 
+      WHERE id IN (${placeholders}) AND is_reported = TRUE
+    `
+  } else {
+    // Từ chối khiếu nại: Giữ nguyên cờ is_active, chỉ gỡ report
+    query = `
+      UPDATE product_reviews 
+      SET is_reported = FALSE 
+      WHERE id IN (${placeholders}) AND is_reported = TRUE
+    `
+  }
 
-  const query = `
-    UPDATE product_reviews 
-    SET is_active = ?, is_reported = FALSE 
-    WHERE id IN (${placeholders}) AND is_reported = TRUE AND is_active = ?
-  `
-
-  // Nạp tham số khớp lệnh theo thứ tự các dấu ?
-  const [result] = await pool.execute(query, [isActive, ...reviewIds, currentActiveRequired])
+  const [result] = await pool.execute(query, [...reviewIds])
   return result.affectedRows
 }
 
@@ -219,18 +225,25 @@ const getStoreReviewDetail = async (reviewId) => {
 }
 
 // 3. Xử lý hàng loạt Đánh giá cửa hàng
-const handleStoreReviewsBulk = async (reviewIds, isActive) => {
+const handleStoreReviewsBulk = async (reviewIds, action) => {
   const placeholders = reviewIds.map(() => '?').join(', ')
 
-  const currentActiveRequired = isActive ? 0 : 1
+  let query = ''
+  if (action === 'approved') {
+    query = `
+      UPDATE store_reviews 
+      SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, is_reported = FALSE 
+      WHERE id IN (${placeholders}) AND is_reported = TRUE
+    `
+  } else {
+    query = `
+      UPDATE store_reviews 
+      SET is_reported = FALSE 
+      WHERE id IN (${placeholders}) AND is_reported = TRUE
+    `
+  }
 
-  const query = `
-    UPDATE store_reviews 
-    SET is_active = ?, is_reported = FALSE 
-    WHERE id IN (${placeholders}) AND is_reported = TRUE AND is_active = ?
-  `
-
-  const [result] = await pool.execute(query, [isActive, ...reviewIds, currentActiveRequired])
+  const [result] = await pool.execute(query, [...reviewIds])
   return result.affectedRows
 }
 
@@ -250,6 +263,33 @@ const getManagerReviewsOverviewStats = async () => {
   }
 }
 
+const getReviewOwnersInfoBulk = async (reviewIds, reviewType) => {
+  if (!reviewIds || reviewIds.length === 0) return []
+  const placeholders = reviewIds.map(() => '?').join(',')
+  let query = ''
+
+  if (reviewType === 'product') {
+    query = `
+      SELECT pr.id AS review_id, pr.is_active, p.name AS target_name, u.fullname AS reviewer_name, s.owner_id
+      FROM product_reviews pr
+      JOIN products p ON pr.product_id = p.id
+      JOIN stores s ON p.store_id = s.id
+      JOIN users u ON pr.user_id = u.id
+      WHERE pr.id IN (${placeholders})
+    `
+  } else {
+    query = `
+      SELECT sr.id AS review_id, sr.is_active, s.name AS target_name, u.fullname AS reviewer_name, s.owner_id
+      FROM store_reviews sr
+      JOIN stores s ON sr.store_id = s.id
+      JOIN users u ON sr.user_id = u.id
+      WHERE sr.id IN (${placeholders})
+    `
+  }
+  const [rows] = await pool.execute(query, reviewIds)
+  return rows
+}
+
 export const managerReviewModel = {
   getReportedProductReviews,
   countReportedProductReviews,
@@ -259,5 +299,6 @@ export const managerReviewModel = {
   countReportedStoreReviews,
   getStoreReviewDetail,
   handleStoreReviewsBulk,
-  getManagerReviewsOverviewStats
+  getManagerReviewsOverviewStats,
+  getReviewOwnersInfoBulk
 }

@@ -1,5 +1,5 @@
 import { managerProductModel } from '~/models/manager/product/managerProductModel'
-import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
+import { PRODUCT_MODERATION_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import { EmailProvider } from '~/providers/EmailProvider'
 import { notificationService } from '~/services/notification/notificationService'
 
@@ -60,14 +60,18 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
   } catch (error) { console.log('Không parse được ảnh giày') }
 
   let notiTitle = ''
-  let notiType = targetStatus
+  let notiType = ''
 
+  // MAP SANG TYPE CỦA NOTIFICATION
   if (targetStatus === PRODUCT_MODERATION_STATUS.APPROVED) {
     notiTitle = 'Sản phẩm đã được duyệt'
+    notiType = NOTIFICATION_TYPES.PRODUCT_APPROVED
   } else if (targetStatus === PRODUCT_MODERATION_STATUS.REJECTED) {
     notiTitle = 'Sản phẩm bị từ chối'
+    notiType = NOTIFICATION_TYPES.PRODUCT_REJECTED
   } else if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) {
     notiTitle = 'CẢNH BÁO KHÓA SẢN PHẨM'
+    notiType = NOTIFICATION_TYPES.PRODUCT_BANNED
   }
 
   if (notiTitle) {
@@ -198,14 +202,20 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
     groupedEmails[info.email].products.push({ id: info.product_id, name: info.product_name })
   })
 
+  // TẠO MAPPING ĐỂ LẤY TYPE NHANH TRONG VÒNG LẶP
+  const notiTypeMap = {
+    [PRODUCT_MODERATION_STATUS.APPROVED]: NOTIFICATION_TYPES.PRODUCT_APPROVED,
+    [PRODUCT_MODERATION_STATUS.REJECTED]: NOTIFICATION_TYPES.PRODUCT_REJECTED,
+    [PRODUCT_MODERATION_STATUS.BANNED]: NOTIFICATION_TYPES.PRODUCT_BANNED
+  }
+  const notiType = notiTypeMap[targetStatus]
+
   for (const item of listInfo) {
     let thumbnail = ''
     try {
       const parsedImages = typeof item.images === 'string' ? JSON.parse(item.images) : item.images
       if (parsedImages && parsedImages.length > 0) thumbnail = parsedImages[0].secure_url
     } catch (e) { console.log('Không parse được ảnh giày') }
-
-    let notiType = targetStatus
 
     await notificationService.createAndPushNotification({
       userId: item.owner_id,

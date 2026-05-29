@@ -2,7 +2,7 @@ import { vendorStoreModel } from '~/models/vendor/store/vendorStoreModel'
 import { systemSettingModel } from '~/models/admin/system/systemSettingModel'
 import { userModel } from '~/models/user/userModel'
 import { notificationService } from '~/services/notification/notificationService'
-import { STORE_MODERATION_STATUS } from '~/utils/constants'
+import { NOTIFICATION_TYPES } from '~/utils/constants'
 
 const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   const hasStore = await vendorStoreModel.checkStoreExistByOwnerId(userId)
@@ -50,7 +50,7 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
         ownerName: requesterName,
         ownerEmail: requesterEmail
       }),
-      type: STORE_MODERATION_STATUS.PENDING,
+      type: NOTIFICATION_TYPES.STORE_PENDING,
       referenceId: newStoreId
     }).catch(err => console.error('Lỗi báo cho Manager:', err.message))
   }
