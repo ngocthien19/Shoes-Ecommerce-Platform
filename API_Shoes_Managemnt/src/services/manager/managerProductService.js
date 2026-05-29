@@ -1,6 +1,7 @@
 import { managerProductModel } from '~/models/manager/product/managerProductModel'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 import { EmailProvider } from '~/providers/EmailProvider'
+import { notificationService } from '~/services/notification/notificationService'
 
 // 1. GET: Lấy danh sách sản phẩm kèm dữ liệu phân trang và bộ chỉ số Widgets toàn diện
 const getProductsList = async (filters) => {
@@ -51,6 +52,36 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
   // Cập nhật trạng thái mới xuống Database
   const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus)
   if (affectedRows === 0) throw new Error('Cập nhật trạng thái sản phẩm thất bại.')
+
+  let thumbnail = ''
+  try {
+    const parsedImages = typeof info.images === 'string' ? JSON.parse(info.images) : info.images
+    if (parsedImages && parsedImages.length > 0) thumbnail = parsedImages[0].secure_url
+  } catch (error) { console.log('Không parse được ảnh giày') }
+
+  let notiTitle = ''
+  let notiType = targetStatus
+
+  if (targetStatus === PRODUCT_MODERATION_STATUS.APPROVED) {
+    notiTitle = 'Sản phẩm đã được duyệt'
+  } else if (targetStatus === PRODUCT_MODERATION_STATUS.REJECTED) {
+    notiTitle = 'Sản phẩm bị từ chối'
+  } else if (targetStatus === PRODUCT_MODERATION_STATUS.BANNED) {
+    notiTitle = 'CẢNH BÁO KHÓA SẢN PHẨM'
+  }
+
+  if (notiTitle) {
+    await notificationService.createAndPushNotification({
+      userId: info.owner_id,
+      title: notiTitle,
+      content: JSON.stringify({
+        message: targetStatus === PRODUCT_MODERATION_STATUS.APPROVED ? `Sản phẩm ${info.product_name} đã sẵn sàng giao dịch.` : `Sản phẩm ${info.product_name} đã bị đình chỉ/từ chối.`,
+        image: thumbnail
+      }),
+      type: notiType,
+      referenceId: productId
+    }).catch(err => console.error(err))
+  }
 
   // Xây dựng kịch bản Mail thương mại điện tử chuyên nghiệp
   let emailSubject = ''
@@ -166,6 +197,27 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
     }
     groupedEmails[info.email].products.push({ id: info.product_id, name: info.product_name })
   })
+
+  for (const item of listInfo) {
+    let thumbnail = ''
+    try {
+      const parsedImages = typeof item.images === 'string' ? JSON.parse(item.images) : item.images
+      if (parsedImages && parsedImages.length > 0) thumbnail = parsedImages[0].secure_url
+    } catch (e) { console.log('Không parse được ảnh giày') }
+
+    let notiType = targetStatus
+
+    await notificationService.createAndPushNotification({
+      userId: item.owner_id,
+      title: 'Cập nhật trạng thái sản phẩm',
+      content: JSON.stringify({
+        message: `Sản phẩm "${item.product_name}" đã chuyển sang trạng thái: ${targetStatus}`,
+        image: thumbnail
+      }),
+      type: notiType,
+      referenceId: item.product_id
+    }).catch(err => console.error(err))
+  }
 
   // Quét map bắn email tổng kết cho từng Shop nhận đợt kiểm duyệt hàng loạt
   Object.keys(groupedEmails).forEach(email => {

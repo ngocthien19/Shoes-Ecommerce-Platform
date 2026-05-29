@@ -3,7 +3,7 @@ import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 
 // 1. Lấy thông tin shop dựa vào owner_id của Vendor để lấy store_id và kiểm tra quyền
 const getStoreByOwnerId = async (ownerId) => {
-  const query = 'SELECT id, is_active FROM stores WHERE owner_id = ?'
+  const query = 'SELECT id, name AS store_name, logo, is_active FROM stores WHERE owner_id = ?'
   const [rows] = await pool.execute(query, [ownerId])
   return rows[0]
 }
