@@ -95,7 +95,7 @@ const getProductsOverviewStats = async () => {
 // D. Lấy thông tin chi tiết một sản phẩm kèm thông tin chủ shop để gửi Email đơn lẻ
 const getProductAndOwnerInfo = async (productId) => {
   const query = `
-    SELECT p.name AS product_name, p.status, s.name AS store_name, u.fullname, u.email
+    SELECT p.name AS product_name, p.status, p.images, s.name AS store_name, u.fullname, u.email, u.id AS owner_id
     FROM products p
     JOIN stores s ON p.store_id = s.id
     JOIN users u ON s.owner_id = u.id
@@ -126,7 +126,7 @@ const updateProductsStatusBulk = async (productIds, status) => {
 const getProductsAndOwnersInfoBulk = async (productIds) => {
   const placeholders = productIds.map(() => '?').join(', ')
   const query = `
-    SELECT p.id AS product_id, p.name AS product_name, s.name AS store_name, u.fullname, u.email
+    SELECT p.id AS product_id, p.name AS product_name, p.images, s.name AS store_name, u.fullname, u.email, u.id AS owner_id
     FROM products p
     JOIN stores s ON p.store_id = s.id
     JOIN users u ON s.owner_id = u.id
