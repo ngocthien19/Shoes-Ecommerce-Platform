@@ -156,6 +156,17 @@ const getUserById = async (userId) => {
   return rows[0] || null
 }
 
+const getAllAdminIds = async () => {
+  const query = `
+    SELECT u.id 
+    FROM users u 
+    JOIN roles r ON u.role_id = r.id 
+    WHERE r.name = 'ADMIN'
+  `
+  const [rows] = await pool.execute(query)
+  return rows.map(row => row.id)
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -172,5 +183,6 @@ export const userModel = {
   setOnline,
   setOffline,
   getAllManagerIds,
-  getUserById
+  getUserById,
+  getAllAdminIds
 }
