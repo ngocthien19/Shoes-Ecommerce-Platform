@@ -125,6 +125,37 @@ const getUserProfileById = async (userId) => {
   return rows[0] // Trả về object thông tin của user đó
 }
 
+// Cập nhật trạng thái đang online
+const setOnline = async (userId) => {
+  const query = 'UPDATE users SET is_online = TRUE WHERE id = ?'
+  await pool.execute(query, [userId])
+}
+
+// Cập nhật trạng thái offline và lưu giờ hoạt động cuối
+const setOffline = async (userId) => {
+  const query = 'UPDATE users SET is_online = FALSE, last_active = NOW() WHERE id = ?'
+  await pool.execute(query, [userId])
+}
+
+// Lấy toàn bộ ID của các tài khoản đang có quyền MANAGER
+const getAllManagerIds = async () => {
+  const query = `
+    SELECT u.id 
+    FROM users u 
+    JOIN roles r ON u.role_id = r.id 
+    WHERE r.name = 'MANAGER'
+  `
+  const [rows] = await pool.execute(query)
+  return rows.map(row => row.id)
+}
+
+// Lấy thông tin cơ bản của User (Để lấy tên người đăng ký gửi lên cho Manager xem)
+const getUserById = async (userId) => {
+  const query = 'SELECT id, fullname, email, phone FROM users WHERE id = ?'
+  const [rows] = await pool.execute(query, [userId])
+  return rows[0] || null
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -137,5 +168,9 @@ export const userModel = {
   updateProfile,
   getUpdatedUserFields,
   removeRefreshToken,
-  getUserProfileById
+  getUserProfileById,
+  setOnline,
+  setOffline,
+  getAllManagerIds,
+  getUserById
 }

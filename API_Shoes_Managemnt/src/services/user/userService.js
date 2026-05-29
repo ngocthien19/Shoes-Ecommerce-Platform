@@ -19,7 +19,7 @@ const updateProfile = async (userId, bodyData) => {
 
   let successMessage = 'Cập nhật thông tin tài khoản thành công! 👟'
   if (hashedPassword) {
-    successMessage = 'Thay đổi mật khẩu và cập nhật thông tin thành công! 🔐'
+    successMessage = 'Thay đổi mật khẩu và cập nhật thông tin thành công!'
   } else if (avatarData) {
     successMessage = 'Cập nhật ảnh đại diện thành công! 📸'
   }

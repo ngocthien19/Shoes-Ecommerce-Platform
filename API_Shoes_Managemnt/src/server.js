@@ -1,10 +1,12 @@
 import express from 'express'
+import http from 'http'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import { env } from '~/config/environment'
 import { connectDB } from '~/config/db'
 
 import { checkMaintenance } from '~/middlewares/maintenanceMiddleware'
+import { SocketProvider } from '~/providers/SocketProvider'
 
 // import UserRoutes
 import { authRouter } from '~/routes/auth/authRoute'
@@ -41,6 +43,10 @@ import { adminPayoutRouter } from '~/routes/admin/adminPayoutRoute'
 import { adminSystemSettingRouter } from '~/routes/admin/systemSettingRoute'
 import { adminOrderRouter } from '~/routes/admin/adminOrderRoute'
 
+// Định tuyến hệ thống API cho CHAT và NOTIFICATION (Thời gian thực)
+import { chatRouter } from '~/routes/chat/chatRoute'
+import { notificationRouter } from '~/routes/notification/notificationRoute'
+
 import { corsOptions } from '~/config/corsOptions'
 import cookieParser from 'cookie-parser'
 import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware'
@@ -49,6 +55,10 @@ dotenv.config()
 
 const START_SERVER = () => {
   const app = express()
+
+  // Wrap Express app bằng http.createServer để tích hợp Socket.io
+  const server = http.createServer(app)
+
   // Cấu hình middleware để đọc cookie từ request
   app.use(cookieParser())
 
@@ -98,12 +108,21 @@ const START_SERVER = () => {
   app.use('/api/admin/system-settings', adminSystemSettingRouter)
   app.use('/api/admin/orders', adminOrderRouter)
 
+  // Định tuyến hệ thống API cho CHAT & NOTIFICATION
+  app.use('/api/chats', chatRouter)
+  app.use('/api/notifications', notificationRouter)
+
   // Thêm middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)
 
+  // Khởi tạo Socket.io gắn kèm với HTTP Server
+  SocketProvider.initSocket(server)
+
   // Khởi động Server Node.js lắng nghe trên Port từ file môi trường
   const port = env.APP_PORT || 8000
-  app.listen(port, () => {
+
+  // Sử dụng `server.listen` thay vì `app.listen` để Socket.io và API chạy chung 1 Port
+  server.listen(port, () => {
     console.log(`Backend Shoes Store đang chạy tại http://localhost:${port} 🚀`)
   })
 }
@@ -111,7 +130,6 @@ const START_SERVER = () => {
 // 6. Thực thi luồng: Kết nối Database thành công rồi mới chính thức khởi động Server
 (async () => {
   try {
-    // console.log('Đang kết nối tới Cơ sở dữ liệu...')
     await connectDB()
     START_SERVER()
   } catch (error) {

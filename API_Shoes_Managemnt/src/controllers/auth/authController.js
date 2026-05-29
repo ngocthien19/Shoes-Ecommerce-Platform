@@ -55,7 +55,8 @@ const login = async (req, res) => {
     return res.status(200).json({
       message: 'Đăng nhập thành công! Chào mừng bạn đã quay trở lại.',
       user: result.user,
-      redirectUrl: result.redirectUrl
+      redirectUrl: result.redirectUrl,
+      accessToken: result.accessToken
     })
   } catch (error) {
     if (error.message.includes('không chính xác') || error.message.includes('chưa được kích hoạt')) {

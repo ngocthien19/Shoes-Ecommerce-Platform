@@ -119,7 +119,7 @@ const getStoresAndOwnersInfo = async (storeIds) => {
   if (!storeIds || storeIds.length === 0) return []
 
   const query = `
-    SELECT s.name AS store_name, u.fullname, u.email 
+    SELECT s.id AS store_id, s.name AS store_name, s.logo, s.owner_id, u.fullname, u.email 
     FROM stores s
     JOIN users u ON s.owner_id = u.id
     WHERE s.id IN (${storeIds.map(() => '?').join(',')})

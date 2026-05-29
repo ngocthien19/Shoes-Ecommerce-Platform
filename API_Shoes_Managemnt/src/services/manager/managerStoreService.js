@@ -1,5 +1,7 @@
 import { managerStoreModel } from '~/models/manager/store/managerStoreModel'
 import { EmailProvider } from '~/providers/EmailProvider'
+import { notificationService } from '~/services/notification/notificationService'
+import { STORE_MODERATION_STATUS, ROLE_ID } from '~/utils/constants'
 
 // A. Lấy danh sách gian hàng (Hỗ trợ phân trang, tìm kiếm búa xua, lọc khoảng ngày)
 const getStoresList = async (filters) => {
@@ -44,16 +46,39 @@ const approveStoresBulk = async (storeIds) => {
   const affectedStores = await managerStoreModel.updateStoresStatusBulk(storeIds, true)
   if (affectedStores === 0) throw new Error('Không có cửa hàng nào được cập nhật.')
 
+  // LẤY THÔNG TIN ĐỂ BẮN SOCKET
+  const targets = await managerStoreModel.getStoresAndOwnersInfo(storeIds)
+
   // 2. Tự động tìm danh sách chủ sở hữu (owner_id) của các shop vừa duyệt này
-  const ownerIds = await managerStoreModel.getOwnerIdsByStoreIds(storeIds)
+  const ownerIds = targets.map(t => t.owner_id)
 
   if (ownerIds.length > 0) {
     // 3. Lấy ID của quyền 'VENDOR' trong bảng roles
-    const vendorRoleId = await managerStoreModel.getRoleIdByName('VENDOR')
+    const vendorRoleId = await managerStoreModel.getRoleIdByName(`${ROLE_ID.VENDOR}`)
     if (vendorRoleId) {
       // 4. Thăng chức hàng loạt các tài khoản này từ USER lên thành VENDOR chính thức
       await managerStoreModel.updateUserRolesBulk(ownerIds, vendorRoleId)
     }
+  }
+
+  // BẮN SOCKET THÔNG BÁO CHO TỪNG CHỦ SHOP
+  for (const shop of targets) {
+    let logoUrl = ''
+    try {
+      const parsedLogo = shop.logo ? (typeof shop.logo === 'string' ? JSON.parse(shop.logo) : shop.logo) : null
+      if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+    } catch (e) {console.log('Không thể parse logo:', e.message)}
+
+    await notificationService.createAndPushNotification({
+      userId: shop.owner_id,
+      title: 'Hồ sơ đã được phê duyệt!',
+      content: JSON.stringify({
+        message: `Chúc mừng! Gian hàng "${shop.store_name}" của bạn đã hoạt động.`,
+        image: logoUrl
+      }),
+      type: STORE_MODERATION_STATUS.APPROVED, // Sử dụng hằng số
+      referenceId: shop.store_id
+    }).catch(err => console.error(err))
   }
 
   return { message: `Phê duyệt thành công ${affectedStores} gian hàng đối tác kinh doanh mới.` }
@@ -71,9 +96,9 @@ const rejectStoresBulk = async (storeIds, reason) => {
   const targets = await managerStoreModel.getStoresAndOwnersInfo(storeIds)
 
   // 2. Tự động lấy danh sách chủ shop để đảm bảo giữ nguyên/hạ quyền của họ về USER (role_id = 4)
-  const ownerIds = await managerStoreModel.getOwnerIdsByStoreIds(storeIds)
+  const ownerIds = targets.map(t => t.owner_id)
   if (ownerIds.length > 0) {
-    const userRoleId = await managerStoreModel.getRoleIdByName('USER')
+    const userRoleId = await managerStoreModel.getRoleIdByName(`${ROLE_ID.USER}`)
     if (userRoleId) {
       await managerStoreModel.updateUserRolesBulk(ownerIds, userRoleId)
     }
@@ -87,6 +112,24 @@ const rejectStoresBulk = async (storeIds, reason) => {
   if (targets.length > 0) {
     Promise.all(
       targets.map(async (shop) => {
+        // KẸP THÊM SOCKET VÀO LUỒNG GỬI MAIL
+        let logoUrl = ''
+        try {
+          const parsedLogo = shop.logo ? (typeof shop.logo === 'string' ? JSON.parse(shop.logo) : shop.logo) : null
+          if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+        } catch (e) {console.log('Không thể parse logo:', e.message)}
+
+        await notificationService.createAndPushNotification({
+          userId: shop.owner_id,
+          title: 'Hồ sơ gian hàng bị từ chối',
+          content: JSON.stringify({
+            message: `Gian hàng "${shop.store_name}" chưa đạt yêu cầu. Lý do: ${finalReason}`,
+            image: logoUrl
+          }),
+          type: STORE_MODERATION_STATUS.REJECTED, // Sử dụng hằng số
+          referenceId: shop.store_id
+        }).catch(err => console.error(err))
+
         const htmlContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <div style="text-align: center; border-bottom: 2px solid #ee4d2d; padding-bottom: 10px;">
@@ -144,6 +187,26 @@ const banStoresBulk = async (storeIds) => {
   if (targets.length > 0) {
     Promise.all(
       targets.map(async (shop) => {
+        // KẸP SOCKET VÀO LUỒNG GỬI MAIL
+        let logoUrl = ''
+        try {
+          const parsedLogo = shop.logo ? (typeof shop.logo === 'string' ? JSON.parse(shop.logo) : shop.logo) : null
+          if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+        } catch (e) {
+          console.log('Không thể parse logo:', e.message)
+        }
+
+        await notificationService.createAndPushNotification({
+          userId: shop.owner_id,
+          title: 'CẢNH BÁO KHÓA GIAN HÀNG',
+          content: JSON.stringify({
+            message: `Cửa hàng "${shop.store_name}" của bạn đã bị đình chỉ do vi phạm.`,
+            image: logoUrl
+          }),
+          type: STORE_MODERATION_STATUS.BANNED, // Sử dụng hằng số
+          referenceId: shop.store_id
+        }).catch(err => console.error(err))
+
         const htmlContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <div style="text-align: center; border-bottom: 2px solid #333333; padding-bottom: 10px; background-color: #d9534f; padding: 10px 0; border-radius: 4px 4px 0 0;">

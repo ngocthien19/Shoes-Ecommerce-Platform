@@ -1,5 +1,7 @@
 import { vendorStoreModel } from '~/models/vendor/store/vendorStoreModel'
 import { systemSettingModel } from '~/models/admin/system/systemSettingModel'
+import { userModel } from '~/models/user/userModel'
+import { notificationService } from '~/services/notification/notificationService'
 
 const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   const hasStore = await vendorStoreModel.checkStoreExistByOwnerId(userId)
@@ -8,9 +10,9 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   }
 
   const systemSettings = await systemSettingModel.getSettings()
-  const defaultCommissionRate = systemSettings ? systemSettings.global_commission_rate : 10.00 // Phòng hờ lỗi thì lấy 10%
+  const defaultCommissionRate = systemSettings ? systemSettings.global_commission_rate : 10.00
 
-  await vendorStoreModel.createStore({
+  const result = await vendorStoreModel.createStore({
     ownerId: userId,
     name,
     bio,
@@ -19,6 +21,38 @@ const registerStore = async (userId, { name, bio, logo, banner, address }) => {
     address,
     commissionRate: defaultCommissionRate
   })
+
+  // 🌟 TIẾN TRÌNH BẮN SOCKET CHO MANAGER
+  const newStoreId = result.insertId
+
+  // 1. Trích xuất link ảnh từ trường 'logo'
+  let logoUrl = ''
+  try {
+    const parsedLogo = logo ? JSON.parse(logo) : null
+    if (parsedLogo && parsedLogo.secure_url) logoUrl = parsedLogo.secure_url
+  } catch (error) { console.log('Không parse được logo lúc đăng ký') }
+
+  // 2. Lấy thông tin người đăng ký
+  const requesterInfo = await userModel.getUserById(userId)
+  const requesterName = requesterInfo ? requesterInfo.fullname : 'Người dùng'
+  const requesterEmail = requesterInfo ? requesterInfo.email : ''
+
+  // 3. Quét danh sách Manager và phát sóng thông báo
+  const managerIds = await userModel.getAllManagerIds()
+  for (const managerId of managerIds) {
+    await notificationService.createAndPushNotification({
+      userId: managerId,
+      title: 'Yêu cầu mở gian hàng mới',
+      content: JSON.stringify({
+        message: `Gian hàng "${name}" vừa gửi hồ sơ đăng ký.`,
+        image: logoUrl,
+        ownerName: requesterName,
+        ownerEmail: requesterEmail
+      }),
+      type: 'STORE_PENDING',
+      referenceId: newStoreId
+    }).catch(err => console.error('Lỗi báo cho Manager:', err.message))
+  }
 
   return {
     message: 'Gửi đơn đăng ký mở cửa hàng thành công! Vui lòng chờ Ban quản trị phê duyệt gian hàng.'
