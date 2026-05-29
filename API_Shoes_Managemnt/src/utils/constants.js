@@ -57,3 +57,11 @@ export const PAYOUT_STATUS = {
   APPROVED: 'approved',
   REJECTED: 'rejected'
 }
+
+// Trạng thái phê duyệt cửa hàng (Dùng cho luồng Manager duyệt đăng ký mở Shop)
+export const STORE_MODERATION_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  BANNED: 'banned'
+}

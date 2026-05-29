@@ -29,7 +29,8 @@
     "mysql2": "^3.22.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.7",
-    "slugify": "^1.6.9"
+    "slugify": "^1.6.9",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
