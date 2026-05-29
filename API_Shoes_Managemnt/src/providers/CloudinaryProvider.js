@@ -94,6 +94,20 @@ const uploadCategory = multer({
   limits: { fileSize: 3 * 1024 * 1024 }
 })
 
+// 7. Cấu hình lưu trữ hình ảnh cho Khung Chat (Giao tiếp Khách - Shop)
+const chatStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'shoes_store_chats',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }]
+  }
+})
+const uploadChat = multer({
+  storage: chatStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB/ảnh
+})
+
 export const CloudinaryProvider = {
   cloudinary,
   streamUpload: uploadAvatar.single('avatar'),
@@ -104,5 +118,6 @@ export const CloudinaryProvider = {
   uploadProductFields: uploadProduct.array('images', 10),
   uploadReviewFields: uploadReview.array('reviewImages', 10),
   uploadAppealFields: uploadAppeal.array('evidenceImages', 5),
-  streamUploadCategory: uploadCategory.single('categoryImage')
+  streamUploadCategory: uploadCategory.single('categoryImage'),
+  uploadChatImages: uploadChat.array('chatImages', 10)
 }

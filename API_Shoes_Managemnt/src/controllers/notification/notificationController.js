@@ -1,0 +1,23 @@
+import { notificationService } from '~/services/notification/notificationService'
+
+const getNotifications = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const result = await notificationService.getNotifications(userId, req.query)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải danh sách thông báo: ${error.message}` })
+  }
+}
+
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const result = await notificationService.markAllAsRead(userId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xử lý đọc thông báo: ${error.message}` })
+  }
+}
+
+export const notificationController = { getNotifications, markAllAsRead }
