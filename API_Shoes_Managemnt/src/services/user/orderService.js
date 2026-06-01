@@ -1,103 +1,173 @@
 import pool from '~/config/db'
+import crypto from 'crypto'
+import qs from 'qs'
+import { env } from '~/config/environment'
 import { orderModel } from '~/models/user/order/orderModel'
+import { PaymentProvider } from '~/providers/PaymentProvider'
+import { PAYMENT_METHODS, PAYMENT_STATUS, ORDER_STATUS } from '~/utils/constants'
 
-const createOrderCOD = async (userId, { recipientName, recipientPhone, shippingAddress, discountAmount = 0 }) => {
-
-  // BƯỚC 1: Lấy toàn bộ hàng trong giỏ của user ra (Lúc này đã có thêm s.commission_rate nhờ hàm model mới)
+// Tạo đơn hàng và trừ kho (Dùng chung cho cả COD và Online)
+const coreCreateOrderTransaction = async (userId, data) => {
   const cartItems = await orderModel.getCartItemsForCheckout(userId)
-  if (!cartItems || cartItems.length === 0) {
-    throw new Error('Giỏ hàng của bạn đang trống rỗng, không thể thanh toán.')
-  }
+  if (!cartItems || cartItems.length === 0) throw new Error('Giỏ hàng của bạn đang trống rỗng.')
 
-  // BƯỚC 2: Kiểm tra kho trước khi chạy transaction để báo lỗi sớm cho khách
   for (const item of cartItems) {
-    if (item.quantity > item.stock) {
-      throw new Error(`Sản phẩm trong kho không đủ đáp ứng (Hiện còn: ${item.stock} mặt hàng).`)
-    }
+    if (item.quantity > item.stock) throw new Error(`Sản phẩm trong kho không đủ đáp ứng (Hiện còn: ${item.stock}).`)
   }
 
-  // BƯỚC 3: Nhóm các sản phẩm trong giỏ theo từng `store_id` (Tách đơn tự động theo từng Shop)
   const itemsByStore = cartItems.reduce((acc, item) => {
     if (!acc[item.store_id]) acc[item.store_id] = []
     acc[item.store_id].push(item)
     return acc
   }, {})
 
-  // BƯỚC 4: Bắt đầu kích hoạt Transaction kết nối MySQL
   const connection = await pool.getConnection()
   await connection.beginTransaction()
 
   try {
     const createdOrderIds = []
+    let totalAllShops = 0
 
-    // Lặp qua từng Cửa hàng để lập đơn độc lập
     for (const storeId in itemsByStore) {
       const storeItems = itemsByStore[storeId]
-
-      // A. Tính tổng tiền giày gốc của đơn hàng thuộc shop này
       const subTotal = storeItems.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
+      const totalAmount = Math.max(0, subTotal - (Number(data.discountAmount) / Object.keys(itemsByStore).length))
 
-      // B. Xử lý phân bổ discount_amount (Nếu b có giải thuật chia đều voucher cho từng shop thì áp dụng,
-      // ở đây mặc định nếu mua lẻ đơn hoặc tính đơn giản sẽ trừ thẳng vào tổng tiền, tối thiểu tổng tiền bằng 0)
-      const totalAmount = Math.max(0, subTotal - Number(discountAmount))
-
-      // C. Bốc tỷ lệ hoa hồng snapshot của chính cửa hàng này từ item đầu tiên trong nhóm
+      totalAllShops += totalAmount
       const commissionRateSnapshot = storeItems[0].commission_rate || 10.00
 
-      // 1. 🌟 TẠO ĐƠN HÀNG MỚI: Truyền đầy đủ các trường dữ liệu bọc lót bảo mật tài chính xuống Model
+      // Khởi tạo đơn hàng luôn ở trạng thái UNPAID
       const orderId = await orderModel.createOrder(connection, {
         userId,
-        recipientName,
-        recipientPhone,
+        recipientName: data.recipientName,
+        recipientPhone: data.recipientPhone,
         storeId: Number(storeId),
         totalAmount,
-        discount_amount: Number(discountAmount),
+        discount_amount: data.discountAmount,
         commission_rate_snapshot: commissionRateSnapshot,
-        shippingAddress,
-        paymentMethod: 'COD'
+        shippingAddress: data.shippingAddress,
+        paymentMethod: data.paymentMethod
       })
 
       createdOrderIds.push(orderId)
 
-      // 2. Xử lý từng item trong đơn hàng của shop
       for (const item of storeItems) {
-        // - Tạo bản ghi bảng order_items
-        await orderModel.createOrderItem(connection, {
-          orderId,
-          variantId: item.variant_id,
-          quantity: item.quantity,
-          price: item.price
-        })
-
-        // - Trừ kho thực tế của size/màu giày đó
+        await orderModel.createOrderItem(connection, { orderId, variantId: item.variant_id, quantity: item.quantity, price: item.price })
         await orderModel.decreaseVariantStock(connection, item.variant_id, item.quantity)
-
-        // - Cộng số lượng đã bán (sold) cho sản phẩm tổng quát
         await orderModel.increaseProductSold(connection, item.product_id, item.quantity)
       }
     }
 
-    // 3. Đặt hàng xong xuôi thì dọn sạch giỏ hàng của User
     await orderModel.clearUserCart(connection, userId)
-
-    // Xác nhận lưu mọi thay đổi vào DB một cách an toàn
     await connection.commit()
-
-    return {
-      message: 'Đặt đơn hàng COD thành công!',
-      orderIds: createdOrderIds
-    }
-
+    return { createdOrderIds, totalAllShops }
   } catch (error) {
-    // Nếu dính bất kỳ lỗi gì trong khối lệnh trên, hoàn nguyên DB lại như cũ ngay lập tức
     await connection.rollback()
     throw error
   } finally {
-    // Trả kết nối lại về cho Pool quản lý
     connection.release()
   }
 }
 
-export const orderService = {
-  createOrderCOD
+// 1. Luồng thanh toán COD
+const createOrderCOD = async (userId, payload) => {
+  const { createdOrderIds } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD })
+  return { message: 'Đặt đơn hàng COD thành công!', orderIds: createdOrderIds }
 }
+
+// 2. Luồng thanh toán Online (VNPAY)
+const createOrderOnline = async (userId, payload, ipAddr) => {
+  const { createdOrderIds, totalAllShops } = await coreCreateOrderTransaction(userId, payload)
+  const txnRef = createdOrderIds.join('_') + '_' + Date.now()
+
+  let paymentUrl = ''
+
+  // Rẽ nhánh tùy theo user chọn cổng nào
+  if (payload.paymentMethod === PAYMENT_METHODS.VNPAY) {
+    paymentUrl = PaymentProvider.createVNPayUrl(txnRef, totalAllShops, ipAddr)
+  } else if (payload.paymentMethod === PAYMENT_METHODS.MOMO) {
+    paymentUrl = await PaymentProvider.createMoMoUrl(txnRef, totalAllShops)
+  }
+
+  return { message: 'Tạo đơn chờ thanh toán thành công!', orderIds: createdOrderIds, paymentUrl }
+}
+
+// 3. Webhook IPN xử lý giao dịch khi VNPAY gọi về
+const vnpayIPN = async (vnp_Params) => {
+  const secureHash = vnp_Params['vnp_SecureHash']
+
+  // Xóa chữ ký cũ đi trước khi băm lại
+  delete vnp_Params['vnp_SecureHash']
+  delete vnp_Params['vnp_SecureHashType']
+
+  // Phải dùng đúng hàm sortObject của VNPAY thay vì sort thường
+  vnp_Params = PaymentProvider.sortObject(vnp_Params)
+
+  const signData = qs.stringify(vnp_Params, { encode: false })
+  const hmac = crypto.createHmac('sha512', env.VNP_HASH_SECRET)
+  const signed = hmac.update(new Buffer.from(signData, 'utf-8')).digest('hex')
+
+  if (secureHash === signed) {
+    if (vnp_Params['vnp_ResponseCode'] === '00') {
+      const txnRef = vnp_Params['vnp_TxnRef']
+      const parts = txnRef.split('_')
+      const orderIds = parts.slice(0, parts.length - 1).map(Number)
+
+      await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+      return { code: '00', message: 'Confirm Success' }
+    } else {
+      return { code: '00', message: 'Success but not paid' }
+    }
+  }
+
+  return { code: '97', message: 'Checksum failed' }
+}
+
+const momoIPN = async (reqBody) => {
+  const {
+    partnerCode, orderId, requestId, amount, orderInfo, orderType,
+    transId, resultCode, message, payType, responseTime, extraData, signature
+  } = reqBody
+
+  // Băm lại chữ ký xem có đúng của MoMo gửi không
+  const rawSignature = `accessKey=${env.MOMO_ACCESS_KEY}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`
+  const expectedSignature = crypto.createHmac('sha256', env.MOMO_SECRET_KEY).update(rawSignature).digest('hex')
+
+  if (signature === expectedSignature) {
+    if (resultCode === 0) { // 0 là mã thành công của MoMo
+      const parts = orderId.split('_')
+      const orderIds = parts.slice(0, parts.length - 1).map(Number)
+
+      await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+      return { success: true }
+    }
+  }
+  throw new Error('Giao dịch MoMo thất bại hoặc sai chữ ký bảo mật.')
+}
+
+const processMoMoReturn = async (queryData) => {
+  const { resultCode, message, orderId } = queryData
+
+  if (resultCode === '0') {
+    // Bóc tách ID đơn hàng
+    const parts = orderId.split('_')
+    const orderIds = parts.slice(0, parts.length - 1).map(Number)
+
+    // Gọi Model cập nhật DB ngay tại tầng Service
+    await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+
+    return {
+      isSuccess: true,
+      message: 'Thanh toán MoMo thành công',
+      momoMessage: message
+    }
+  }
+
+  return {
+    isSuccess: false,
+    message: 'Giao dịch MoMo thất bại hoặc bị hủy.',
+    momoMessage: message
+  }
+}
+
+export const orderService = { createOrderCOD, createOrderOnline, vnpayIPN, momoIPN, processMoMoReturn }
