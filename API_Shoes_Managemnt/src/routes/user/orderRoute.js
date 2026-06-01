@@ -10,9 +10,14 @@ import { authGuard } from '~/middlewares/authGuard'
 
 const router = express.Router()
 
+router.get('/vnpay-return', orderController.vnpayReturnIPN)
+router.post('/momo-ipn', orderController.momoReturnIPN)
+router.get('/momo-return', orderController.momoReturn)
+
 router.use(authGuard.isAuthorized)
 
-router.post('/checkout-cod', orderValidation.createOrderCOD, orderController.createOrderCOD)
+router.post('/checkout-cod', orderValidation.validateCheckout, orderController.createOrderCOD)
+router.post('/checkout-online', orderValidation.validateCheckout, orderController.createOrderOnline)
 router.get('/history', orderTrackingController.getOrderHistory)
 
 router.put('/cancel/:orderId', orderTrackingValidation.checkOrderIdParam,
