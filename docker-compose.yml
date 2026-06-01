@@ -1,0 +1,33 @@
+services:
+  # --- Backend ---
+  backend:
+    build: 
+      context: ./API_Shoes_Management
+      dockerfile: Dockerfile
+    container_name: shoes_backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./API_Shoes_Management:/app
+      - /app/node_modules
+    env_file:
+      - ./API_Shoes_Management/.env
+    depends_on:
+      - mysql_db
+
+  # --- Database ---
+  mysql_db:
+    image: mysql:8.0
+    container_name: shoes_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: shoes
+    ports:
+      - "3307:3306" 
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql_init:/docker-entrypoint-initdb.d
+
+volumes:
+  db_data:
