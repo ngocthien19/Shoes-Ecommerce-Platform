@@ -1,6 +1,7 @@
 import Joi from 'joi'
+import { PAYMENT_METHODS } from '~/utils/constants'
 
-const createOrderCOD = async (req, res, next) => {
+const validateCheckout = async (req, res, next) => {
   const correctCondition = Joi.object({
     recipientName: Joi.string().min(3).max(100).trim().required().messages({
       'string.empty': 'Tên người nhận hàng không được để trống.',
@@ -22,15 +23,22 @@ const createOrderCOD = async (req, res, next) => {
       'any.required': 'Địa chỉ giao hàng là thông tin bắt buộc.'
     }),
 
-    // discountAmount nhận từ Frontend sau khi hệ thống đã tính toán giá trị Voucher được giảm
     discountAmount: Joi.number().min(0).precision(2).optional().default(0).messages({
       'number.base': 'Số tiền giảm giá voucher phải là định dạng số.',
       'number.min': 'Số tiền giảm giá voucher không được là số âm.'
-    })
+    }),
+
+    paymentMethod: Joi.string()
+      .valid(PAYMENT_METHODS.COD, PAYMENT_METHODS.VNPAY, PAYMENT_METHODS.MOMO)
+      .required()
+      .messages({
+        'any.only': 'Phương thức thanh toán không hợp lệ (Chỉ nhận COD, VNPAY, MOMO).',
+        'string.empty': 'Phương thức thanh toán không được để trống.',
+        'any.required': 'Vui lòng chọn phương thức thanh toán.'
+      })
   })
 
   try {
-    // Tiến hành thẩm định dữ liệu req.body
     await correctCondition.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {
@@ -42,5 +50,5 @@ const createOrderCOD = async (req, res, next) => {
 }
 
 export const orderValidation = {
-  createOrderCOD
+  validateCheckout
 }

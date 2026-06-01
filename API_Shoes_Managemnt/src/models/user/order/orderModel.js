@@ -67,11 +67,20 @@ const clearUserCart = async (connection, userId) => {
   await connection.execute(query, [userId])
 }
 
+// 7. Cập nhật trạng thái thanh toán hàng loạt sau khi VNPAY gọi Webhook
+const updatePaymentStatusBulk = async (orderIds, paymentStatus, orderStatus) => {
+  if (!orderIds || orderIds.length === 0) return
+  const placeholders = orderIds.map(() => '?').join(',')
+  const query = `UPDATE orders SET payment_status = ?, status = ? WHERE id IN (${placeholders})`
+  await pool.execute(query, [paymentStatus, orderStatus, ...orderIds])
+}
+
 export const orderModel = {
   getCartItemsForCheckout,
   createOrder,
   createOrderItem,
   decreaseVariantStock,
   increaseProductSold,
-  clearUserCart
+  clearUserCart,
+  updatePaymentStatusBulk
 }
