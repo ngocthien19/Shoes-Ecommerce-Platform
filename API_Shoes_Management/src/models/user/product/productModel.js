@@ -56,12 +56,47 @@ const getLatestProducts = async (limit = 8) => {
 
 const getProductBySlug = async (slug) => {
   const query = `
-    SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images 
-    FROM products 
-    WHERE slug = ? AND is_active = TRUE
+    SELECT 
+      p.id, 
+      p.store_id, 
+      p.category_id, 
+      p.name, 
+      p.slug, 
+      p.description, 
+      p.price, 
+      p.sold, 
+      p.rating_avg, 
+      p.view_count, 
+      p.images,
+      -- Thông tin Category
+      c.name AS category_name,
+      c.slug AS category_slug,
+      -- Thông tin Store
+      s.name AS store_name,
+      s.logo AS store_logo,
+      s.rating_average AS store_rating,
+      s.address AS store_address,
+      s.created_at AS store_created_at,
+      pr.name AS promotion_name,
+      pr.discount_value AS discount_percentage
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN stores s ON p.store_id = s.id
+    
+    LEFT JOIN product_promotions pp ON p.id = pp.product_id
+    
+    LEFT JOIN promotions pr ON pp.promotion_id = pr.id 
+      AND pr.is_active = TRUE 
+      AND NOW() BETWEEN pr.start_date AND pr.end_date
+      
+    WHERE p.slug = ? AND p.is_active = TRUE
+    
+    ORDER BY pr.discount_value DESC
+    LIMIT 1
   `
+
   const [rows] = await pool.execute(query, [slug])
-  return rows[0] // Trả về 1 sản phẩm duy nhất
+  return rows[0]
 }
 
 const getProductVariants = async (productId) => {
@@ -72,11 +107,31 @@ const getProductVariants = async (productId) => {
 
 const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
   const query = `
-    SELECT id, store_id, category_id, name, slug, price, sold, rating_avg, images 
-    FROM products 
-    WHERE category_id = ? AND id != ? AND is_active = TRUE 
+    SELECT 
+      p.id, 
+      p.store_id, 
+      p.category_id, 
+      p.name, 
+      p.slug, 
+      p.price, 
+      p.sold, 
+      p.rating_avg, 
+      p.images,
+      (
+        SELECT pr.discount_value 
+        FROM promotions pr
+        JOIN product_promotions pp ON pr.id = pp.promotion_id
+        WHERE pp.product_id = p.id 
+          AND pr.is_active = TRUE 
+          AND NOW() BETWEEN pr.start_date AND pr.end_date
+        ORDER BY pr.discount_value DESC
+        LIMIT 1
+      ) AS discount_percentage
+    FROM products p 
+    WHERE p.category_id = ? AND p.id != ? AND p.is_active = TRUE 
     LIMIT ?
   `
+
   const [rows] = await pool.execute(query, [categoryId, currentProductId, String(limit)])
   return rows
 }
