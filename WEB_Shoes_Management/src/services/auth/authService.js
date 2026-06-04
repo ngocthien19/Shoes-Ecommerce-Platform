@@ -28,11 +28,7 @@ export const authService = {
   },
 
   logout: async () => {
-    const refreshToken = localStorage.getItem('refreshToken') || ''
-
-    const response = await authorizedAxiosInstance.post(`${DEV_API_URL}/api/auth/logout`, {
-      refreshToken: refreshToken
-    })
+    const response = await authorizedAxiosInstance.post(`${DEV_API_URL}/api/auth/logout`)
     return response.data
   }
 }

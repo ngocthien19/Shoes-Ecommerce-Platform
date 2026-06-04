@@ -15,5 +15,16 @@ export const productService = {
   searchAndFilterProducts: async (params) => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/search-filter`, { params })
     return response.data
+  },
+
+
+  toggleFavorite: async (productId) => {
+    const response = await authorizedAxiosInstance.post(`${DEV_API_URL}/api/products/toggle`, { productId })
+    return response.data
+  },
+
+  getFavorites: async () => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/favorites`)
+    return response.data
   }
 }
