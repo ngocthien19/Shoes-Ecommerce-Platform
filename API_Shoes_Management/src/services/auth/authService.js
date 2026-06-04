@@ -139,7 +139,10 @@ const login = async (reqBody) => {
       email: user.email,
       phone: user.phone,
       address: user.address,
-      roleId: user.role_id
+      roleId: user.role_id,
+      avatar: user.avatar,
+      isActive: user.is_active,
+      isVerified: user.is_verified
     },
     accessToken,
     refreshToken,
