@@ -17,11 +17,11 @@ const updateProfile = async (userId, bodyData) => {
   // 3. Lấy lại dữ liệu mới nhất (đã lọc các trường nhạy cảm) để gửi về cho Redux lưu trữ
   const updatedUser = await userModel.getUpdatedUserFields(userId)
 
-  let successMessage = 'Cập nhật thông tin tài khoản thành công! 👟'
+  let successMessage = 'Cập nhật thông tin tài khoản thành công!'
   if (hashedPassword) {
     successMessage = 'Thay đổi mật khẩu và cập nhật thông tin thành công!'
   } else if (avatarData) {
-    successMessage = 'Cập nhật ảnh đại diện thành công! 📸'
+    successMessage = 'Cập nhật ảnh đại diện thành công!'
   }
 
   return {
