@@ -3,6 +3,12 @@ import { FaEye } from 'react-icons/fa'
 import { formatPrice, formatSold } from '~/utils/formatters'
 import { Link } from 'react-router-dom'
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '~/components/ui/tooltip'
+
 export const ProductCard = ({ product, sortBy }) => {
   const rating = Math.round(parseFloat(product?.rating_avg || 0))
 
@@ -20,18 +26,24 @@ export const ProductCard = ({ product, sortBy }) => {
             -{Math.round(parseFloat(product.discount_percentage))}%
           </div>
         )}
-
-        <button
-          onClick={handleToggleFavorite}
-          className="absolute top-3 right-3 z-10 p-1
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleToggleFavorite}
+              className="absolute top-3 right-3 z-10 p-1
              bg-white/80 backdrop-blur-sm rounded-full
              text-brand-secondary ring-1 ring-brand-secondary
              transition-all duration-300
              hover:scale-110 hover:bg-brand-secondary hover:text-white/80
              cursor-pointer"
-        >
-          <FiHeart size={18} />
-        </button>
+            >
+              <FiHeart size={18} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Yêu thích</p>
+          </TooltipContent>
+        </Tooltip>
 
         {product?.images?.[0]?.secure_url ? (
           <Link to={`/product/${product.slug}`}>
@@ -88,9 +100,17 @@ export const ProductCard = ({ product, sortBy }) => {
 
       {/* Buttons */}
       <div className="flex gap-2 mt-4">
-        <Link to={`/product/${product.slug}`} className="flex-1 bg-white ring ring-brand-secondary hover:bg-brand-secondary text-brand-secondary hover:text-white py-2.5 rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer">
-          <FiInfo size={18} />
-        </Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to={`/product/${product.slug}`} className="flex-1 bg-white ring ring-brand-secondary hover:bg-brand-secondary text-brand-secondary hover:text-white py-2.5 rounded-lg flex items-center justify-center transition-all duration-300 cursor-pointer">
+              <FiInfo size={18} />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Chi tiết sản phẩm</p>
+          </TooltipContent>
+        </Tooltip>
+
         <button className="flex-[2] bg-brand-primary hover:bg-[#c73652] text-white py-2.5 rounded-lg flex items-center justify-center gap-2 font-semibold transition-all duration-300 cursor-pointer">
           <FiShoppingCart size={18} /> Thêm vào giỏ
         </button>

@@ -30,6 +30,10 @@ export const calculateFinalPrice = (price, discountPercentage) => {
   return priceNum
 }
 
+export const formatTime = (seconds) => {
+  return `00:${seconds < 10 ? `0${seconds}` : seconds}`
+}
+
 export const scrollToTop = () => {
   window.scrollTo({
     top: 0,

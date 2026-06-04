@@ -7,7 +7,7 @@ import { CategoryMenu } from '~/layouts/user/CategoryMenu'
 import { UserInfo } from '~/layouts/user/UserInfo'
 import { Search } from '~/layouts/user/Search'
 import { MobileHeader } from '~/layouts/user/MobileHeader'
-
+import { useSelector } from 'react-redux'
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -19,8 +19,7 @@ export const Header = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const userInfo = localStorage.getItem('userInfo')
-  const user = userInfo ? JSON.parse(userInfo) : null
+  const user = useSelector((state) => state.user.userInfo)
 
   useEffect(() => {
     categoryService.getAllCategories().then(setCategories).catch(console.error)
