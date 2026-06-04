@@ -43,7 +43,7 @@ const activateUser = async (email) => {
 
 // Tìm user đầy đủ thông tin để kiểm tra mật khẩu và quyền
 const getLoginUser = async (email) => {
-  const query = 'SELECT id, fullname, email, password, phone, address, role_id, is_active FROM users WHERE email = ?'
+  const query = 'SELECT id, fullname, email, password, phone, address, role_id, avatar, is_active, is_verified FROM users WHERE email = ?'
   const [rows] = await pool.execute(query, [email])
   return rows[0]
 }
