@@ -10,6 +10,7 @@ import { ProfileTabsContent } from './ProfileTabsContent'
 import { toast } from 'react-toastify'
 import { Header } from '~/layouts/user/Header'
 import { Footer } from '~/layouts/user/Footer'
+import { getAvatarUrl } from '~/utils/formatters'
 
 export const ProfilePage = () => {
   const dispatch = useDispatch()
@@ -23,16 +24,7 @@ export const ProfilePage = () => {
   const user = useSelector((state) => state.user.userInfo)
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
 
-  const getAvatarUrl = () => {
-    try {
-      const parsed = typeof user.avatar === 'string' ? JSON.parse(user.avatar) : user.avatar
-      return parsed?.secure_url
-    } catch {
-      return user.avatar?.secure_url
-    }
-  }
-
-  const [previewAvatar, setPreviewAvatar] = useState(getAvatarUrl())
+  const [previewAvatar, setPreviewAvatar] = useState(getAvatarUrl(user))
   const [selectedFile, setSelectedFile] = useState(null)
 
   useEffect(() => {
@@ -42,7 +34,7 @@ export const ProfilePage = () => {
   }, [isAuthenticated, navigate])
 
   useEffect(() => {
-    setPreviewAvatar(getAvatarUrl())
+    setPreviewAvatar(getAvatarUrl(user))
   }, [user])
 
   // EFFECT GỌI API LẤY DANH SÁCH SẢN PHẨM CHI TIẾT KHI CHUYỂN TAB FAVORITES
@@ -157,7 +149,7 @@ export const ProfilePage = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             onLogout={handleLogout}
-            avatarUrl={getAvatarUrl()}
+            avatarUrl={getAvatarUrl(user)}
           />
           <ProfileTabsContent
             user={user}
