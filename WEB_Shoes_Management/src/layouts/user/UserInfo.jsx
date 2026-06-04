@@ -85,12 +85,16 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
           <DropdownMenuContent align="end" className="w-48 mt-2">
             <DropdownMenuGroup>
               <DropdownMenuItem className="text-base cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
-                <FiUser size={16} className="text-gray-400 group-focus:text-brand-primary" />
-                <Link to="/account">Tài khoản</Link>
+                <Link to="/profile" className="flex items-center gap-2.5 w-full">
+                  <FiUser size={16} className="text-gray-400 group-focus:text-brand-primary" />
+                  <span>Tài khoản</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem className="text-base cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
-                <FiPackage size={16} className="text-gray-400 group-focus:text-brand-primary" />
-                <Link to="/orders">Đơn hàng</Link>
+                <Link to="/orders" className="flex items-center gap-2.5 w-full">
+                  <FiPackage size={16} className="text-gray-400 group-focus:text-brand-primary" />
+                  <span >Đơn hàng</span>
+                </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="bg-gray-100" />

@@ -7,6 +7,7 @@ import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
 import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
 import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
 import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
+import { ProfilePage } from '~/pages/user/ProfilePage/ProfilePage'
 import 'react-toastify/dist/ReactToastify.css'
 
 const App = () => {
@@ -16,6 +17,7 @@ const App = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/product/:slug" element={<ProductDetailPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
 
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-otp" element={<VerifyOtpPage />} />
