@@ -34,7 +34,7 @@ const getProductDetail = async (slug) => {
 }
 
 const searchAndFilterProducts = async (queryParams) => {
-  const { search, categories, stores, minPrice, maxPrice, ratings, page, limit, sortBy } = queryParams
+  const { search, categories, stores, minPrice, maxPrice, ratings, page, limit, sortBy, sizes, colors, isDiscounted } = queryParams
 
   const currentPage = Math.max(1, Number(page) || 1)
   const perPage = Math.max(1, Number(limit) || 8)
@@ -44,11 +44,13 @@ const searchAndFilterProducts = async (queryParams) => {
     search: search || '',
     categorySlugs: categories ? categories.split(',') : [],
     storeIds: stores ? stores.split(',').map(Number) : [],
-    minPrice: minPrice ? Number(minPrice) : null,
-    maxPrice: maxPrice ? Number(maxPrice) : null,
     ratings: ratings ? ratings.split(',').map(Number) : [],
     limit: perPage,
     offset: offset,
+    sizes: sizes ? sizes.split(',') : [],
+    colors: colors ? colors.split(',') : [],
+    prices: queryParams.prices ? queryParams.prices.split(',') : [],
+    isDiscounted: isDiscounted === 'true',
     sortBy: sortBy || 'latest'
   }
 
