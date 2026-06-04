@@ -142,76 +142,142 @@ const increaseViewCount = async (productId) => {
 
 const searchAndFilterProducts = async (filters) => {
   // Bổ sung nhận thêm thuộc tính sortBy từ filters
-  const { search, categorySlugs, storeIds, minPrice, maxPrice, ratings, limit, offset, sortBy } = filters
-
+  const { search, categorySlugs, storeIds, ratings, limit, offset, sortBy, sizes, colors, prices, isDiscounted } = filters
   let queryData = `
-    SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images 
-    FROM products 
-    WHERE is_active = TRUE
+    SELECT 
+      p.id, 
+      p.store_id, 
+      p.category_id, 
+      p.name, 
+      p.slug, 
+      p.description, 
+      p.price, 
+      p.sold, 
+      p.rating_avg, 
+      p.view_count, 
+      p.images,
+      
+      (
+        SELECT pr.discount_value 
+        FROM promotions pr
+        JOIN product_promotions pp ON pr.id = pp.promotion_id
+        WHERE pp.product_id = p.id 
+          AND pr.is_active = TRUE 
+          AND NOW() BETWEEN pr.start_date AND pr.end_date
+        ORDER BY pr.discount_value DESC
+        LIMIT 1
+      ) AS discount_percentage,
+
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
+
+    FROM products p 
+    WHERE p.is_active = TRUE
   `
   let queryCount = `
     SELECT COUNT(*) AS total 
-    FROM products 
-    WHERE is_active = TRUE
+    FROM products p
+    WHERE p.is_active = TRUE
   `
 
   let whereClauses = ''
   let params = []
 
   if (search) {
-    whereClauses += ' AND name LIKE ?'
+    whereClauses += ' AND p.name LIKE ?'
     params.push(`%${search}%`)
   }
   if (categorySlugs && categorySlugs.length > 0) {
     const placeholders = categorySlugs.map(() => '?').join(',')
-    whereClauses += ` AND category_id IN (SELECT id FROM categories WHERE slug IN (${placeholders}))`
+    whereClauses += ` AND p.category_id IN (SELECT id FROM categories WHERE slug IN (${placeholders}))`
     params = [...params, ...categorySlugs]
   }
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',')
-    whereClauses += ` AND store_id IN (${placeholders})`
+    whereClauses += ` AND p.store_id IN (${placeholders})`
     params = [...params, ...storeIds]
   }
-  if (minPrice !== undefined && minPrice !== null) {
-    whereClauses += ' AND price >= ?'
-    params.push(minPrice)
-  }
-  if (maxPrice !== undefined && maxPrice !== null) {
-    whereClauses += ' AND price <= ?'
-    params.push(maxPrice)
+  // LỌC KHOẢNG GIÁ ĐA ĐIỀU KIỆN
+  if (prices && prices.length > 0) {
+    const priceConditions = []
+    prices.forEach(p => {
+      const [min, max] = p.split('-')
+      if (max === 'max') {
+        priceConditions.push('(p.price >= ?)')
+        params.push(Number(min))
+      } else {
+        priceConditions.push('(p.price >= ? AND p.price <= ?)')
+        params.push(Number(min), Number(max))
+      }
+    })
+    whereClauses += ` AND (${priceConditions.join(' OR ')})`
   }
   if (ratings && ratings.length > 0) {
     const placeholders = ratings.map(() => '?').join(',')
-    whereClauses += ` AND FLOOR(rating_avg) IN (${placeholders})`
+    whereClauses += ` AND FLOOR(p.rating_avg) IN (${placeholders})`
     params = [...params, ...ratings]
   }
 
-  let orderByClause = ' ORDER BY created_at DESC' // Mặc định nếu không truyền gì là Mới nhất
+  // Lọc theo Size (Dùng Subquery chui vào bảng product_variants)
+  if (sizes && sizes.length > 0) {
+    const placeholders = sizes.map(() => '?').join(',')
+    whereClauses += ` AND p.id IN (SELECT product_id FROM product_variants WHERE size IN (${placeholders}))`
+    params = [...params, ...sizes]
+  }
+
+  // Lọc theo Màu (Dùng Subquery chui vào bảng product_variants)
+  if (colors && colors.length > 0) {
+    const placeholders = colors.map(() => '?').join(',')
+    whereClauses += ` AND p.id IN (SELECT product_id FROM product_variants WHERE color IN (${placeholders}))`
+    params = [...params, ...colors]
+  }
+
+  // Lọc sản phẩm Đang Giảm Giá
+  if (isDiscounted) {
+    whereClauses += ` AND p.id IN (
+      SELECT pp.product_id 
+      FROM product_promotions pp 
+      INNER JOIN promotions pr ON pp.promotion_id = pr.id 
+      WHERE pr.is_active = TRUE AND NOW() BETWEEN pr.start_date AND pr.end_date
+    )`
+  }
+
+  let orderByClause = ' ORDER BY p.created_at DESC' // Mặc định nếu không truyền gì là Mới nhất
 
   switch (sortBy) {
     case 'latest':
-      orderByClause = ' ORDER BY created_at DESC' // Mới nhất
+      orderByClause = ' ORDER BY p.created_at DESC' // Mới nhất
       break
     case 'sold_desc':
-      orderByClause = ' ORDER BY sold DESC' // Bán chạy nhất
+      orderByClause = ' ORDER BY p.sold DESC' // Bán chạy nhất
       break
     case 'views_desc':
-      orderByClause = ' ORDER BY view_count DESC' // Xem nhiều nhất
+      orderByClause = ' ORDER BY p.view_count DESC' // Xem nhiều nhất
       break
     case 'price_asc':
-      orderByClause = ' ORDER BY price ASC' // Giá tăng dần
+      orderByClause = ' ORDER BY p.price ASC' // Giá tăng dần
       break
     case 'price_desc':
-      orderByClause = ' ORDER BY price DESC' // Giá giảm dần
+      orderByClause = ' ORDER BY p.price DESC' // Giá giảm dần
       break
     case 'rating_desc':
-      orderByClause = ' ORDER BY rating_avg DESC' // Đánh giá cao nhất
+      orderByClause = ' ORDER BY p.rating_avg DESC' // Đánh giá cao nhất
       break
     case 'name_asc':
-      orderByClause = ' ORDER BY name ASC' // Theo tên từ A - Z
+      orderByClause = ' ORDER BY p.name ASC' // Theo tên từ A - Z
       break
     default:
-      orderByClause = ' ORDER BY created_at DESC'
+      orderByClause = ' ORDER BY p.created_at DESC'
   }
 
   // Ghép nối điều kiện WHERE và mệnh đề ORDER BY động vào chuỗi SQL chính

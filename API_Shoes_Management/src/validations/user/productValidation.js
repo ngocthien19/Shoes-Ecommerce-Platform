@@ -10,14 +10,14 @@ const searchAndFilterProducts = async (req, res, next) => {
     stores: Joi.string().allow('', null).trim().optional(),
 
     // Khoảng giá phải là số không âm
-    minPrice: Joi.number().min(0).optional().messages({
-      'number.min': 'Giá thấp nhất bộ lọc không được là số âm.'
-    }),
-    maxPrice: Joi.number().min(0).optional().messages({
-      'number.min': 'Giá cao nhất bộ lọc không được là số âm.'
-    }),
+    prices: Joi.string().allow('', null).trim().optional(),
 
     ratings: Joi.string().allow('', null).trim().optional(),
+
+    sizes: Joi.string().allow('', null).trim().optional(),
+    colors: Joi.string().allow('', null).trim().optional(),
+    // Joi tự động hiểu các chuỗi 'true'/'false' gửi qua URL là boolean
+    isDiscounted: Joi.boolean().optional(),
 
     // Kiểm duyệt phân trang chặt chẽ
     page: Joi.number().integer().min(1).optional().default(1).messages({
@@ -54,8 +54,8 @@ const searchAndFilterProducts = async (req, res, next) => {
 
 // 2. Kiểm duyệt chuỗi định danh Slug trên URL khi vào trang chi tiết sản phẩm
 const getProductDetail = async (req, res, next) => {
+  // ... (Phần code cũ giữ nguyên)
   const correctCondition = Joi.object({
-    // Ép cấu trúc slug chuẩn: Chỉ chứa chữ cái thường, số, và dấu gạch ngang
     slug: Joi.string()
       .trim()
       .regex(/^[a-z0-9-]+$/)

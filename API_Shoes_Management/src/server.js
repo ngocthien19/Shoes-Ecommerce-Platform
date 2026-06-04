@@ -17,6 +17,7 @@ import { cartRouter } from '~/routes/user/cartRoute'
 import { orderRouter } from '~/routes/user/orderRoute'
 import { promotionRouter } from '~/routes/user/promotionRoute'
 import { storeRouter } from '~/routes/user/storeRoute'
+import { attributeRouter } from '~/routes/user/attributeRoute'
 
 // import VendorRoutes
 import { vendorStoreRouter } from '~/routes/vendor/vendorStoreRoute'
@@ -83,6 +84,7 @@ const START_SERVER = () => {
   app.use('/api/orders', orderRouter)
   app.use('/api/promotions', promotionRouter)
   app.use('/api/stores', storeRouter)
+  app.use('/api/attributes', attributeRouter)
 
   // Định tuyến hệ thống API cho VENDOR (Cửa hàng)
   app.use('/api/vendor/stores', vendorStoreRouter)
