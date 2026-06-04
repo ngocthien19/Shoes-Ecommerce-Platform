@@ -1,12 +1,9 @@
 import { FiShoppingCart, FiInfo, FiHeart } from 'react-icons/fi'
+import { FaEye } from 'react-icons/fa'
 import { formatPrice, formatSold } from '~/utils/formatters'
 import { Link } from 'react-router-dom'
 
-<<<<<<< Updated upstream
-export const ProductCard = ({ product }) => {
-=======
 export const ProductCard = ({ product, sortBy }) => {
->>>>>>> Stashed changes
   const rating = Math.round(parseFloat(product?.rating_avg || 0))
 
   const handleToggleFavorite = () => {
@@ -47,7 +44,7 @@ export const ProductCard = ({ product, sortBy }) => {
         ) : (
           <Link to={`/product/${product.slug}`}>
             <div className="h-56 w-full flex items-center justify-center text-gray-400 text-sm italic cursor-pointer">
-            Chưa có ảnh
+              Chưa có ảnh
             </div>
           </Link>
         )}
@@ -67,17 +64,13 @@ export const ProductCard = ({ product, sortBy }) => {
           </span>
           <span>({product?.rating_count || 0})</span>
           <span>|</span>
-<<<<<<< Updated upstream
-          <span>Đã bán {formatSold(product?.sold || 0)}</span>
-=======
           {sortBy === 'views_desc' ? (
             <span className="flex items-center gap-1 text-blue-500 font-medium">
-          👁️ {product.view_count || 0} lượt xem
+              <FaEye /> {product?.view_count || 0} lượt xem
             </span>
           ) : (
-            <span>Đã bán {product.sold || 0}</span>
+            <span>Đã bán {formatSold(product?.sold || 0)}</span>
           )}
->>>>>>> Stashed changes
         </div>
 
         {/* Price Logic */}

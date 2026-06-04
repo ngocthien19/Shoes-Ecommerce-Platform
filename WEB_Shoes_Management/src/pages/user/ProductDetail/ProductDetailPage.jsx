@@ -9,11 +9,7 @@ import { RelatedProducts } from '~/pages/user/ProductDetail/RelatedProducts'
 import { ProductReview } from '~/pages/user/ProductDetail/ProductReview'
 import { productService } from '~/services/user/productService'
 import { scrollToTop } from '~/utils/formatters'
-<<<<<<< Updated upstream
-import BreadCrumb from '~/components/user/BreadCrumb'
-=======
 import { BreadCrumb } from '~/components/user/BreadCrumb'
->>>>>>> Stashed changes
 
 export const ProductDetailPage = () => {
   const { slug } = useParams()
@@ -55,9 +51,6 @@ export const ProductDetailPage = () => {
 
       <main className="app-container py-8 flex-1">
         {/* Breadcrumb */}
-<<<<<<< Updated upstream
-        <BreadCrumb product={product} />
-=======
         <BreadCrumb
           items={[
             {
@@ -74,7 +67,6 @@ export const ProductDetailPage = () => {
             }
           ]}
         />
->>>>>>> Stashed changes
 
         {/* Khối nội dung chính */}
         <div className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100">
