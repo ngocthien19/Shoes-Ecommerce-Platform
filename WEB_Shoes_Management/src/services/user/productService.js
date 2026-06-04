@@ -24,7 +24,7 @@ export const productService = {
   },
 
   getFavorites: async () => {
-    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/favorites`)
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products`)
     return response.data
   }
 }
