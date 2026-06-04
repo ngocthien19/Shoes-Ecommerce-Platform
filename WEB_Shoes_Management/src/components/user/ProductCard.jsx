@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { FiShoppingCart, FiInfo, FiHeart } from 'react-icons/fi'
 import { FaEye } from 'react-icons/fa'
 import { formatPrice, formatSold } from '~/utils/formatters'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
+import { addToFavorites, removeFromFavorites } from '~/redux/user/userSlice'
+import { productService } from '~/services/user/productService'
+import { toast } from 'react-toastify'
 
 import {
   Tooltip,
@@ -10,11 +15,46 @@ import {
 } from '~/components/ui/tooltip'
 
 export const ProductCard = ({ product, sortBy }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+
+  // Kiểm tra trạng thái đăng nhập của user từ Redux Store
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
+
+  // State quản lý trạng thái tim (Yêu thích) cục bộ của sản phẩm để UI thay đổi real-time
+  const favoriteIds = useSelector((state) => state.user.favoriteIds)
+  const isFavorite = favoriteIds.includes(product.id)
+
   const rating = Math.round(parseFloat(product?.rating_avg || 0))
 
-  const handleToggleFavorite = () => {
-    // Gọi API thêm/xóa sản phẩm yêu thích ở đây
-    console.log('Toggle favorite for product:', product.id)
+  const handleToggleFavorite = async (e) => {
+    e.preventDefault() // Chặn hành động chuyển trang của thẻ Link bọc ngoài
+
+    if (!isAuthenticated) {
+      toast.warning('Vui lòng đăng nhập để sử dụng tính năng yêu thích sản phẩm!')
+      navigate('/login', { state: { from: location.pathname } })
+      return
+    }
+
+    try {
+      // Gọi API và nhận về Object phản hồi { isFavorite, message }
+      const response = await productService.toggleFavorite(product.id)
+
+      if (response) {
+        // 1. Tận dụng thông báo động bóc tách trực tiếp từ Backend trả về
+        toast.success(response.message)
+
+        // 2. Cập nhật ID vào Redux Store dựa theo trạng thái isFavorite mới từ Backend
+        if (response.isFavorite) {
+          dispatch(addToFavorites(product.id))
+        } else {
+          dispatch(removeFromFavorites(product.id))
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi toggle favorite tại Card:', error)
+    }
   }
 
   return (
@@ -30,14 +70,10 @@ export const ProductCard = ({ product, sortBy }) => {
           <TooltipTrigger asChild>
             <button
               onClick={handleToggleFavorite}
-              className="absolute top-3 right-3 z-10 p-1
-             bg-white/80 backdrop-blur-sm rounded-full
-             text-brand-secondary ring-1 ring-brand-secondary
-             transition-all duration-300
-             hover:scale-110 hover:bg-brand-secondary hover:text-white/80
-             cursor-pointer"
+              className={`absolute top-3 right-3 z-10 p-1.5 backdrop-blur-sm rounded-full ring-1 transition-all duration-300 hover:scale-110 cursor-pointer
+      ${isFavorite ? 'bg-red-500 text-white ring-red-500' : 'bg-white/80 text-brand-secondary ring-brand-secondary'}`}
             >
-              <FiHeart size={18} />
+              <FiHeart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
           </TooltipTrigger>
           <TooltipContent>

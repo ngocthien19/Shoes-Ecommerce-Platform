@@ -55,7 +55,7 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen bg-brand-secondary flex items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden p-6 sm:p-10 md:p-12 flex flex-col justify-center items-center">
 
         {/* Logo Brand */}

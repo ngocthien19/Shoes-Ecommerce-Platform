@@ -6,18 +6,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup
 } from '~/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '~/components/ui/tooltip'
 
 import { FiChevronDown, FiMenu, FiX, FiShoppingCart, FiUser, FiPackage, FiLogOut } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { useDispatch } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
+import { scrollToTop } from '~/utils/formatters'
 
 export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
   const dispatch = useDispatch()
   const cartCount = 3
+  const navigate = useNavigate()
 
   const handleLogout = async () => {
     try {
@@ -28,6 +35,8 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
       dispatch(logoutSuccess())
 
       toast.success('Đăng xuất tài khoản thành công!')
+      navigate('/')
+      scrollToTop()
     } catch (error) {
       dispatch(logoutSuccess())
       console.error('Lỗi khi gọi API logout:', error)
@@ -39,17 +48,25 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
 
       {/* Khối Giỏ Hàng */}
       {user && (
-        <Link
-          to="/cart"
-          className="relative text-gray-700 hover:text-brand-primary transition-all duration-300 p-1.5 rounded-full hover:bg-gray-50 group/cart cursor-pointer flex items-center justify-center"
-        >
-          <FiShoppingCart size={22} className="transition-transform duration-300 group-hover/cart:scale-105" />
-          {cartCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 bg-brand-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-white shadow-sm ring-1 ring-brand-primary/10 animate-fadeIn">
-              {cartCount}
-            </span>
-          )}
-        </Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              to="/cart"
+              className="relative text-gray-700 hover:text-brand-primary transition-all duration-300 p-1.5 rounded-full hover:bg-gray-50 group/cart cursor-pointer flex items-center justify-center"
+            >
+              <FiShoppingCart size={22} className="transition-transform duration-300 group-hover/cart:scale-105" />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-brand-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold border border-white shadow-sm ring-1 ring-brand-primary/10 animate-fadeIn">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Giỏ hàng</p>
+          </TooltipContent>
+        </Tooltip>
+
       )}
 
       {/* Khối Thông Tin User / Dropdown Menu */}
@@ -58,7 +75,7 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 cursor-pointer group outline-none">
               <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden transition-all duration-300 ease-out group-hover:border-brand-primary" />
-              <div className="text-sm hidden lg:block">
+              <div className="text-base hidden lg:block">
                 <p className="text-gray-400 text-[11px] leading-none">Xin chào,</p>
                 <p className="font-bold text-gray-800 transition-colors duration-200 group-hover:text-brand-primary">{user.fullname}</p>
               </div>
@@ -67,20 +84,20 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48 mt-2">
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
+              <DropdownMenuItem className="text-base cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
                 <FiUser size={16} className="text-gray-400 group-focus:text-brand-primary" />
-                <span>Tài khoản</span>
+                <Link to="/account">Tài khoản</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
+              <DropdownMenuItem className="text-base cursor-pointer flex items-center gap-2.5 py-2 font-medium text-gray-700 focus:text-brand-primary focus:bg-[#e94560]/5 transition-colors">
                 <FiPackage size={16} className="text-gray-400 group-focus:text-brand-primary" />
-                <span>Đơn hàng</span>
+                <Link to="/orders">Đơn hàng</Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="bg-gray-100" />
 
               {/* 3. Đổi sang gọi hàm handleLogout thay vì reload trang */}
               <DropdownMenuItem
-                className="cursor-pointer flex items-center gap-2.5 py-2 font-semibold text-red-600 focus:text-red-700 focus:bg-red-50 transition-colors"
+                className="text-base cursor-pointer flex items-center gap-2.5 py-2 font-semibold text-red-600 focus:text-red-700 focus:bg-red-50 transition-colors"
                 onClick={handleLogout}
               >
                 <FiLogOut size={16} />

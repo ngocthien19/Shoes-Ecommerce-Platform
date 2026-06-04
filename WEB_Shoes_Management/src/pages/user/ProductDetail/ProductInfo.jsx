@@ -1,9 +1,60 @@
 import { useState, useEffect } from 'react'
 import { FiHeart, FiMinus, FiPlus, FiShoppingCart, FiTruck, FiRefreshCcw, FiZap } from 'react-icons/fi'
 import { formatPrice, formatSold, calculateFinalPrice } from '~/utils/formatters'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useSelector, useDispatch } from 'react-redux'
+import { addToFavorites, removeFromFavorites } from '~/redux/user/userSlice'
+import { productService } from '~/services/user/productService'
+import { toast } from 'react-toastify'
 
 export const ProductInfo = ({ product }) => {
+
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+
+  // Kiểm tra trạng thái đăng nhập của user từ Redux Store
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
+
+  // State quản lý trạng thái tim (Yêu thích) cục bộ của sản phẩm để UI thay đổi real-time
+  const favoriteIds = useSelector((state) => state.user.favoriteIds)
+  const isFavorite = favoriteIds.includes(product.id)
+  const [loading, setLoading] = useState(false)
+
+  const handleToggleFavorite = async (e) => {
+    e.preventDefault()
+
+    if (!isAuthenticated) {
+      toast.warning('Vui lòng đăng nhập để sử dụng tính năng yêu thích sản phẩm!')
+      navigate('/login', { state: { from: location.pathname } })
+      return
+    }
+
+    if (loading) return
+    setLoading(true)
+
+    try {
+      // Gọi API và nhận về Object phản hồi { isFavorite, message }
+      const response = await productService.toggleFavorite(product.id)
+
+      if (response) {
+        // 1. Bắn thông báo chuẩn chữ từ Backend đưa xuống
+        toast.success(response.message)
+
+        // 2. Đồng bộ trạng thái lưu trữ ID vào hệ thống Redux toàn cục
+        if (response.isFavorite) {
+          dispatch(addToFavorites(product.id))
+        } else {
+          dispatch(removeFromFavorites(product.id))
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi toggle favorite tại Info:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const { variants = [] } = product
 
   // Trích xuất danh sách màu duy nhất
@@ -52,8 +103,20 @@ export const ProductInfo = ({ product }) => {
           </div>
           <div className="px-4">{product.view_count || 0} Lượt xem</div>
           <div className="px-4">{formatSold(product.sold)} Đã bán</div>
-          <button className="flex items-center gap-2 pl-4 hover:text-brand-primary transition-colors duration-300 cursor-pointer group">
-            <FiHeart size={16} className="transition-colors duration-300 group-hover:fill-brand-primary" /> Yêu thích
+
+          {/* Nút Yêu thích */}
+          <button
+            className={`flex items-center gap-2 pl-4 transition-colors duration-300 cursor-pointer group select-none
+      ${isFavorite ? 'text-brand-primary font-semibold' : 'hover:text-brand-primary'}`}
+            onClick={handleToggleFavorite}
+          >
+            <FiHeart
+              size={16}
+              className={`transition-all duration-300 group-hover:fill-brand-primary 
+        ${isFavorite ? 'text-brand-primary fill-brand-primary scale-110' : ''}`}
+              fill={isFavorite ? 'currentColor' : 'none'}
+            />
+            <span>{isFavorite ? 'Đã yêu thích' : 'Yêu thích'}</span>
           </button>
         </div>
       </div>
