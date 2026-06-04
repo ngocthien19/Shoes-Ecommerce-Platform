@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FiPhone } from 'react-icons/fi'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { categoryService } from '~/services/user/categoryService'
 import { Nav } from '~/layouts/user/Nav'
 import { CategoryMenu } from '~/layouts/user/CategoryMenu'
@@ -17,7 +17,6 @@ export const Header = () => {
   // Thêm state cho thanh tìm kiếm
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
-  const location = useLocation()
 
   const user = useSelector((state) => state.user.userInfo)
 

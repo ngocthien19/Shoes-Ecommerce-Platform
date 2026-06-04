@@ -77,7 +77,7 @@ export const TabProfile = ({ user, loading, onUpdateProfile }) => {
         <button
           type="submit"
           disabled={loading}
-          className="bg-brand-primary hover:bg-[#c73652] text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="bg-brand-secondary hover:bg-[#0f3460]/90 text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
         </button>

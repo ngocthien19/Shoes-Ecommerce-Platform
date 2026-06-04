@@ -34,6 +34,20 @@ export const formatTime = (seconds) => {
   return `00:${seconds < 10 ? `0${seconds}` : seconds}`
 }
 
+export const getAvatarUrl = (user) => {
+  if (!user?.avatar) return 'https://via.placeholder.com/150'
+
+  if (typeof user.avatar === 'string') {
+    try {
+      const parsed = JSON.parse(user.avatar)
+      return parsed?.secure_url || 'https://via.placeholder.com/150'
+    } catch {
+      return 'https://via.placeholder.com/150'
+    }
+  }
+  return user.avatar?.secure_url || 'https://via.placeholder.com/150'
+}
+
 export const scrollToTop = () => {
   window.scrollTo({
     top: 0,

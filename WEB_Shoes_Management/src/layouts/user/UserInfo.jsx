@@ -19,7 +19,7 @@ import { useDispatch } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
-import { scrollToTop } from '~/utils/formatters'
+import { scrollToTop, getAvatarUrl } from '~/utils/formatters'
 
 export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
   const dispatch = useDispatch()
@@ -39,7 +39,6 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
       scrollToTop()
     } catch (error) {
       dispatch(logoutSuccess())
-      console.error('Lỗi khi gọi API logout:', error)
     }
   }
 
@@ -74,7 +73,13 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 cursor-pointer group outline-none">
-              <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden transition-all duration-300 ease-out group-hover:border-brand-primary" />
+              <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden transition-all duration-300 ease-out group-hover:border-brand-primary shrink-0">
+                <img
+                  src={getAvatarUrl(user)}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="text-base hidden lg:block">
                 <p className="text-gray-400 text-[11px] leading-none">Xin chào,</p>
                 <p className="font-bold text-gray-800 transition-colors duration-200 group-hover:text-brand-primary">{user.fullname}</p>

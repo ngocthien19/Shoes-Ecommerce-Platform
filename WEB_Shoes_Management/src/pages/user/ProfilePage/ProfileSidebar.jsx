@@ -58,7 +58,7 @@ export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatar
         {/* Nút Đăng xuất */}
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-brand-secondary hover:bg-red-50 transition-all cursor-pointer"
         >
           <FiLogOut size={18} /> <span>Đăng xuất</span>
         </button>
