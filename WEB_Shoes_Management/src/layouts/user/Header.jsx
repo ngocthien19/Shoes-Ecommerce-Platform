@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+<<<<<<< Updated upstream
 import { FiSearch, FiShoppingCart, FiChevronDown,
   FiPhone, FiGrid, FiMenu, FiX, FiChevronRight } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
@@ -20,12 +21,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup
 } from '~/components/ui/dropdown-menu'
+=======
+import { FiPhone } from 'react-icons/fi'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { categoryService } from '~/services/user/categoryService'
+import { Nav } from '~/layouts/user/Nav'
+import { CategoryMenu } from '~/layouts/user/CategoryMenu'
+import { UserInfo } from '~/layouts/user/UserInfo'
+import { Search } from '~/layouts/user/Search'
+import { MobileHeader } from '~/layouts/user/MobileHeader'
+
+>>>>>>> Stashed changes
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [categories, setCategories] = useState([])
   const [expandedMobile, setExpandedMobile] = useState(null)
 
+<<<<<<< Updated upstream
+=======
+  // Thêm state cho thanh tìm kiếm
+  const [searchTerm, setSearchTerm] = useState('')
+  const navigate = useNavigate()
+  const location = useLocation()
+
+>>>>>>> Stashed changes
   const userInfo = localStorage.getItem('userInfo')
   const user = userInfo ? JSON.parse(userInfo) : null
 
@@ -33,6 +53,19 @@ export const Header = () => {
     categoryService.getAllCategories().then(setCategories).catch(console.error)
   }, [])
 
+<<<<<<< Updated upstream
+=======
+  // Xử lý khi Submit tìm kiếm
+  const handleSearch = (e) => {
+    e.preventDefault()
+    if (searchTerm.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`)
+      setSearchTerm('')
+      setMobileMenuOpen(false)
+    }
+  }
+
+>>>>>>> Stashed changes
   return (
     <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50 w-full">
       <div className="app-container">
@@ -51,6 +84,7 @@ export const Header = () => {
           </Link>
 
           {/* Search */}
+<<<<<<< Updated upstream
           <div className="flex-1 max-w-xl relative hidden md:block">
             <input
               type="text"
@@ -102,12 +136,27 @@ export const Header = () => {
               {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
           </div>
+=======
+          <Search
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            handleSearch={handleSearch}
+          />
+
+          {/* Right */}
+          <UserInfo
+            user={user}
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+          />
+>>>>>>> Stashed changes
         </div>
 
         {/* ── Bottom Section — Desktop ── */}
         <div className="hidden md:flex items-center justify-between py-3 border-t border-gray-100">
 
           {/* Danh mục dropdown — shadcn NavigationMenu */}
+<<<<<<< Updated upstream
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
@@ -188,12 +237,21 @@ export const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2 text-brand-primary font-bold text-base transition-opacity duration-200 hover:opacity-80">
+=======
+          <CategoryMenu categories={categories} />
+
+          {/* Nav links  */}
+          <Nav />
+
+          <div className="flex items-center gap-2 text-brand-primary font-bold text-base transition-opacity duration-200 hover:opacity-80 cursor-pointer">
+>>>>>>> Stashed changes
             <FiPhone size={16} />
             <span>Hotline: 1900 1234</span>
           </div>
         </div>
 
         {/* ── Mobile Menu ── */}
+<<<<<<< Updated upstream
         <div className={`md:hidden overflow-hidden transition-all duration-300 ease-out
           ${mobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
         >
@@ -282,6 +340,19 @@ export const Header = () => {
             )}
           </nav>
         </div>
+=======
+        <MobileHeader
+          mobileMenuOpen={mobileMenuOpen}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          handleSearch={handleSearch}
+          categories={categories}
+          expandedMobile={expandedMobile}
+          setExpandedMobile={setExpandedMobile}
+          setMobileMenuOpen={setMobileMenuOpen}
+          user={user}
+        />
+>>>>>>> Stashed changes
 
       </div>
     </header>

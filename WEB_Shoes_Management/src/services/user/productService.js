@@ -10,5 +10,13 @@ export const productService = {
   getProductDetail: async (slug) => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/detail/${slug}`)
     return response.data
+<<<<<<< Updated upstream
+=======
+  },
+
+  searchAndFilterProducts: async (params) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/search-filter`, { params })
+    return response.data
+>>>>>>> Stashed changes
   }
 }
