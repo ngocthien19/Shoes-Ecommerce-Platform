@@ -105,7 +105,7 @@ const resetPassword = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken
 
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh Token là bắt buộc để đăng xuất.' })
