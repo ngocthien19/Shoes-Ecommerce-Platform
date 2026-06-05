@@ -52,7 +52,7 @@ export const StoreInfo = ({ storeId }) => {
         <div className="flex-1 w-full grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 md:pl-8 md:border-l md:border-gray-100">
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-secondary shrink-0">
               <FiPackage size={18} />
             </div>
             <div>
@@ -62,7 +62,7 @@ export const StoreInfo = ({ storeId }) => {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-secondary shrink-0">
               <FiStar size={18} />
             </div>
             <div>
@@ -72,7 +72,7 @@ export const StoreInfo = ({ storeId }) => {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-secondary shrink-0">
               <FiClock size={18} />
             </div>
             <div>
@@ -82,7 +82,7 @@ export const StoreInfo = ({ storeId }) => {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-brand-secondary shrink-0">
               <FiMapPin size={18} />
             </div>
             <div>

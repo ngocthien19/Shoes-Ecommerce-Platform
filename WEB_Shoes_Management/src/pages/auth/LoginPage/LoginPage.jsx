@@ -8,9 +8,12 @@ import { InputField } from '~/components/common/InputField'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Field, FieldLabel } from '~/components/ui/field'
 import { authService } from '~/services/auth/authService'
+import { productService } from '~/services/user/productService'
+import { cartApiService } from '~/services/user/cartService'
 import { toast } from 'react-toastify'
 import { useDispatch } from 'react-redux'
-import { loginSuccess } from '~/redux/user/userSlice'
+import { loginSuccess, setFavorites } from '~/redux/user/userSlice'
+import { setCartCount } from '~/redux/user/cartSlice'
 
 export const LoginPage = () => {
   const [loading, setLoading] = useState(false)
@@ -46,6 +49,23 @@ export const LoginPage = () => {
           user: response.user,
           accessToken: response.accessToken
         }))
+
+        const [favoritesData, cartItems] = await Promise.all([
+          productService.getFavorites(),
+          cartApiService.getCart()
+        ])
+
+
+        if (Array.isArray(favoritesData)) {
+          const favoriteIds = favoritesData.map(item => item.product_id)
+          dispatch(setFavorites(favoriteIds))
+        }
+
+
+        if (Array.isArray(cartItems)) {
+          const totalItemsCount = cartItems.reduce((sum, item) => sum + item.cart_quantity, 0)
+          dispatch(setCartCount(totalItemsCount))
+        }
 
         navigate(response.redirectUrl || '/')
       }

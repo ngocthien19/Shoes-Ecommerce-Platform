@@ -8,7 +8,6 @@ import { StoreInfo } from '~/pages/user/ProductDetail/StoreInfo'
 import { RelatedProducts } from '~/pages/user/ProductDetail/RelatedProducts'
 import { ProductReview } from '~/pages/user/ProductDetail/ProductReview'
 import { productService } from '~/services/user/productService'
-import { scrollToTop } from '~/utils/formatters'
 import { BreadCrumb } from '~/components/user/BreadCrumb'
 
 export const ProductDetailPage = () => {
@@ -19,7 +18,6 @@ export const ProductDetailPage = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      scrollToTop()
 
       // Gọi API để lấy chi tiết sản phẩm
       const productData = await productService.getProductDetail(slug)

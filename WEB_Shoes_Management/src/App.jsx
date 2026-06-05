@@ -1,3 +1,4 @@
+// src/App.jsx
 import { Routes, Route } from 'react-router-dom'
 import { HomePage } from '~/pages/user/HomePage/HomePage'
 import { ProductDetailPage } from '~/pages/user/ProductDetail/ProductDetailPage'
@@ -8,8 +9,10 @@ import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
 import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
 import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
 import { ProfilePage } from '~/pages/user/ProfilePage/ProfilePage'
+import { CartPage } from '~/pages/user/Cart/CartPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
+import { PageTransition } from '~/components/common/PageTransition'
 import 'react-toastify/dist/ReactToastify.css'
 
 const App = () => {
@@ -17,28 +20,25 @@ const App = () => {
     <div className="app-wrapper">
       <Routes>
         {/* ── CÁC ROUTE CÔNG CỘNG (PUBLIC ROUTES) ── */}
-        {/* Ai cũng có thể xem được, đăng nhập hay chưa đều okee */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/product/:slug" element={<ProductDetailPage />} />
-        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+        <Route path="/product/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+        <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
 
 
         {/* ── CÁC ROUTE BẮT BUỘC ĐĂNG NHẬP (PROTECTED ROUTES) ── */}
-        {/* Chỉ những tài khoản đã đăng nhập thành công mới được vào xem */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<ProfilePage />} />
-          {/* Bạn có thể dễ dàng nhét thêm trang /checkout, /order-history... vào đây sau này */}
+          <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
+          <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
         </Route>
 
 
         {/* ── CÁC ROUTE CHẶN KHI ĐÃ ĐĂNG NHẬP (REJECTED ROUTES) ── */}
-        {/* Đăng nhập rồi thì KHÔNG cho phép quay lại xem các trang form này nữa */}
         <Route element={<RejectedRoute />}>
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/verify-otp" element={<VerifyOtpPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
+          <Route path="/verify-otp" element={<PageTransition><VerifyOtpPage /></PageTransition>} />
+          <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
+          <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
+          <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
         </Route>
 
       </Routes>
