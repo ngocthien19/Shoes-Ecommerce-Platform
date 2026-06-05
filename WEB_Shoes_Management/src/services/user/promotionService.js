@@ -10,5 +10,10 @@ export const promotionApiService = {
       currentOrderValue: Number(currentOrderValue)
     })
     return response.data
+  },
+
+  getPromotionsByStore: async (storeId) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/promotions/store/${storeId}`)
+    return response.data
   }
 }
