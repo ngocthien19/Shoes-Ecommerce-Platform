@@ -17,14 +17,17 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useDispatch } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
+import { clearCart } from '~/redux/user/cartSlice'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
 import { scrollToTop, getAvatarUrl } from '~/utils/formatters'
+import { useSelector } from 'react-redux'
 
 export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
   const dispatch = useDispatch()
-  const cartCount = 3
   const navigate = useNavigate()
+
+  const cartCount = useSelector((state) => state.cart.cartCount)
 
   const handleLogout = async () => {
     try {
@@ -33,6 +36,7 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
 
       // Bắn action xóa sạch userInfo và accessToken trong Redux + localStorage
       dispatch(logoutSuccess())
+      dispatch(clearCart())
 
       toast.success('Đăng xuất tài khoản thành công!')
       navigate('/')

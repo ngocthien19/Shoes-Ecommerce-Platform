@@ -1,5 +1,6 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import userReducer from './user/userSlice'
+import cartReducer from './user/cartSlice'
 import {
   persistStore,
   persistReducer,
@@ -19,12 +20,13 @@ const persistConfig = {
     setItem: (key, value) => Promise.resolve(window.localStorage.setItem(key, value)),
     removeItem: (key) => Promise.resolve(window.localStorage.removeItem(key))
   },
-  whitelist: ['user'] // CHỈ định danh những slice nào muốn lưu lại khi F5
+  whitelist: ['user', 'cart'] // CHỈ định danh những slice nào muốn lưu lại khi F5
 }
 
 // 2. Gom tất cả các reducers lại
 const rootReducer = combineReducers({
-  user: userReducer
+  user: userReducer,
+  cart: cartReducer
 })
 
 // 3. Tạo một reducer đã được bọc tính năng Persist

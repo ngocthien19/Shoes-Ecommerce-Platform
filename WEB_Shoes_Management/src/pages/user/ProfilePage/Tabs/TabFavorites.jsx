@@ -32,7 +32,7 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
   if (favoriteProducts.length === 0) {
     return (
       <div className="pt-8 w-full animate-fadeIn">
-        <h3 className="text-base font-extrabold text-gray-800 border-l-4 border-brand-primary pl-3 mb-6">Sản phẩm yêu thích của tôi</h3>
+        <h3 className="text-base font-extrabold text-brand-secondary border-l-4 border-brand-secondary pl-3 mb-6">Sản phẩm yêu thích của tôi</h3>
         <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
           <FiHeart size={40} className="text-gray-300 mx-auto mb-3" />
           <p className="text-sm text-gray-400 font-medium">Bạn chưa thêm sản phẩm nào vào danh sách yêu thích.</p>
@@ -44,8 +44,9 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
 
   return (
     <div className="pt-8 space-y-6 w-full animate-fadeIn">
-      <h3 className="text-base font-extrabold text-gray-800 border-l-4 border-brand-primary pl-3">
-        Sản phẩm yêu thích của tôi
+      <h3 className="text-base font-extrabold text-brand-secondary border-l-4 border-brand-secondary pl-3 flex items-center gap-2">
+        <FiHeart className="shrink-0 text-brand-secondary" size={18}/>
+        <span>Sản phẩm yêu thích của tôi</span>
       </h3>
 
       <div className="flex flex-col gap-4">

@@ -59,7 +59,7 @@ export const ProductDetailPage = () => {
             },
             {
               label: product?.category_name || 'Danh mục',
-              link: `/category/${product?.category_slug}`
+              link: `/products?categories=${product?.category_slug}`
             },
             {
               label: product?.name || 'Chi tiết',
