@@ -16,7 +16,21 @@ const getFlashSaleProducts = async (limit = 8) => {
       p.images,
       MAX(pr.name) AS promotion_name,
       MAX(pr.discount_value) AS discount_percentage,
-      ROUND(p.price * (1 - MAX(pr.discount_value) / 100), 2) AS sale_price
+      ROUND(p.price * (1 - MAX(pr.discount_value) / 100), 2) AS sale_price,
+
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
+
     FROM products p
     INNER JOIN product_promotions pp ON p.id = pp.product_id
     INNER JOIN promotions pr ON pp.promotion_id = pr.id
@@ -34,10 +48,36 @@ const getFlashSaleProducts = async (limit = 8) => {
 
 const getTopSellingProducts = async (limit = 8) => {
   const query = `
-    SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images 
-    FROM products 
-    WHERE is_active = TRUE
-    ORDER BY sold DESC LIMIT ?
+    SELECT 
+      p.id, 
+      p.store_id, 
+      p.category_id, 
+      p.name, 
+      p.slug, 
+      p.description, 
+      p.price, 
+      p.sold, 
+      p.rating_avg, 
+      p.view_count, 
+      p.images,
+
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
+
+    FROM products p 
+    WHERE p.is_active = TRUE
+    ORDER BY p.sold DESC 
+    LIMIT ?
   `
   const [rows] = await pool.execute(query, [String(limit)])
   return rows
@@ -45,10 +85,37 @@ const getTopSellingProducts = async (limit = 8) => {
 
 const getLatestProducts = async (limit = 8) => {
   const query = `
-    SELECT id, store_id, category_id, name, slug, description, price, sold, rating_avg, view_count, images, created_at 
-    FROM products 
-    WHERE is_active = TRUE
-    ORDER BY created_at DESC LIMIT ?
+    SELECT 
+      p.id, 
+      p.store_id, 
+      p.category_id, 
+      p.name, 
+      p.slug, 
+      p.description, 
+      p.price, 
+      p.sold, 
+      p.rating_avg, 
+      p.view_count, 
+      p.images, 
+      p.created_at,
+
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
+
+    FROM products p 
+    WHERE p.is_active = TRUE
+    ORDER BY p.created_at DESC 
+    LIMIT ?
   `
   const [rows] = await pool.execute(query, [String(limit)])
   return rows
@@ -126,7 +193,21 @@ const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
           AND NOW() BETWEEN pr.start_date AND pr.end_date
         ORDER BY pr.discount_value DESC
         LIMIT 1
-      ) AS discount_percentage
+      ) AS discount_percentage,
+
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
+
     FROM products p 
     WHERE p.category_id = ? AND p.id != ? AND p.is_active = TRUE 
     LIMIT ?
