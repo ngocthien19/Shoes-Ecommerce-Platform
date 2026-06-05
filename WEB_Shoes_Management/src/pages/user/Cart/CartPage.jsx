@@ -8,7 +8,7 @@ import { orderApiService } from '~/services/user/orderService'
 import { setCartCount } from '~/redux/user/cartSlice'
 import { toast } from 'react-toastify'
 import { FiShoppingBag } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { CartItemList } from './CartItemList'
 import { CheckoutForm } from './CheckoutForm'
@@ -19,15 +19,18 @@ export const CartPage = () => {
   const dispatch = useDispatch()
   const userInfo = useSelector((state) => state.user.userInfo)
 
+  const navigate = useNavigate()
+
   const [cartItems, setCartItems] = useState([])
   const [selectedItems, setSelectedItems] = useState([])
   const [paymentMethod, setPaymentMethod] = useState('COD')
 
-  const [itemVouchers, setItemVouchers] = useState({})
+  const [storeVouchers, setStoreVouchers] = useState({})
   const [loadingOrder, setLoadingOrder] = useState(false)
 
+  // ── STATES QUẢN LÝ MODAL XÓA ──
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [pendingDeleteVariant, setPendingDeleteVariant] = useState(null)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState([])
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -54,34 +57,48 @@ export const CartPage = () => {
     fetchCartData()
   }, [])
 
-  const handleRequestRemoveItem = (variantId) => {
-    // Tìm đúng object sản phẩm trong giỏ để truyền thông tin sang Modal hiển thị ảnh/tên
-    const targetItem = cartItems.find(item => item.variant_id === variantId)
-    if (targetItem) {
-      setPendingDeleteVariant(targetItem)
-      setIsDeleteModalOpen(true)
-    }
+  // ── Xóa 1 sản phẩm lẻ (Bấm từ icon thùng rác từng dòng) ──
+  const handleRequestRemoveSingle = (variantId) => {
+    setPendingDeleteIds([variantId])
+    setIsDeleteModalOpen(true)
   }
 
-  const handleConfirmRemoveItemSubmit = async () => {
-    if (!pendingDeleteVariant) return
+  // ── Xóa hàng loạt sản phẩm (Bấm từ nút Xóa mục đã chọn ở tiêu đề) ──
+  const handleRequestRemoveSelectedBulk = () => {
+    if (selectedItems.length === 0) return
+    setPendingDeleteIds(selectedItems)
+    setIsDeleteModalOpen(true)
+  }
+
+  // ── Xác nhận xóa chính thức trên Modal ──
+  const handleConfirmRemoveItemsSubmit = async () => {
+    if (pendingDeleteIds.length === 0) return
 
     try {
-      const variantId = pendingDeleteVariant.variant_id
-      const res = await cartApiService.removeFromCart(variantId)
+      // Gọi API xóa hàng loạt (đã cấu hình nhận mảng ở các bước trước)
+      const res = await cartApiService.removeFromCart(pendingDeleteIds)
 
       if (res) {
-        toast.success('Đã gỡ sản phẩm khỏi giỏ hàng thành công!')
-        setSelectedItems(prev => prev.filter(id => id !== variantId))
-        setItemVouchers(v => { const copy = { ...v }; delete copy[variantId]; return copy })
+        toast.success(pendingDeleteIds.length > 1 ? 'Đã xóa tất cả sản phẩm thành công!' : 'Đã gỡ sản phẩm khỏi giỏ.')
+
+        // Cập nhật lại UI: Xóa khỏi mảng đang chọn
+        setSelectedItems(prev => prev.filter(id => !pendingDeleteIds.includes(id)))
+
+        // Cập nhật lại UI: Xóa mã giảm giá của các mặt hàng đó
+        setStoreVouchers(v => {
+          const copy = { ...v }
+          pendingDeleteIds.forEach(id => delete copy[id])
+          return copy
+        })
+
         fetchCartData()
       }
     } catch (error) {
       toast.error('Gặp lỗi khi xóa sản phẩm!')
     } finally {
-      // Dọn dẹp đóng modal sạch sẽ
+      // Đóng modal và reset data an toàn
       setIsDeleteModalOpen(false)
-      setPendingDeleteVariant(null)
+      setPendingDeleteIds([])
     }
   }
 
@@ -89,9 +106,8 @@ export const CartPage = () => {
   const handleToggleSelect = (variantId) => {
     setSelectedItems(prev => {
       const isRemoving = prev.includes(variantId)
-      // Nếu bỏ tick chọn checkbox sản phẩm đó, tự động xóa voucher đã áp cho dòng đó đi
       if (isRemoving) {
-        setItemVouchers(v => {
+        setStoreVouchers(v => {
           const copy = { ...v }
           delete copy[variantId]
           return copy
@@ -105,7 +121,7 @@ export const CartPage = () => {
   const handleToggleSelectAll = () => {
     if (selectedItems.length === cartItems.length) {
       setSelectedItems([])
-      setItemVouchers({}) // Clear sạch voucher dòng
+      setStoreVouchers({})
     } else {
       setSelectedItems(cartItems.map(item => item.variant_id))
     }
@@ -120,46 +136,28 @@ export const CartPage = () => {
     }
   }
 
-  const handleRemoveItem = async (variantId) => {
-    try {
-      const res = await cartApiService.removeFromCart(variantId)
-      if (res) {
-        toast.success('Đã gỡ sản phẩm khỏi giỏ.')
-        setSelectedItems(prev => prev.filter(id => id !== variantId))
-        setItemVouchers(v => { const copy = { ...v }; delete copy[variantId]; return copy })
-        fetchCartData()
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  const handleItemVoucherSelect = (variantId, code, discountValue) => {
-    setItemVouchers(prev => ({
+  const handleStoreVoucherSelect = (storeId, code, discountValue) => {
+    setStoreVouchers(prev => ({
       ...prev,
-      [variantId]: { code, discountValue }
+      [storeId]: { code, discountValue }
     }))
-    toast.success(`Đã áp mã ${code} thành công cho sản phẩm!`)
+    toast.success('Đã áp dụng mã của cửa hàng thành công!')
   }
 
   // ── LOGIC CỘNG DỒN TÍNH TOÁN DÒNG TIỀN TỔNG HỢP ──
   const selectedCartObjects = cartItems.filter(item => selectedItems.includes(item.variant_id))
 
-  // 1. Tính tổng tạm tính tiền gốc của những mục được tick chọn checkbox
   const subTotal = selectedCartObjects.reduce((sum, item) => {
     return sum + (Number(item.base_price) * item.cart_quantity)
   }, 0)
 
-  // 2. Tính tổng tiền giảm giá (Bao gồm giảm giá trực tiếp từ sản phẩm Backend + Giảm giá Voucher Shop cộng dồn)
   const totalDiscountAmount = selectedCartObjects.reduce((sum, item) => {
     const itemRowPrice = Number(item.base_price) * item.cart_quantity
 
-    // Phần trăm giảm từ chương trình flash sale/sản phẩm
     const backendPromoPercent = Number(item.discount_percentage || 0)
     const productItemDiscount = itemRowPrice * (backendPromoPercent / 100)
 
-    // Phần trăm giảm từ Voucher của Shop được chọn trong Combobox
-    const voucherRowPercent = itemVouchers[item.variant_id]?.discountValue || 0
+    const voucherRowPercent = storeVouchers[item.store_id]?.discountValue || 0
     const voucherRowDiscount = itemRowPrice * (voucherRowPercent / 100)
 
     return sum + productItemDiscount + voucherRowDiscount
@@ -167,7 +165,7 @@ export const CartPage = () => {
 
   const finalTotal = Math.max(0, subTotal - totalDiscountAmount)
 
-  // XỬ LÝ ĐẶT HÀNG GỬI LÊN ENDPOINT CHUẨN PAYLOAD CỦA BẠN
+  // XỬ LÝ ĐẶT HÀNG
   const handleCheckoutProcess = handleSubmit(async (formData) => {
     if (selectedItems.length === 0) {
       toast.warning('Vui lòng tích chọn ít nhất một đôi giày để tiến hành thanh toán!')
@@ -187,15 +185,31 @@ export const CartPage = () => {
     try {
       if (paymentMethod === 'COD') {
         const data = await orderApiService.createOrderCOD(orderPayload)
+
         if (data) {
           toast.success('Đặt hàng thành công! Đơn hàng của bạn đang được xử lý.')
           dispatch(setCartCount(0))
-          window.location.href = '/profile'
+
+          const formattedOrderIds = data.orderIds && data.orderIds.length > 0
+            ? `#${data.orderIds.join(', #')}`
+            : '#ORD-UNKNOWN'
+
+          navigate('/order-success', {
+            state: {
+              orderData: {
+                orderId: formattedOrderIds,
+                orderDate: new Date().toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }),
+                paymentMethod: 'Thanh toán khi nhận hàng (COD)'
+              }
+            }
+          })
         }
       } else {
         const data = await orderApiService.createOrderOnline(orderPayload)
+
         if (data?.paymentUrl) {
           toast.info('Đang chuyển hướng sang cổng thanh toán an toàn...')
+
           window.location.href = data.paymentUrl
         } else {
           toast.error('Không nhận được đường dẫn thanh toán từ cổng điện tử.')
@@ -214,10 +228,14 @@ export const CartPage = () => {
 
       <div className="py-8 w-full flex-1 flex flex-col">
         <main className="app-container flex-1">
-          <h2 className="text-xl font-extrabold text-brand-secondary text-left mb-6 uppercase tracking-tight flex items-center gap-2.5 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
-            <FiShoppingBag size={24} className="text-brand-primary shrink-0" />
-            <span>Giỏ hàng của bạn ({cartItems.length} sản phẩm)</span>
-          </h2>
+
+          {/* ── Header Giỏ hàng & Nút Xóa hàng loạt ── */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-extrabold text-brand-secondary uppercase tracking-tight flex items-center gap-2.5 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
+              <FiShoppingBag size={24} className="text-brand-primary shrink-0" />
+              <span>Giỏ hàng của bạn ({cartItems.length} sản phẩm)</span>
+            </h2>
+          </div>
 
           {cartItems.length === 0 ? (
             <div className="text-center py-16 bg-white border border-gray-100 rounded-3xl shadow-bold max-w-xl mx-auto my-8 animate-fadeIn">
@@ -227,7 +245,7 @@ export const CartPage = () => {
 
               <h3 className="text-base font-bold text-gray-800 mb-1">Giỏ hàng của bạn đang trống</h3>
               <p className="text-xs text-gray-400 italic max-w-xs mx-auto mb-6">
-      Có vẻ như bạn chưa thêm bất kỳ đôi giày nào vào giỏ hàng của mình.
+                Có vẻ như bạn chưa thêm bất kỳ đôi giày nào vào giỏ hàng của mình.
               </p>
 
               <Link
@@ -248,9 +266,10 @@ export const CartPage = () => {
                   onToggleSelect={handleToggleSelect}
                   onToggleSelectAll={handleToggleSelectAll}
                   onUpdateQuantity={handleUpdateQuantity}
-                  onRemoveItem={handleRequestRemoveItem}
-                  itemVouchers={itemVouchers}
-                  onItemVoucherSelect={handleItemVoucherSelect}
+                  onRemoveItem={handleRequestRemoveSingle}
+                  handleRequestRemoveSelectedBulk={handleRequestRemoveSelectedBulk}
+                  storeVouchers={storeVouchers}
+                  onStoreVoucherSelect={handleStoreVoucherSelect}
                 />
               </div>
 
@@ -278,16 +297,22 @@ export const CartPage = () => {
         </main>
       </div>
 
+      {/* ── MODAL ĐƯỢC CẤU HÌNH ĐỘNG CHO CẢ XÓA LẺ & HÀNG LOẠT ── */}
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
-        productInfo={pendingDeleteVariant}
-        title="Gỡ sản phẩm khỏi giỏ hàng"
-        message="Hành động này sẽ xóa hoàn toàn sản phẩm và các mã giảm giá đang áp dụng của đôi giày này khỏi giỏ hàng hiện tại."
+        title={pendingDeleteIds.length > 1 ? 'Xóa hàng loạt sản phẩm' : 'Gỡ sản phẩm khỏi giỏ hàng'}
+        message={pendingDeleteIds.length > 1
+          ? `Bạn có chắc chắn muốn xóa hoàn toàn ${pendingDeleteIds.length} sản phẩm đang được tick chọn này ra khỏi giỏ hàng không?`
+          : 'Hành động này sẽ xóa hoàn toàn sản phẩm và các mã giảm giá đang áp dụng của đôi giày này khỏi giỏ hàng hiện tại.'}
+
+        // Nếu chỉ xóa 1 sản phẩm -> Tìm thông tin sản phẩm đó truyền vào để hiển thị Ảnh thu nhỏ. Xóa nhiều thì tự ẩn.
+        productInfo={pendingDeleteIds.length === 1 ? cartItems.find(item => item.variant_id === pendingDeleteIds[0]) : null}
+
         onClose={() => {
           setIsDeleteModalOpen(false)
-          setPendingDeleteVariant(null)
+          setPendingDeleteIds([])
         }}
-        onConfirm={handleConfirmRemoveItemSubmit}
+        onConfirm={handleConfirmRemoveItemsSubmit}
       />
 
       <Footer />
