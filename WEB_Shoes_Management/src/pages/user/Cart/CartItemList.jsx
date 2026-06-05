@@ -2,6 +2,11 @@ import { FiTrash2, FiMinus, FiPlus, FiHome, FiPackage } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { formatPrice, getImageUrl } from '~/utils/formatters'
 import { CartVoucherPicker } from './CartVoucherPicker'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '~/components/ui/tooltip'
 
 export const CartItemList = ({
   cartItems,
@@ -35,18 +40,22 @@ export const CartItemList = ({
       {cartItems.map((item) => {
         const isSelected = selectedItems.includes(item.variant_id)
 
-        // Đọc giá trị voucher đang áp dụng cho hàng này (nếu có)
+        // Đọc giá trị phần trăm voucher đang áp dụng cho hàng này (nếu có)
         const currentVoucher = itemVouchers[item.variant_id] || null
-        const voucherDiscountValue = currentVoucher ? currentVoucher.discountValue : 0
 
-        // Logic tính toán dòng giá: Tổng tiền gốc và Tổng tiền sau giảm
+        const voucherDiscountPercent = currentVoucher ? currentVoucher.discountValue : 0
+
+        // Logic tính toán tổng tiền gốc của dòng sản phẩm
         const totalBasePrice = Number(item.base_price) * item.cart_quantity
 
-        // Giả lập bốc thêm trường `item.discount_percentage` từ Backend gửi xuống sau này
+        // Giảm giá trực tiếp của riêng sản phẩm từ Backend gửi xuống (nếu có)
         const backendPromoPercent = Number(item.discount_percentage || 0)
         const backendDiscountAmount = totalBasePrice * (backendPromoPercent / 100)
 
-        // Tổng tiền cuối cùng của Item = Tiền gốc - Giảm giá trực tiếp sản phẩm - Giảm giá Voucher Shop
+        // Tính số tiền giảm của Voucher Shop dựa trên PHẦN TRĂM của tổng tiền mặt hàng
+        const voucherDiscountValue = totalBasePrice * (voucherDiscountPercent / 100)
+
+        // Tổng tiền cuối cùng của dòng Item sau khi trừ đi 2 lớp giảm giá
         const totalFinalPrice = Math.max(0, totalBasePrice - backendDiscountAmount - voucherDiscountValue)
 
         return (
@@ -112,16 +121,23 @@ export const CartItemList = ({
                   />
                 )}
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveItem(item.variant_id)
-                  }}
-                  className="text-brand-primary border border-brand-primary hover:bg-brand-primary hover:text-white p-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer shadow-sm active:scale-95"
-                >
-                  <FiTrash2 size={16} />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveItem(item.variant_id)
+                      }}
+                      className="text-brand-primary border border-brand-primary hover:bg-brand-primary hover:text-white p-1.5 rounded-xl transition-all duration-300 ease-in-out cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Xóa</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               {/* Khu vực hiển thị giá đa điều kiện (Giá gốc gạch ngang + Giá giảm thực tế) */}

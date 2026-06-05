@@ -1,11 +1,13 @@
-import { FiTruck, FiCreditCard, FiUser, FiPhone, FiMapPin } from 'react-icons/fi'
+import { FiTruck, FiCreditCard, FiUser, FiPhone, FiMapPin,
+  FiSmartphone, FiDollarSign
+} from 'react-icons/fi'
 
 export const CheckoutForm = ({ register, errors, paymentMethod, setPaymentMethod }) => {
   return (
     <div className="space-y-6">
       {/* Khối 1: Thông tin người nhận */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-4 text-left">
-        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-brand-secondary uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-2">
           <FiTruck size={16} className="text-brand-primary" />
           <span>Thông tin giao hàng</span>
         </h3>
@@ -63,7 +65,7 @@ export const CheckoutForm = ({ register, errors, paymentMethod, setPaymentMethod
 
       {/* Khối 2: Phương thức thanh toán rẽ nhánh */}
       <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-3 text-left">
-        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-brand-secondary uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-2">
           <FiCreditCard size={16} className="text-brand-primary" />
           <span>Phương thức thanh toán</span>
         </h3>
@@ -72,7 +74,9 @@ export const CheckoutForm = ({ register, errors, paymentMethod, setPaymentMethod
           {/* Lựa chọn COD */}
           <label className={`flex items-center justify-between p-3.5 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'COD' ? 'border-brand-primary bg-brand-primary/5 shadow-sm' : 'border-gray-100 hover:bg-gray-50'}`}>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-gray-500 w-5 h-5 flex items-center justify-center bg-gray-100 rounded-md">💵</span>
+              <div className="w-7 h-7 flex items-center justify-center bg-green-50 text-green-600 rounded-lg border border-green-100 shrink-0">
+                <FiDollarSign size={14} />
+              </div>
               <span className="text-sm font-semibold text-gray-700">Thanh toán khi nhận hàng (COD)</span>
             </div>
             <input
@@ -88,7 +92,9 @@ export const CheckoutForm = ({ register, errors, paymentMethod, setPaymentMethod
           {/* Lựa chọn VNPAY */}
           <label className={`flex items-center justify-between p-3.5 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'VNPAY' ? 'border-brand-primary bg-brand-primary/5 shadow-sm' : 'border-gray-100 hover:bg-gray-50'}`}>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-gray-500 w-5 h-5 flex items-center justify-center bg-gray-100 rounded-md">🏦</span>
+              <div className="w-7 h-7 flex items-center justify-center bg-blue-50 text-blue-600 rounded-lg border border-blue-100 shrink-0">
+                <FiCreditCard size={14} />
+              </div>
               <span className="text-sm font-semibold text-gray-700">Cổng thanh toán điện tử VNPay</span>
             </div>
             <input
@@ -104,7 +110,9 @@ export const CheckoutForm = ({ register, errors, paymentMethod, setPaymentMethod
           {/* Lựa chọn MOMO */}
           <label className={`flex items-center justify-between p-3.5 border rounded-xl cursor-pointer transition-all ${paymentMethod === 'MOMO' ? 'border-brand-primary bg-brand-primary/5 shadow-sm' : 'border-gray-100 hover:bg-gray-50'}`}>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-gray-500 w-5 h-5 flex items-center justify-center bg-gray-100 rounded-md">🔮</span>
+              <div className="w-7 h-7 flex items-center justify-center bg-pink-50 text-pink-600 rounded-lg border border-pink-100 shrink-0">
+                <FiSmartphone size={14} />
+              </div>
               <span className="text-sm font-semibold text-gray-700">Ví điện tử MoMo</span>
             </div>
             <input
