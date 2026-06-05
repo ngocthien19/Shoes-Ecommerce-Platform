@@ -18,7 +18,9 @@ export const ProductSection = ({ title, products, icon }) => {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             {renderIcon()}
-            <h2 className="text-2xl font-extrabold text-brand-secondary tracking-tight">{title}</h2>
+            <h2 className="text-2xl font-extrabold text-brand-secondary tracking-tight flex items-center gap-3 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
+              {title}
+            </h2>
           </div>
           <a href="#" className="group flex items-center gap-1 text-sm font-semibold text-brand-secondary hover:underline transition-all duration-300">
               Xem tất cả

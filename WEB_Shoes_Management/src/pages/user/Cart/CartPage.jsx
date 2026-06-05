@@ -152,10 +152,16 @@ export const CartPage = () => {
 
   // 2. Tính tổng tiền giảm giá (Bao gồm giảm giá trực tiếp từ sản phẩm Backend + Giảm giá Voucher Shop cộng dồn)
   const totalDiscountAmount = selectedCartObjects.reduce((sum, item) => {
-    const backendPromoPercent = Number(item.discount_percentage || 0)
-    const productItemDiscount = (Number(item.base_price) * item.cart_quantity) * (backendPromoPercent / 100)
+    const itemRowPrice = Number(item.base_price) * item.cart_quantity
 
-    const voucherRowDiscount = itemVouchers[item.variant_id]?.discountValue || 0
+    // Phần trăm giảm từ chương trình flash sale/sản phẩm
+    const backendPromoPercent = Number(item.discount_percentage || 0)
+    const productItemDiscount = itemRowPrice * (backendPromoPercent / 100)
+
+    // Phần trăm giảm từ Voucher của Shop được chọn trong Combobox
+    const voucherRowPercent = itemVouchers[item.variant_id]?.discountValue || 0
+    const voucherRowDiscount = itemRowPrice * (voucherRowPercent / 100)
+
     return sum + productItemDiscount + voucherRowDiscount
   }, 0)
 
@@ -208,8 +214,9 @@ export const CartPage = () => {
 
       <div className="py-8 w-full flex-1 flex flex-col">
         <main className="app-container flex-1">
-          <h2 className="text-xl font-extrabold text-gray-800 text-left mb-6 uppercase tracking-tight">
-          Giỏ hàng của bạn ({cartItems.length} sản phẩm)
+          <h2 className="text-xl font-extrabold text-brand-secondary text-left mb-6 uppercase tracking-tight flex items-center gap-2.5 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
+            <FiShoppingBag size={24} className="text-brand-primary shrink-0" />
+            <span>Giỏ hàng của bạn ({cartItems.length} sản phẩm)</span>
           </h2>
 
           {cartItems.length === 0 ? (

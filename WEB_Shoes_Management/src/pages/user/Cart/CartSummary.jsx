@@ -11,7 +11,7 @@ export const CartSummary = ({
 }) => {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm text-left space-y-4">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-1.5">
+      <h3 className="text-sm font-bold text-brand-secondary uppercase tracking-wider border-b border-gray-50 pb-2 flex items-center gap-1.5">
         <FiShield size={15} className="text-brand-primary" />
         <span>Tóm tắt đơn hàng</span>
       </h3>
