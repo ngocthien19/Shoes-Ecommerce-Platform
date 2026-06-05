@@ -57,9 +57,12 @@ const getCartByUserId = async (userId) => {
 }
 
 // 6. Xóa một item khỏi giỏ hàng
-const removeFromCart = async (userId, variantId) => {
-  const query = 'DELETE FROM cart WHERE user_id = ? AND variant_id = ?'
-  const [result] = await pool.execute(query, [userId, variantId])
+const removeMultipleFromCart = async (userId, variantIds) => {
+  if (!variantIds || variantIds.length === 0) return { affectedRows: 0 }
+
+  const query = 'DELETE FROM cart WHERE user_id = ? AND variant_id IN (?)'
+
+  const [result] = await pool.query(query, [userId, variantIds])
   return result
 }
 
@@ -69,5 +72,5 @@ export const cartModel = {
   addToCart,
   updateCartQuantity,
   getCartByUserId,
-  removeFromCart
+  removeFromCart: removeMultipleFromCart
 }

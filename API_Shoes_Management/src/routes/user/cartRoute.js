@@ -10,6 +10,6 @@ router.use(authGuard.isAuthorized)
 router.post('/add', cartValidation.addToCart, cartController.addToCart)
 router.get('/', cartController.getCart)
 router.put('/update', cartValidation.updateQuantity, cartController.updateQuantity)
-router.delete('/remove/:variantId', cartValidation.removeFromCart, cartController.removeFromCart)
+router.delete('/remove', cartController.removeFromCart)
 
 export const cartRouter = router
