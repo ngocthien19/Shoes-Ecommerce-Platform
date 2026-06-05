@@ -16,6 +16,17 @@ const applyPromotion = async (req, res) => {
   }
 }
 
+const getPromotionsByStore = async (req, res) => {
+  try {
+    const { storeId } = req.params
+    const result = await promotionService.getPromotionsByStore(storeId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải danh sách khuyến mãi: ${error.message}` })
+  }
+}
+
 export const promotionController = {
-  applyPromotion
+  applyPromotion,
+  getPromotionsByStore
 }
