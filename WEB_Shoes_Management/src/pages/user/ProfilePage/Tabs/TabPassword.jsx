@@ -23,8 +23,9 @@ export const TabPassword = ({ loading, onUpdateProfile }) => {
 
   return (
     <form onSubmit={handleSubmit(onPasswordSubmit)} className="pt-8 space-y-6 w-full animate-fadeIn">
-      <h3 className="text-base font-extrabold text-gray-800 border-l-4 border-brand-primary pl-3">
-        Đổi mật khẩu tài khoản
+      <h3 className="text-base font-extrabold text-brand-secondary border-l-4 border-brand-secondary pl-3 flex items-center gap-2">
+        <FiLock className="shrink-0" size={18} />
+        <span>Đổi mật khẩu tài khoản</span>
       </h3>
 
       {/* Mật khẩu cũ */}

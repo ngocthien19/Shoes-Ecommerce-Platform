@@ -28,7 +28,7 @@ export const ProfileTabsContent = ({
         </div>
 
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{user?.fullname}</h1>
+          <h1 className="text-2xl font-extrabold text-brand-secondary tracking-tight">{user?.fullname}</h1>
           <p className="text-sm text-gray-400 mt-0.5">Mã thành viên: #UID-{user?.id || '0000'}</p>
         </div>
       </div>

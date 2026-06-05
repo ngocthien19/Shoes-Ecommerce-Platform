@@ -12,7 +12,7 @@ export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatar
           <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
         </div>
         <div className="min-w-0">
-          <h2 className="font-bold text-gray-800 text-lg leading-tight truncate">{user?.fullname}</h2>
+          <h2 className="font-bold text-brand-secondary text-lg leading-tight truncate">{user?.fullname}</h2>
           <p className="text-xs text-gray-400 mt-1 truncate">{user?.email}</p>
         </div>
       </div>

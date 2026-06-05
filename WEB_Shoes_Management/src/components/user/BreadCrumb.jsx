@@ -3,6 +3,7 @@ import { FiChevronRight } from 'react-icons/fi'
 
 // items có dạng: [{ label: 'Trang chủ', link: '/' }, { label: 'Tất cả sản phẩm', link: null }]
 export const BreadCrumb = ({ items = [] }) => {
+
   return (
     <nav className="flex items-center gap-2 text-sm text-brand-secondary my-6">
       {items.map((item, index) => {
@@ -15,6 +16,7 @@ export const BreadCrumb = ({ items = [] }) => {
             ) : (
               <>
                 <Link
+
                   to={item.link}
                   className="relative hover:text-brand-secondary transition-colors duration-300 ease-out cursor-pointer
                              after:absolute after:left-0 after:-bottom-1 after:h-[2px] after:w-0 after:bg-brand-secondary

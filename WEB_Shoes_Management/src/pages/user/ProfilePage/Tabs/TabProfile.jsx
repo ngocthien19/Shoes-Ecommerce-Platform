@@ -17,8 +17,9 @@ export const TabProfile = ({ user, loading, onUpdateProfile }) => {
 
   return (
     <form onSubmit={handleSubmit(onUpdateProfile)} className="pt-8 space-y-6 w-full animate-fadeIn">
-      <h3 className="text-base font-extrabold text-gray-800 border-l-4 border-brand-primary pl-3">
-        Thông tin cá nhân
+      <h3 className="text-base font-extrabold text-brand-secondary border-l-4 border-brand-secondary pl-3 flex items-center gap-2">
+        <FiUser className="shrink-0" size={18} />
+        <span>Thông tin cá nhân</span>
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
