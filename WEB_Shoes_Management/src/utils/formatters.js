@@ -34,7 +34,7 @@ export const formatTime = (seconds) => {
   return `00:${seconds < 10 ? `0${seconds}` : seconds}`
 }
 
-export const getImageUrl = (imageField, placeholder = 'https://via.placeholder.com/200') => {
+export const getImageUrl = (imageField, placeholder) => {
   if (!imageField) return placeholder
 
   let target = imageField

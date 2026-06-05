@@ -23,8 +23,10 @@ export const cartApiService = {
     return response.data
   },
 
-  removeFromCart: async (variantId) => {
-    const response = await authorizedAxiosInstance.delete(`${DEV_API_URL}/api/carts/remove/${variantId}`)
+  removeFromCart: async (variantIds) => {
+    const response = await authorizedAxiosInstance.delete(`${DEV_API_URL}/api/carts/remove`, {
+      data: { variantIds: Array.isArray(variantIds) ? variantIds : [variantIds] }
+    })
     return response.data
   }
 }

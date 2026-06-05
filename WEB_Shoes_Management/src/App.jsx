@@ -2,14 +2,15 @@
 import { Routes, Route } from 'react-router-dom'
 import { HomePage } from '~/pages/user/HomePage/HomePage'
 import { ProductDetailPage } from '~/pages/user/ProductDetail/ProductDetailPage'
-import { ProductsPage } from '~/pages/user/ProductsPage/ProductsPage'
+import { ProductsPage } from '~/pages/user/Products/ProductsPage'
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
 import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
 import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
 import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
 import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
-import { ProfilePage } from '~/pages/user/ProfilePage/ProfilePage'
+import { ProfilePage } from '~/pages/user/Profile/ProfilePage'
 import { CartPage } from '~/pages/user/Cart/CartPage'
+import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
@@ -29,6 +30,7 @@ const App = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
           <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
+          <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
         </Route>
 
 

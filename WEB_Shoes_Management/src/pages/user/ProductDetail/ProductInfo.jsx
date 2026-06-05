@@ -4,6 +4,8 @@ import { formatPrice, formatSold, calculateFinalPrice } from '~/utils/formatters
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { addToFavorites, removeFromFavorites } from '~/redux/user/userSlice'
+import { cartApiService } from '~/services/user/cartService'
+import { setCartCount } from '~/redux/user/cartSlice'
 import { productService } from '~/services/user/productService'
 import { toast } from 'react-toastify'
 
@@ -20,6 +22,7 @@ export const ProductInfo = ({ product }) => {
   const favoriteIds = useSelector((state) => state.user.favoriteIds)
   const isFavorite = favoriteIds.includes(product.id)
   const [loading, setLoading] = useState(false)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   const handleToggleFavorite = async (e) => {
     e.preventDefault()
@@ -52,6 +55,42 @@ export const ProductInfo = ({ product }) => {
       console.error('Lỗi khi toggle favorite tại Info:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      toast.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!')
+      navigate('/login', { state: { from: location.pathname } })
+      return
+    }
+
+    if (!currentVariant) {
+      toast.error('Vui lòng chọn màu sắc và kích cỡ!')
+      return
+    }
+    if (quantity > currentVariant.stock) {
+      toast.error(`Số lượng vượt quá số hàng có sẵn (${currentVariant.stock})!`)
+      return
+    }
+
+    setIsAddingToCart(true)
+    try {
+      // 1. Gọi API thêm vào giỏ bằng variant.id
+      const res = await cartApiService.addToCart(currentVariant.id, quantity)
+
+      if (res) {
+        toast.success(res.message || 'Đã thêm sản phẩm vào giỏ hàng!')
+
+        // 2. Fetch lại giỏ hàng và đồng bộ số đếm lên Header qua Redux
+        const cartData = await cartApiService.getCart()
+        const totalItems = cartData.reduce((sum, item) => sum + item.cart_quantity, 0)
+        dispatch(setCartCount(totalItems))
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi thêm vào giỏ hàng!')
+    } finally {
+      setIsAddingToCart(false)
     }
   }
 
@@ -220,9 +259,15 @@ export const ProductInfo = ({ product }) => {
 
       {/* Nút Hành Động */}
       <div className="flex gap-4 mt-4">
-        <button className="flex-1 bg-white border-2 border-brand-primary text-brand-primary font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#e94560]/5 transition-all duration-300 cursor-pointer">
-          <FiShoppingCart size={20} /> Thêm vào giỏ hàng
+        <button
+          onClick={handleAddToCart}
+          disabled={isAddingToCart || !currentVariant || currentVariant.stock === 0}
+          className="flex-1 bg-white border-2 border-brand-primary text-brand-primary font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#e94560]/5 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiShoppingCart size={20} />
+          {isAddingToCart ? 'Đang xử lý...' : 'Thêm vào giỏ hàng'}
         </button>
+
         <button className="flex-1 bg-brand-primary text-white font-bold py-4 rounded-xl hover:bg-[#c73652] hover:shadow-lg hover:shadow-[#e94560]/30 transition-all duration-300 cursor-pointer">
           Mua ngay
         </button>
