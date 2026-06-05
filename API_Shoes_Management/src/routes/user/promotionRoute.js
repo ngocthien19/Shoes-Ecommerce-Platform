@@ -7,4 +7,6 @@ const router = express.Router()
 
 router.post('/apply', authGuard.isAuthorized, promotionValidation.validateApplyPromotion, promotionController.applyPromotion)
 
+router.get('/store/:storeId', authGuard.isAuthorized, promotionController.getPromotionsByStore)
+
 export const promotionRouter = router

@@ -33,6 +33,12 @@ const applyPromotion = async (code, storeId, currentOrderValue) => {
   }
 }
 
+const getPromotionsByStore = async (storeId) => {
+  if (!storeId) throw new Error('Thiếu thông tin ID cửa hàng để quét mã giảm giá.')
+  return await promotionModel.getActivePromotionsByStoreId(Number(storeId))
+}
+
 export const promotionService = {
-  applyPromotion
+  applyPromotion,
+  getPromotionsByStore
 }
