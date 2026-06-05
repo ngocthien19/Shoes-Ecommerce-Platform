@@ -210,6 +210,7 @@ const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
 
     FROM products p 
     WHERE p.category_id = ? AND p.id != ? AND p.is_active = TRUE 
+    ORDER BY p.sold DESC, p.rating_avg DESC
     LIMIT ?
   `
 
