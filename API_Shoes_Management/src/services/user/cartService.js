@@ -56,9 +56,11 @@ const updateQuantity = async (userId, variantId, quantity) => {
 }
 
 // Logic: Xóa sản phẩm khỏi giỏ
-const removeFromCart = async (userId, variantId) => {
-  await cartModel.removeFromCart(userId, variantId)
-  return { message: 'Đã xóa sản phẩm khỏi giỏ hàng.' }
+const removeFromCart = async (userId, variantIds) => {
+  const idsArray = Array.isArray(variantIds) ? variantIds : [Number(variantIds)]
+
+  await cartModel.removeFromCart(userId, idsArray)
+  return { message: 'Đã gỡ các sản phẩm được chọn khỏi giỏ hàng.' }
 }
 
 export const cartService = {
