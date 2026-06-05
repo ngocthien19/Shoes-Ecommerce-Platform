@@ -13,5 +13,18 @@ export const cartApiService = {
   getCart: async () => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/carts`)
     return response.data
+  },
+
+  updateQuantity: async (variantId, quantity) => {
+    const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/carts/update`, {
+      variantId,
+      quantity
+    })
+    return response.data
+  },
+
+  removeFromCart: async (variantId) => {
+    const response = await authorizedAxiosInstance.delete(`${DEV_API_URL}/api/carts/remove/${variantId}`)
+    return response.data
   }
 }

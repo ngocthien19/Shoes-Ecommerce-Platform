@@ -20,7 +20,7 @@ import { logoutSuccess } from '~/redux/user/userSlice'
 import { clearCart } from '~/redux/user/cartSlice'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
-import { scrollToTop, getAvatarUrl } from '~/utils/formatters'
+import { getImageUrl } from '~/utils/formatters'
 import { useSelector } from 'react-redux'
 
 export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
@@ -40,7 +40,6 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
 
       toast.success('Đăng xuất tài khoản thành công!')
       navigate('/')
-      scrollToTop()
     } catch (error) {
       dispatch(logoutSuccess())
     }
@@ -79,7 +78,7 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
             <div className="flex items-center gap-2 cursor-pointer group outline-none">
               <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden transition-all duration-300 ease-out group-hover:border-brand-primary shrink-0">
                 <img
-                  src={getAvatarUrl(user)}
+                  src={getImageUrl(user.avatar)}
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />

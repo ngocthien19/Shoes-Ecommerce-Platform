@@ -67,6 +67,21 @@ body {
   animation: slideUp 0.25s ease-out forwards;
 }
 
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideLeft {
+  animation: slideLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
