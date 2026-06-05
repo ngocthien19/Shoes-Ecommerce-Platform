@@ -10,16 +10,19 @@ const applyPromotion = async (code, storeId, currentOrderValue) => {
 
   // 2. Kiểm tra điều kiện giá trị đơn hàng tối thiểu (min_order_value)
   if (Number(currentOrderValue) < Number(voucher.min_order_value)) {
-    throw new Error(`Đơn hàng của pro chưa đủ điều kiện áp dụng mã này (Yêu cầu tổng đơn từ: ${Number(voucher.min_order_value)}đ).`)
+    throw new Error(`Đơn hàng chưa đủ điều kiện áp dụng mã này (Yêu cầu tổng đơn từ: ${Number(voucher.min_order_value)}đ).`)
   }
 
-  // 3. Tiến hành tính toán số tiền thực tế được giảm
-  let discountAmount = Number(voucher.discount_value)
+  const discountPercent = Number(voucher.discount_value)
+  let discountAmount = Number(currentOrderValue) * (discountPercent / 100)
 
-  // Bẫy chặn: Nếu voucher có quy định mức giảm tối đa (max_discount_amount)
+  // Bẫy chặn: Nếu voucher có quy định mức giảm tối đa bằng tiền mặt (max_discount_amount)
   if (voucher.max_discount_amount && discountAmount > Number(voucher.max_discount_amount)) {
     discountAmount = Number(voucher.max_discount_amount)
   }
+
+  // Làm tròn số tiền giảm giá cho đẹp
+  discountAmount = Math.round(discountAmount)
 
   // 4. Tính toán số tiền cuối cùng khách phải trả (Không được âm dưới 0đ)
   const finalAmount = Math.max(0, Number(currentOrderValue) - discountAmount)
@@ -29,7 +32,7 @@ const applyPromotion = async (code, storeId, currentOrderValue) => {
     voucherName: voucher.name,
     discountAmount,
     finalAmount,
-    message: 'Áp dụng mã giảm giá thành công!'
+    message: `Áp dụng thành công mã giảm ${discountPercent}%!`
   }
 }
 
