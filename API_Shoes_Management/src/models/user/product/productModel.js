@@ -376,6 +376,61 @@ const searchAndFilterProducts = async (filters) => {
   return { products, total }
 }
 
+const getEmptyCartRecommendations = async (limit = 8) => {
+  const query = `
+    SELECT 
+      p.id, p.store_id, p.category_id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images,
+      (
+        SELECT pr.discount_value FROM promotions pr
+        JOIN product_promotions pp ON pr.id = pp.promotion_id
+        WHERE pp.product_id = p.id AND pr.is_active = TRUE AND NOW() BETWEEN pr.start_date AND pr.end_date
+        ORDER BY pr.discount_value DESC LIMIT 1
+      ) AS discount_percentage,
+      (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', pv.id, 'size', pv.size, 'color', pv.color, 'stock', pv.stock))
+        FROM product_variants pv WHERE pv.product_id = p.id
+      ) AS variants
+    FROM products p 
+    WHERE p.is_active = TRUE 
+    ORDER BY p.sold DESC, p.rating_avg DESC 
+    LIMIT ?
+  `
+  const [rows] = await pool.execute(query, [String(limit)])
+  return rows
+}
+
+const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 8) => {
+  let query = `
+    SELECT 
+      p.id, p.store_id, p.category_id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images,
+      (
+        SELECT pr.discount_value FROM promotions pr
+        JOIN product_promotions pp ON pr.id = pp.promotion_id
+        WHERE pp.product_id = p.id AND pr.is_active = TRUE AND NOW() BETWEEN pr.start_date AND pr.end_date
+        ORDER BY pr.discount_value DESC LIMIT 1
+      ) AS discount_percentage,
+      (
+        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', pv.id, 'size', pv.size, 'color', pv.color, 'stock', pv.stock))
+        FROM product_variants pv WHERE pv.product_id = p.id
+      ) AS variants
+    FROM products p 
+    WHERE p.is_active = TRUE AND p.category_id IN (?)
+  `
+
+  let params = [categoryIds]
+
+  if (excludedIds && excludedIds.length > 0) {
+    query += ' AND p.id NOT IN (?)'
+    params.push(excludedIds)
+  }
+
+  query += ' ORDER BY p.sold DESC, p.rating_avg DESC LIMIT ?'
+  params.push(Number(limit))
+
+  const [rows] = await pool.query(query, params)
+  return rows
+}
+
 export const productModel = {
   getFlashSaleProducts,
   getTopSellingProducts,
@@ -384,5 +439,7 @@ export const productModel = {
   getProductVariants,
   getRelatedProducts,
   increaseViewCount,
-  searchAndFilterProducts
+  searchAndFilterProducts,
+  getEmptyCartRecommendations,
+  getPostCheckoutRecommendations
 }
