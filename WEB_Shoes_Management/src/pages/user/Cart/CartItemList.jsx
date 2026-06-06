@@ -66,7 +66,7 @@ export const CartItemList = ({
 
             {/* ── HEADER CỬA HÀNG (Chứa Tên Shop & Ô chọn Voucher) ── */}
             <div className="bg-gray-50/50 border-b border-gray-100 p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-gray-800">
+              <div className="flex items-center gap-2 text-sm font-extrabold text-brand-secondary">
                 <FiHome className="text-brand-primary" size={16} />
                 {storeGroup.store_name}
               </div>
@@ -137,8 +137,7 @@ export const CartItemList = ({
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onRemoveItem(item.variant_id) }}
-                            className="text-gray-400 hover:bg-red-50 hover:text-red-500 p-1.5 rounded-xl transition-all cursor-pointer"
-                          >
+                            className="text-brand-primary border border-brand-primary hover:bg-brand-primary hover:text-white p-2 rounded-xl transition-all duration-300 ease-in-out shadow-sm hover:shadow-md active:scale-95 cursor-pointer flex items-center justify-center" >
                             <FiTrash2 size={16} />
                           </button>
                         </TooltipTrigger>

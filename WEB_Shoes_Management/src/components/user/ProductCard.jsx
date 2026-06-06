@@ -12,7 +12,7 @@ import { toast } from 'react-toastify'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 import { QuickVariantPicker } from './QuickVariantPicker'
 
-export const ProductCard = ({ product, sortBy }) => {
+export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -113,6 +113,10 @@ export const ProductCard = ({ product, sortBy }) => {
         toast.success(response.message || 'Đã thêm vào giỏ hàng thành công!')
         dispatch(incrementCartCount(1))
         setShowVariantPicker(false)
+
+        if (onAddToCartSuccess) {
+          onAddToCartSuccess()
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi thêm vào giỏ hàng!')
