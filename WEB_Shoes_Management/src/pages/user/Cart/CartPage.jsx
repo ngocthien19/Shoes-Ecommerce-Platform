@@ -14,6 +14,7 @@ import { CartItemList } from './CartItemList'
 import { CheckoutForm } from './CheckoutForm'
 import { CartSummary } from './CartSummary'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
+import { RecommendedProducts } from '~/components/user/RecommendedProducts'
 
 export const CartPage = () => {
   const dispatch = useDispatch()
@@ -51,6 +52,15 @@ export const CartPage = () => {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const handleReloadAndScrollTop = () => {
+    fetchCartData()
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
   }
 
   useEffect(() => {
@@ -194,13 +204,19 @@ export const CartPage = () => {
             ? `#${data.orderIds.join(', #')}`
             : '#ORD-UNKNOWN'
 
+          const uniqueCategoryIds = [...new Set(selectedCartObjects.map(item => item.category_id))]
+
+          const boughtProductIds = selectedCartObjects.map(item => item.product_id)
+
           navigate('/order-success', {
             state: {
               orderData: {
                 orderId: formattedOrderIds,
                 orderDate: new Date().toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }),
                 paymentMethod: 'Thanh toán khi nhận hàng (COD)'
-              }
+              },
+              categoryIds: uniqueCategoryIds,
+              excludedIds: boughtProductIds
             }
           })
         }
@@ -294,6 +310,14 @@ export const CartPage = () => {
 
             </div>
           )}
+          {cartItems.length === 0 ?
+            <RecommendedProducts
+              type="empty-cart"
+              limit={8}
+              onAddToCartSuccess={handleReloadAndScrollTop}
+            />
+            : <></>
+          }
         </main>
       </div>
 

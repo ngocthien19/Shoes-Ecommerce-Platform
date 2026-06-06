@@ -3,7 +3,7 @@ import { MdLocationOn } from 'react-icons/md'
 
 export const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-gray-300 mt-12 py-10 w-full">
+    <footer className="bg-gray-900 text-gray-300 py-10 w-full">
       <div className="app-container">
 
         {/* Main Footer Content */}
