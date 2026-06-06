@@ -29,8 +29,29 @@ const searchAndFilterProducts = async (req, res) => {
   }
 }
 
+const getEmptyCartRecommendations = async (req, res) => {
+  try {
+    const limit = req.query.limit || 8
+    const result = await productService.getEmptyCartRecommendations(limit)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải gợi ý giỏ hàng trống: ${error.message}` })
+  }
+}
+
+const getPostCheckoutRecommendations = async (req, res) => {
+  try {
+    const result = await productService.getPostCheckoutRecommendations(req.query)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải gợi ý đơn hàng: ${error.message}` })
+  }
+}
+
 export const productController = {
   getHomepageProducts,
   getProductDetail,
-  searchAndFilterProducts
+  searchAndFilterProducts,
+  getEmptyCartRecommendations,
+  getPostCheckoutRecommendations
 }

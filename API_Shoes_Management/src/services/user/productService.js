@@ -64,7 +64,7 @@ const getProductDetail = async (slug) => {
 }
 
 const searchAndFilterProducts = async (queryParams) => {
-  const { search, categories, stores, minPrice, maxPrice, ratings, page, limit, sortBy, sizes, colors, isDiscounted } = queryParams
+  const { search, categories, stores, ratings, page, limit, sortBy, sizes, colors, isDiscounted } = queryParams
 
   const currentPage = Math.max(1, Number(page) || 1)
   const perPage = Math.max(1, Number(limit) || 8)
@@ -98,8 +98,30 @@ const searchAndFilterProducts = async (queryParams) => {
   }
 }
 
+const getEmptyCartRecommendations = async (limit = 8) => {
+  return await productModel.getEmptyCartRecommendations(limit)
+}
+
+const getPostCheckoutRecommendations = async (queryParams) => {
+  const limit = Number(queryParams.limit) || 8
+
+  // Parse chuỗi "1,2,3" gửi từ Frontend thành mảng số nguyên [1, 2, 3]
+  const categoryIds = queryParams.categoryIds ? queryParams.categoryIds.split(',').map(Number) : []
+  const excludedIds = queryParams.excludedIds ? queryParams.excludedIds.split(',').map(Number) : []
+
+  // FALLBACK: Nếu không nhận được categoryId nào (giỏ hàng rỗng hoặc lỗi truyền data),
+  // tự động gọi hàm gợi ý Giỏ hàng trống để cứu cánh giao diện.
+  if (categoryIds.length === 0) {
+    return await productModel.getEmptyCartRecommendations(limit)
+  }
+
+  return await productModel.getPostCheckoutRecommendations(categoryIds, excludedIds, limit)
+}
+
 export const productService = {
   getHomepageProducts,
   getProductDetail,
-  searchAndFilterProducts
+  searchAndFilterProducts,
+  getEmptyCartRecommendations,
+  getPostCheckoutRecommendations
 }
