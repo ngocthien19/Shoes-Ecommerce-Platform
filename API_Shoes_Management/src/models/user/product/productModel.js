@@ -379,7 +379,7 @@ const searchAndFilterProducts = async (filters) => {
 const getEmptyCartRecommendations = async (limit = 8) => {
   const query = `
     SELECT 
-      p.id, p.store_id, p.category_id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images,
+      p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, p.sold, p.rating_avg, p.images,
       (
         SELECT pr.discount_value FROM promotions pr
         JOIN product_promotions pp ON pr.id = pp.promotion_id
@@ -402,7 +402,7 @@ const getEmptyCartRecommendations = async (limit = 8) => {
 const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 8) => {
   let query = `
     SELECT 
-      p.id, p.store_id, p.category_id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images,
+      p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, p.sold, p.rating_avg, p.images,
       (
         SELECT pr.discount_value FROM promotions pr
         JOIN product_promotions pp ON pr.id = pp.promotion_id
