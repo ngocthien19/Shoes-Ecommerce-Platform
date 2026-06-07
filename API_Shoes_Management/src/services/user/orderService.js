@@ -46,7 +46,8 @@ const coreCreateOrderTransaction = async (userId, data) => {
         discount_amount: data.discountAmount,
         commission_rate_snapshot: commissionRateSnapshot,
         shippingAddress: data.shippingAddress,
-        paymentMethod: data.paymentMethod
+        paymentMethod: data.paymentMethod,
+        appliedVoucher: data.appliedVoucher
       })
 
       createdOrderIds.push(orderId)

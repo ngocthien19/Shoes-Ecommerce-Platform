@@ -6,6 +6,7 @@ const getOrderHistoryByUserId = async (userId) => {
     SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
            o.total_amount, o.discount_amount, o.shipping_address, 
            o.status, o.payment_status, o.payment_method, o.created_at,
+           o.applied_voucher,
            s.name AS store_name
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id

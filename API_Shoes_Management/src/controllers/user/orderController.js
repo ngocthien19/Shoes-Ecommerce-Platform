@@ -3,10 +3,13 @@ import { orderService } from '~/services/user/orderService'
 const createOrderCOD = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { recipientName, recipientPhone, shippingAddress, discountAmount } = req.body
-
+    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, appliedVoucher } = req.body
     const result = await orderService.createOrderCOD(userId, {
-      recipientName, recipientPhone, shippingAddress, discountAmount: Number(discountAmount) || 0
+      recipientName,
+      recipientPhone,
+      shippingAddress,
+      discountAmount: Number(discountAmount) || 0,
+      appliedVoucher
     })
 
     return res.status(201).json(result)
@@ -18,7 +21,7 @@ const createOrderCOD = async (req, res) => {
 const createOrderOnline = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod } = req.body
+    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, appliedVoucher } = req.body
 
     // Lấy IP thật của khách hàng
     const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress
@@ -28,7 +31,8 @@ const createOrderOnline = async (req, res) => {
       recipientPhone,
       shippingAddress,
       discountAmount: Number(discountAmount) || 0,
-      paymentMethod
+      paymentMethod,
+      appliedVoucher
     }, ipAddr)
 
     return res.status(201).json(result)

@@ -16,13 +16,13 @@ const getCartItemsForCheckout = async (userId) => {
 
 // 2. Tạo một đơn hàng mới lưu vết Khuyến mãi, Người nhận và Snapshot hoa hồng
 const createOrder = async (connection, {
-  userId, recipientName, recipientPhone, storeId, totalAmount, discount_amount, commission_rate_snapshot, shippingAddress, paymentMethod
+  userId, recipientName, recipientPhone, storeId, totalAmount, discount_amount, commission_rate_snapshot, shippingAddress, paymentMethod, appliedVoucher
 }) => {
   const query = `
     INSERT INTO orders (
       user_id, recipient_name, recipient_phone, store_id, 
       total_amount, discount_amount, commission_rate_snapshot, 
-      shipping_address, status, payment_status, payment_method
+      shipping_address, status, payment_status, payment_method, applied_voucher
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?)
   `
@@ -35,7 +35,8 @@ const createOrder = async (connection, {
     discount_amount || 0.00,
     commission_rate_snapshot,
     shippingAddress,
-    paymentMethod || 'COD'
+    paymentMethod || 'COD',
+    appliedVoucher || null
   ])
   return result.insertId
 }
