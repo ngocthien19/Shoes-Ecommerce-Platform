@@ -9,6 +9,7 @@ const createOrderCOD = async (req, res) => {
       recipientPhone,
       shippingAddress,
       discountAmount: Number(discountAmount) || 0,
+      paymentMethod,
       appliedVoucher
     })
 

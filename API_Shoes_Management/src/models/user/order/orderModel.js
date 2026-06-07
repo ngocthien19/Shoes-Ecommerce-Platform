@@ -24,7 +24,7 @@ const createOrder = async (connection, {
       total_amount, discount_amount, commission_rate_snapshot, 
       shipping_address, status, payment_status, payment_method, applied_voucher
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?, ?) 
   `
   const [result] = await connection.execute(query, [
     userId,
