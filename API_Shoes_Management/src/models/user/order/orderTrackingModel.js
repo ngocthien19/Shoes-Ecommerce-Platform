@@ -1,20 +1,35 @@
 import pool from '~/config/db'
 
 // 1. USER lấy lịch sử đơn hàng (Lấy thêm thông tin người nhận và tiền giảm giá)
-const getOrderHistoryByUserId = async (userId) => {
-  const query = `
+const getOrderHistoryPaginated = async (userId, page, limit, status) => {
+  const offset = (page - 1) * limit
+  let queryData = `
     SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
            o.total_amount, o.discount_amount, o.shipping_address, 
            o.status, o.payment_status, o.payment_method, o.created_at,
-           o.applied_voucher,
-           s.name AS store_name
+           o.applied_voucher, s.name AS store_name
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id
     WHERE o.user_id = ?
-    ORDER BY o.created_at DESC
   `
-  const [orders] = await pool.execute(query, [userId])
-  return orders
+  let queryCount = 'SELECT COUNT(*) AS total FROM orders o WHERE o.user_id = ?'
+  let params = [userId]
+
+  if (status && status !== 'all') {
+    queryData += ' AND o.status = ?'
+    queryCount += ' AND o.status = ?'
+    params.push(status)
+  }
+
+  queryData += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?'
+
+  const [countResult] = await pool.execute(queryCount, params)
+  const total = countResult[0].total
+
+  const finalParams = [...params, String(limit), String(offset)]
+  const [orders] = await pool.execute(queryData, finalParams)
+
+  return { orders, total }
 }
 
 // 2. USER: Lấy chi tiết các đôi giày nằm trong đơn hàng đó để hiển thị lên UI
@@ -64,7 +79,7 @@ const withdrawCancelOrder = async (orderId) => {
 }
 
 export const orderTrackingModel = {
-  getOrderHistoryByUserId,
+  getOrderHistoryPaginated,
   getOrderItemsByOrderId,
   getOrderById,
   updateOrderStatus,
