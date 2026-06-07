@@ -30,7 +30,7 @@ export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatar
 
         {/* Lịch sử đơn hàng (Giữ nguyên chuyển trang vì đây là link riêng) */}
         <button
-          onClick={() => navigate('/order-history')}
+          onClick={() => navigate('/orders')}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-brand-primary transition-all cursor-pointer"
         >
           <FiShoppingBag size={18} /> <span>Lịch sử đơn hàng</span>

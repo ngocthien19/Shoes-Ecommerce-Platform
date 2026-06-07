@@ -1,0 +1,182 @@
+import { useState, useEffect } from 'react'
+import { Header } from '~/layouts/user/Header'
+import { Footer } from '~/layouts/user/Footer'
+import { Pagination } from '~/components/common/Pagination'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs'
+import { orderTrackingApiService } from '~/services/user/orderTrackingApiService'
+import { toast } from 'react-toastify'
+import { OrderCard } from './OrderCard'
+import { FiGrid, FiFileText,
+  FiPackage, FiTruck,
+  FiCheckCircle, FiXCircle,
+  FiAlertCircle, FiInbox
+} from 'react-icons/fi'
+
+export const OrderTrackingPage = () => {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [currentTab, setCurrentTab] = useState('all')
+  const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, limit: 5 })
+
+  const fetchOrders = async (page = 1, status = 'all') => {
+    setLoading(true)
+    try {
+      const res = await orderTrackingApiService.getOrderHistory(page, pagination.limit, status)
+      setOrders(res.orders)
+      setPagination(res.pagination)
+    } catch (error) {
+      toast.error('Gặp lỗi khi tải lịch sử đơn hàng.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Chạy khi Component mount hoặc khi đổi Tab/Đổi Trang
+  useEffect(() => {
+    fetchOrders(pagination.currentPage, currentTab)
+    // Đưa scroll lên top nhẹ nhàng
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [pagination.currentPage, currentTab])
+
+  // Xử lý đổi Tab
+  const handleTabChange = (value) => {
+    setCurrentTab(value)
+    setPagination(prev => ({ ...prev, currentPage: 1 }))
+  }
+
+  // HÀM XỬ LÝ HỦY ĐƠN HÀNG TRUYỀN XUỐNG CARD
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return
+
+    try {
+      const res = await orderTrackingApiService.cancelOrder(orderId)
+      toast.success(res.message)
+      fetchOrders(pagination.currentPage, currentTab)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi hủy đơn.')
+    }
+  }
+
+  // HÀM XỬ LÝ RÚT YÊU CẦU HỦY
+  const handleWithdrawCancel = async (orderId) => {
+    if (!window.confirm('Xác nhận rút lại yêu cầu hủy đơn?')) return
+
+    try {
+      const res = await orderTrackingApiService.withdrawCancelRequest(orderId)
+      toast.success(res.message)
+      fetchOrders(pagination.currentPage, currentTab) // Reload data
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi rút yêu cầu.')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50/50 flex flex-col">
+      <Header />
+
+      <main className="flex-1 w-full max-w-5xl mx-auto pt-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-extrabold text-brand-secondary flex items-center gap-3 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
+            <FiPackage size={28} className="text-brand-primary" />
+                Theo dõi đơn hàng
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">Quản lý và xem lộ trình vận chuyển các đơn hàng của bạn.</p>
+        </div>
+
+        <Tabs defaultValue="all" value={currentTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="w-full flex flex-wrap lg:flex-nowrap justify-start lg:justify-between bg-white h-auto px-3 py-8 gap-1.5 rounded-2xl shadow-sm mb-6 border border-gray-100">
+            <TabsTrigger
+              value="all"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Tất cả
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="pending"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Đơn hàng mới
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="processing"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Đang xử lý
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="shipped"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Đang giao
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="delivered"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Đã giao
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="cancelled"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Đã hủy
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="cancel_requested"
+              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
+            >
+                Yêu cầu hủy
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Content thay đổi theo Tab */}
+          <TabsContent value={currentTab} className="mt-0 outline-none animate-fadeIn">
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-20 mb-8 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+                <div className="w-20 h-20 ring ring-brand-primary bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <FiInbox size={40} className="text-brand-primary" />
+                </div>
+
+                <p className="text-gray-500 font-medium">Chưa có đơn hàng nào ở trạng thái này.</p>
+              </div>
+            ) : (
+              <>
+                {orders.map((order) => (
+                  <OrderCard
+                    key={order.order_id}
+                    order={order}
+                    onCancelOrder={handleCancelOrder}
+                    onWithdrawCancel={handleWithdrawCancel}
+                  />
+                ))}
+
+                {/* Phân trang */}
+                {pagination.totalPages > 1 && (
+                  <div className="mt-8 flex justify-center">
+                    <Pagination
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
+                      onPageChange={(page) => setPagination(prev => ({ ...prev, currentPage: page }))}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+
+      </main>
+      <Footer />
+    </div>
+  )
+}
