@@ -11,6 +11,7 @@ import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordP
 import { ProfilePage } from '~/pages/user/Profile/ProfilePage'
 import { CartPage } from '~/pages/user/Cart/CartPage'
 import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
+import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
@@ -31,6 +32,7 @@ const App = () => {
           <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
           <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
           <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
+          <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
         </Route>
 
 
