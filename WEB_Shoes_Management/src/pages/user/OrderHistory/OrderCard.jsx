@@ -1,8 +1,8 @@
 import { formatPrice } from '~/utils/formatters'
-import { FiMapPin, FiCalendar, FiBox } from 'react-icons/fi'
+import { FiMapPin, FiCalendar, FiHome } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 
-export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
+export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) => {
 
   // Render màu và text của badge trạng thái
   const renderStatusBadge = (status) => {
@@ -17,14 +17,18 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
     }
   }
 
+  // Đảm bảo ép kiểu về số để tính toán cho chuẩn
+  const totalAmount = Number(order.total_amount) || 0
+  const discountAmount = Number(order.discount_amount) || 0
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+    <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md ${isLast ? '' : 'mb-6'}`}>
       {/* Header đơn hàng */}
       <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3">
-          <FiBox className="text-gray-400" />
-          <h3 className="font-bold text-gray-800">{order.store_name}</h3>
-          <Link to={`/store/${order.store_id}`} className="text-xs bg-white border border-gray-200 text-brand-primary px-2 py-0.5 rounded text-semibold hover:bg-gray-50">
+          <FiHome size={20} className="text-brand-secondary" />
+          <h3 className="font-bold text-brand-secondary">{order.store_name}</h3>
+          <Link to={`/store/${order.store_id}`} className="text-xs bg-white border border-gray-200 text-brand-primary px-2 py-0.5 rounded font-semibold transition-colors duration-300 hover:bg-brand-primary hover:text-white cursor-pointer">
             Xem Shop
           </Link>
           <span className="text-xs text-gray-400 border-l border-gray-300 pl-3 ml-1">Mã đơn: {order.order_id}</span>
@@ -38,10 +42,25 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
         {/* Danh sách sản phẩm (Bên trái) */}
         <div className="flex-1 space-y-4 border-b lg:border-b-0 lg:border-r border-gray-100 pb-4 lg:pb-0 lg:pr-6">
           {order.items.map((item, idx) => (
-            <div key={idx} className="flex gap-4">
-              <img src={item.images?.[0]?.url || item.images?.[0]?.secure_url} alt={item.product_name} className="w-20 h-20 object-cover rounded-xl border border-gray-100" />
+            <div key={idx} className="flex gap-4 group">
+              <Link
+                to={`/product/${item.slug}`}
+                className="shrink-0 overflow-hidden rounded-xl border border-gray-100 w-20 h-20 block"
+              >
+                <img
+                  src={item.images?.[0]?.url || item.images?.[0]?.secure_url}
+                  alt={item.product_name}
+                  className="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer"
+                />
+              </Link>
+
               <div className="flex-1">
-                <h4 className="font-bold text-gray-800 text-sm line-clamp-2">{item.product_name}</h4>
+                <Link to={`/product/${item.slug}`}>
+                  <h4 className="font-bold text-gray-800 text-sm line-clamp-2 transition-colors duration-300 ease-in-out hover:text-brand-primary cursor-pointer">
+                    {item.product_name}
+                  </h4>
+                </Link>
+
                 <p className="text-xs text-gray-500 mt-1">Phân loại: {item.color} / Size {item.size}</p>
                 <div className="mt-2 text-sm font-bold text-brand-primary">
                   {formatPrice(item.price)} <span className="text-gray-400 text-xs font-normal">x{item.quantity}</span>
@@ -75,36 +94,66 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
             </div>
           </div>
 
-          <div className="flex justify-between items-end border-t border-gray-100 pt-4">
-            <span className="text-sm font-bold text-gray-500">Tổng cộng:</span>
-            <span className="text-xl font-extrabold text-brand-primary">{formatPrice(order.total_amount)}</span>
+          <div className="border-t border-gray-100 pt-4 flex flex-col gap-2.5">
+            {discountAmount > 0 && (
+              <div className="flex justify-between items-center">
+                {/* Badge Tiết kiệm bên trái */}
+                <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-md">
+        Tiết kiệm
+                </span>
+                <span className="text-sm font-bold text-green-600">
+        - {formatPrice(discountAmount)}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-end">
+              <span className="text-sm font-bold text-gray-500 mb-1">Tổng cộng:</span>
+
+              <div className="flex flex-col items-end">
+                <span className="text-xl font-extrabold text-brand-primary">
+                  {formatPrice(totalAmount)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Footer / Buttons hành động */}
       <div className="p-4 bg-gray-50/50 flex justify-end gap-3 border-t border-gray-100">
-        <Link to={`/orders/detail/${order.order_id}`} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-semibold rounded-lg text-sm hover:bg-gray-50 transition-all">
+        <Link
+          to={`/orders/detail/${order.order_id}`}
+          className="px-4 py-2 bg-white border border-brand-secondary text-gray-700 font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-secondary hover:text-white hover:border-brand-secondary cursor-pointer active:scale-95"
+        >
           Xem chi tiết
         </Link>
 
-        {/* Nút theo trạng thái */}
         {order.status === 'pending' && (
-          <button onClick={() => onCancelOrder(order.order_id)} className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm hover:bg-[#c73652] transition-all shadow-sm active:scale-95">
+          <button
+            onClick={() => onCancelOrder(order.order_id)}
+            className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
+          >
             Hủy đơn hàng
           </button>
         )}
 
         {order.status === 'cancel_requested' && (
-          <button onClick={() => onWithdrawCancel(order.order_id)} className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm hover:bg-orange-600 transition-all shadow-sm active:scale-95">
+          <button
+            onClick={() => onWithdrawCancel(order.order_id)}
+            className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-orange-600 cursor-pointer shadow-sm active:scale-95"
+          >
             Rút yêu cầu hủy
           </button>
         )}
 
         {(order.status === 'delivered' || order.status === 'cancelled') && (
-          <button className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm hover:bg-[#c73652] transition-all shadow-sm active:scale-95">
+          <Link
+            to={`/product/${order.items[0]?.slug}`}
+            className="px-4 py-2 flex items-center justify-center bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
+          >
             Mua lại
-          </button>
+          </Link>
         )}
       </div>
     </div>

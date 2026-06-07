@@ -17,6 +17,7 @@ export const OrderTrackingPage = () => {
   const [loading, setLoading] = useState(true)
   const [currentTab, setCurrentTab] = useState('all')
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, limit: 5 })
+  const [statusCounts, setStatusCounts] = useState({})
 
   const fetchOrders = async (page = 1, status = 'all') => {
     setLoading(true)
@@ -24,6 +25,7 @@ export const OrderTrackingPage = () => {
       const res = await orderTrackingApiService.getOrderHistory(page, pagination.limit, status)
       setOrders(res.orders)
       setPagination(res.pagination)
+      setStatusCounts(res.statusCounts || {})
     } catch (error) {
       toast.error('Gặp lỗi khi tải lịch sử đơn hàng.')
     } finally {
@@ -84,54 +86,61 @@ export const OrderTrackingPage = () => {
         </div>
 
         <Tabs defaultValue="all" value={currentTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="w-full flex flex-wrap lg:flex-nowrap justify-start lg:justify-between bg-white h-auto px-3 py-8 gap-1.5 rounded-2xl shadow-sm mb-6 border border-gray-100">
-            <TabsTrigger
-              value="all"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Tất cả
+          <TabsList className="w-full flex overflow-x-auto justify-start lg:justify-between items-center bg-white px-3 py-8 gap-1.5 rounded-2xl shadow-sm mb-6 border border-gray-100 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <TabsTrigger value="all" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiGrid size={16} />
+                <span>Tất cả</span>
+                {statusCounts?.all > 0 && <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.all}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="pending"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Đơn hàng mới
+            <TabsTrigger value="pending" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiFileText size={16} />
+                <span>Đơn hàng mới</span>
+                {statusCounts?.pending > 0 && <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.pending}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="processing"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Đang xử lý
+            <TabsTrigger value="processing" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiPackage size={16} />
+                <span>Đang xử lý</span>
+                {statusCounts?.processing > 0 && <span className="bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.processing}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="shipped"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Đang giao
+            <TabsTrigger value="shipped" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiTruck size={16} />
+                <span>Đang giao</span>
+                {statusCounts?.shipped > 0 && <span className="bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.shipped}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="delivered"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Đã giao
+            <TabsTrigger value="delivered" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiCheckCircle size={16} />
+                <span>Đã giao</span>
+                {statusCounts?.delivered > 0 && <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.delivered}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="cancelled"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Đã hủy
+            <TabsTrigger value="cancelled" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiXCircle size={16} />
+                <span>Đã hủy</span>
+                {statusCounts?.cancelled > 0 && <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.cancelled}</span>}
+              </div>
             </TabsTrigger>
 
-            <TabsTrigger
-              value="cancel_requested"
-              className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer"
-            >
-                Yêu cầu hủy
+            <TabsTrigger value="cancel_requested" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+              <div className="flex items-center justify-center gap-2">
+                <FiAlertCircle size={16} />
+                <span>Yêu cầu hủy</span>
+                {statusCounts?.cancel_requested > 0 && <span className="bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full text-[10px] font-bold">{statusCounts.cancel_requested}</span>}
+              </div>
             </TabsTrigger>
           </TabsList>
 
@@ -151,12 +160,13 @@ export const OrderTrackingPage = () => {
               </div>
             ) : (
               <>
-                {orders.map((order) => (
+                {orders.map((order, index) => (
                   <OrderCard
                     key={order.order_id}
                     order={order}
                     onCancelOrder={handleCancelOrder}
                     onWithdrawCancel={handleWithdrawCancel}
+                    isLast={index === orders.length - 1}
                   />
                 ))}
 

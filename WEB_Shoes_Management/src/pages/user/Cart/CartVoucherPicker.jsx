@@ -11,41 +11,37 @@ import {
 export const CartVoucherPicker = ({ item, onSelectVoucher, currentSelectedVoucher }) => {
   const [open, setOpen] = useState(false)
   const [vouchers, setVouchers] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // Load dữ liệu động từ API khi mở Combobox
   useEffect(() => {
-    if (!open || !item.store_id) return
-
+    if (!item.store_id) return
     const loadStoreVouchers = async () => {
-      setLoading(true)
       try {
         const data = await promotionApiService.getPromotionsByStore(item.store_id)
-        if (Array.isArray(data)) {
-          setVouchers(data)
-        }
+        if (Array.isArray(data)) setVouchers(data)
       } catch (error) {
-        console.error('Lỗi nạp khuyến mãi của cửa hàng:', error)
+        console.error('Lỗi nạp khuyến mãi:', error)
       } finally {
         setLoading(false)
       }
     }
-
     loadStoreVouchers()
-  }, [open, item.store_id])
+  }, [item.store_id])
+
+  if (!loading && vouchers.length === 0) return null
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        disabled={loading}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer uppercase shadow-sm
-          ${currentSelectedVoucher
-      ? 'border-brand-primary bg-brand-primary/5 text-brand-primary'
-      : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 focus:bg-white'}`}
+          ${currentSelectedVoucher ? 'border-brand-primary bg-brand-primary/5 text-brand-primary' : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
       >
-        <FiTag size={12} />
-        <span>{currentSelectedVoucher || 'Chọn mã giảm giá'}</span>
+        {loading ? <FiLoader size={12} className="animate-spin text-brand-primary" /> : <FiTag size={12} />}
+        <span>{loading ? 'Đang tải mã...' : (currentSelectedVoucher || 'Chọn mã giảm giá')}</span>
         <FiChevronDown size={10} className="text-gray-400" />
       </button>
 

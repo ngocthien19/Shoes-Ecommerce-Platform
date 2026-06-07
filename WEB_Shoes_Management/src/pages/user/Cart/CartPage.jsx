@@ -184,10 +184,27 @@ export const CartPage = () => {
 
     setLoadingOrder(true)
 
-    const usedVouchers = Object.values(storeVouchers)
-      .map(voucher => voucher.code)
-      .filter(Boolean)
-      .join(', ')
+    const storeDiscounts = {}
+
+    selectedCartObjects.forEach(item => {
+      const storeId = item.store_id
+
+      if (!storeDiscounts[storeId]) {
+        storeDiscounts[storeId] = {
+          amount: 0,
+          code: storeVouchers[storeId]?.code || null
+        }
+      }
+
+      const itemRowPrice = Number(item.base_price) * item.cart_quantity
+      const backendPromoPercent = Number(item.discount_percentage || 0)
+      const productItemDiscount = itemRowPrice * (backendPromoPercent / 100)
+
+      const voucherRowPercent = storeVouchers[storeId]?.discountValue || 0
+      const voucherRowDiscount = itemRowPrice * (voucherRowPercent / 100)
+
+      storeDiscounts[storeId].amount += (productItemDiscount + voucherRowDiscount)
+    })
 
     const orderPayload = {
       recipientName: formData.recipientName,
@@ -195,7 +212,7 @@ export const CartPage = () => {
       shippingAddress: formData.shippingAddress,
       discountAmount: totalDiscountAmount,
       paymentMethod: paymentMethod,
-      appliedVoucher: usedVouchers || null
+      storeDiscounts: storeDiscounts
     }
 
     try {
