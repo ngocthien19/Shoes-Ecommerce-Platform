@@ -184,12 +184,18 @@ export const CartPage = () => {
 
     setLoadingOrder(true)
 
+    const usedVouchers = Object.values(storeVouchers)
+      .map(voucher => voucher.code)
+      .filter(Boolean)
+      .join(', ')
+
     const orderPayload = {
       recipientName: formData.recipientName,
       recipientPhone: formData.recipientPhone,
       shippingAddress: formData.shippingAddress,
       discountAmount: totalDiscountAmount,
-      paymentMethod: paymentMethod
+      paymentMethod: paymentMethod,
+      appliedVoucher: usedVouchers || null
     }
 
     try {
