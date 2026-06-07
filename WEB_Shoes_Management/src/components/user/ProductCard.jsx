@@ -181,10 +181,10 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
 
         {/* Khối thông tin văn bản */}
         <div className="space-y-1.5 text-left">
-          <Link to={`/product/${product.slug}`} className="font-semibold text-gray-800 line-clamp-1 transition-colors duration-300 hover:text-brand-primary block">
+          <Link to={`/product/${product.slug}`} className="font-semibold text-gray-800 line-clamp-2 break-words transition-colors duration-300 hover:text-brand-primary">
             {product?.name}
           </Link>
-          <p className="text-xs text-gray-500 line-clamp-2 min-h-[32px]">{product?.description}</p>
+          <p className="text-xs text-gray-500 line-clamp-3 break-words min-h-[32px]">{product?.description}</p>
 
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className="text-yellow-400">

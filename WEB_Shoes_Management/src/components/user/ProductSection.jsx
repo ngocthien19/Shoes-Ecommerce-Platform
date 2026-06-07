@@ -1,5 +1,6 @@
 import { ProductCard } from '~/components/user/ProductCard'
 import { FiArrowRight, FiZap, FiTrendingUp, FiClock, FiLayers } from 'react-icons/fi'
+import { Link } from 'react-router-dom'
 
 export const ProductSection = ({ title, products, icon, onAddToCartSuccess }) => {
   const renderIcon = () => {
@@ -22,10 +23,12 @@ export const ProductSection = ({ title, products, icon, onAddToCartSuccess }) =>
               {title}
             </h2>
           </div>
-          <a href="#" className="group flex items-center gap-1 text-sm font-semibold text-brand-secondary hover:underline transition-all duration-300">
+          <Link
+            to='/products'
+            className="group flex items-center gap-1 text-sm font-semibold text-brand-secondary hover:underline transition-all duration-300">
               Xem tất cả
             <FiArrowRight size={16} className="transition-transform duration-300 ease-out group-hover:translate-x-1" />
-          </a>
+          </Link>
         </div>
 
         {/* Sử dụng grid responsive */}
