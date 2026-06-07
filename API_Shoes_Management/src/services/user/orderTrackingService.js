@@ -9,16 +9,28 @@ const getOrderHistory = async (userId, query) => {
   const limit = Math.max(1, Number(query.limit) || 5)
   const status = query.status || 'all'
 
-  // Gọi hàm model mới
+  // 1. Gọi hàm phân trang cũ
   const { orders, total } = await orderTrackingModel.getOrderHistoryPaginated(userId, page, limit, status)
 
-  // Lặp để lấy items cho từng đơn
   for (const order of orders) {
     order.items = await orderTrackingModel.getOrderItemsByOrderId(order.order_id)
   }
 
   const totalPages = Math.ceil(total / limit)
 
+  // Lấy số lượng của từng trạng thái để hiển thị lên Tabs
+  const rawCounts = await orderTrackingModel.getOrderStatusCounts(userId)
+
+  // Chuyển mảng [{status: 'pending', count: 2}] thành Object { pending: 2, shipped: 1 }
+  const statusCounts = rawCounts.reduce((acc, curr) => {
+    acc[curr.status] = curr.count
+    return acc
+  }, {})
+
+  // Tổng số tất cả đơn hàng
+  statusCounts.all = Object.values(statusCounts).reduce((a, b) => a + b, 0)
+
+  // 3. Trả về cả danh sách và bộ đếm
   return {
     pagination: {
       totalItems: total,
@@ -26,6 +38,7 @@ const getOrderHistory = async (userId, query) => {
       currentPage: page,
       limit: limit
     },
+    statusCounts: statusCounts,
     orders: orders
   }
 }
