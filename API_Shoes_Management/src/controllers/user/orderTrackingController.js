@@ -3,7 +3,7 @@ import { orderTrackingService } from '~/services/user/orderTrackingService'
 const getOrderHistory = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const result = await orderTrackingService.getOrderHistory(userId)
+    const result = await orderTrackingService.getOrderHistory(userId, req.query)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi tải lịch sử mua hàng: ${error.message}` })

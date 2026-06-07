@@ -3,13 +3,31 @@ import { orderModel } from '~/models/user/order/orderModel'
 import { ORDER_STATUS } from '~/utils/constants'
 import pool from '~/config/db'
 
-// 1. USER: Lấy lịch sử mua hàng kèm theo mảng sản phẩm bên trong mỗi đơn (Giữ nguyên luồng sạch)
-const getOrderHistory = async (userId) => {
-  const orders = await orderTrackingModel.getOrderHistoryByUserId(userId)
+// 1. USER: Lấy lịch sử mua hàng kèm theo mảng sản phẩm bên trong mỗi đơn
+const getOrderHistory = async (userId, query) => {
+  const page = Math.max(1, Number(query.page) || 1)
+  const limit = Math.max(1, Number(query.limit) || 5)
+  const status = query.status || 'all'
+
+  // Gọi hàm model mới
+  const { orders, total } = await orderTrackingModel.getOrderHistoryPaginated(userId, page, limit, status)
+
+  // Lặp để lấy items cho từng đơn
   for (const order of orders) {
     order.items = await orderTrackingModel.getOrderItemsByOrderId(order.order_id)
   }
-  return orders
+
+  const totalPages = Math.ceil(total / limit)
+
+  return {
+    pagination: {
+      totalItems: total,
+      totalPages: totalPages,
+      currentPage: page,
+      limit: limit
+    },
+    orders: orders
+  }
 }
 
 // 2. USER: Xử lý logic hủy đơn hàng (Đồng bộ an toàn dữ liệu và Hoàn kho)
