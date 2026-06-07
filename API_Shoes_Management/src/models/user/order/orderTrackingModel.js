@@ -78,11 +78,23 @@ const withdrawCancelOrder = async (orderId) => {
   return result
 }
 
+const getOrderStatusCounts = async (userId) => {
+  const query = `
+    SELECT status, COUNT(*) as count
+    FROM orders
+    WHERE user_id = ?
+    GROUP BY status
+  `
+  const [rows] = await pool.execute(query, [userId])
+  return rows
+}
+
 export const orderTrackingModel = {
   getOrderHistoryPaginated,
   getOrderItemsByOrderId,
   getOrderById,
   updateOrderStatus,
   autoConfirmOrders,
-  withdrawCancelOrder
+  withdrawCancelOrder,
+  getOrderStatusCounts
 }
