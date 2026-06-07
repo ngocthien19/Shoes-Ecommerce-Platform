@@ -11,6 +11,17 @@ const getStoreDetail = async (req, res) => {
   }
 }
 
+const getStoreProducts = async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await storeService.getStoreProducts(id, req.query)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: error.message })
+  }
+}
+
 export const storeController = {
-  getStoreDetail
+  getStoreDetail,
+  getStoreProducts
 }

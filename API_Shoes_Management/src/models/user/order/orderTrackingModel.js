@@ -35,7 +35,7 @@ const getOrderHistoryPaginated = async (userId, page, limit, status) => {
 // 2. USER: Lấy chi tiết các đôi giày nằm trong đơn hàng đó để hiển thị lên UI
 const getOrderItemsByOrderId = async (orderId) => {
   const query = `
-    SELECT oi.id AS item_id, oi.quantity, oi.price, pv.size, pv.color, p.name AS product_name, p.images
+    SELECT oi.id AS item_id, oi.quantity, oi.price, pv.size, pv.color, p.name AS product_name, p.images, p.slug
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
@@ -89,6 +89,20 @@ const getOrderStatusCounts = async (userId) => {
   return rows
 }
 
+const getOrderDetailByIdAndUser = async (orderId, userId) => {
+  const query = `
+    SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
+           o.shipping_address, o.total_amount, o.discount_amount, o.applied_voucher,
+           o.status, o.cancel_reason, o.payment_status, o.payment_method, o.created_at,
+           s.name AS store_name, s.logo AS store_logo
+    FROM orders o
+    INNER JOIN stores s ON o.store_id = s.id
+    WHERE o.id = ? AND o.user_id = ?
+  `
+  const [rows] = await pool.execute(query, [orderId, userId])
+  return rows[0] // Trả về object đơn hàng nếu có
+}
+
 export const orderTrackingModel = {
   getOrderHistoryPaginated,
   getOrderItemsByOrderId,
@@ -96,5 +110,6 @@ export const orderTrackingModel = {
   updateOrderStatus,
   autoConfirmOrders,
   withdrawCancelOrder,
-  getOrderStatusCounts
+  getOrderStatusCounts,
+  getOrderDetailByIdAndUser
 }
