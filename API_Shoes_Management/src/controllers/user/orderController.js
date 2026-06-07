@@ -3,14 +3,14 @@ import { orderService } from '~/services/user/orderService'
 const createOrderCOD = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, appliedVoucher } = req.body
+    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, storeDiscounts } = req.body
     const result = await orderService.createOrderCOD(userId, {
       recipientName,
       recipientPhone,
       shippingAddress,
       discountAmount: Number(discountAmount) || 0,
       paymentMethod,
-      appliedVoucher
+      storeDiscounts
     })
 
     return res.status(201).json(result)

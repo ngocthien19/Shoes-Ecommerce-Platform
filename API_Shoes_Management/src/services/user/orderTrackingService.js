@@ -103,9 +103,23 @@ const withdrawCancelRequest = async (userId, orderId) => {
   }
 }
 
+const getOrderDetail = async (userId, orderId) => {
+  const order = await orderTrackingModel.getOrderDetailByIdAndUser(orderId, userId)
+
+  if (!order) {
+    throw new Error('Đơn hàng không tồn tại hoặc bạn không có quyền truy cập.')
+  }
+
+  const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+  order.items = items
+
+  return order
+}
+
 export const orderTrackingService = {
   getOrderHistory,
   cancelOrderByUser,
   handleAutoConfirmOrders,
-  withdrawCancelRequest
+  withdrawCancelRequest,
+  getOrderDetail
 }

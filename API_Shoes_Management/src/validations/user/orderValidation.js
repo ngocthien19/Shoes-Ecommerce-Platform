@@ -28,9 +28,7 @@ const validateCheckout = async (req, res, next) => {
       'number.min': 'Số tiền giảm giá voucher không được là số âm.'
     }),
 
-    appliedVoucher: Joi.string().allow(null, '').optional().messages({
-      'string.base': 'Mã giảm giá phải là chuỗi ký tự.'
-    }),
+    storeDiscounts: Joi.object().optional(),
 
     paymentMethod: Joi.string()
       .valid(PAYMENT_METHODS.COD, PAYMENT_METHODS.VNPAY, PAYMENT_METHODS.MOMO)

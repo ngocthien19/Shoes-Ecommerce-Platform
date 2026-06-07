@@ -34,8 +34,21 @@ const withdrawCancelRequest = async (req, res) => {
   }
 }
 
+const getOrderDetail = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { orderId } = req.params
+
+    const result = await orderTrackingService.getOrderDetail(userId, Number(orderId))
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(404).json({ message: error.message })
+  }
+}
+
 export const orderTrackingController = {
   getOrderHistory,
   cancelOrderByUser,
-  withdrawCancelRequest
+  withdrawCancelRequest,
+  getOrderDetail
 }
