@@ -7,7 +7,8 @@ const getOrderHistoryPaginated = async (userId, page, limit, status) => {
     SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
            o.total_amount, o.discount_amount, o.shipping_address, 
            o.status, o.payment_status, o.payment_method, o.created_at,
-           o.applied_voucher, o.cancel_reason, s.name AS store_name, s.logo AS store_logo
+           o.applied_voucher, o.cancel_reason, s.name AS store_name, s.logo AS store_logo,
+           (EXISTS (SELECT 1 FROM product_reviews pr WHERE pr.order_id = o.id)) AS is_reviewed
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id
     WHERE o.user_id = ?
