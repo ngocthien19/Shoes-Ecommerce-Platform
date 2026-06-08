@@ -10,7 +10,7 @@ import { authGuard } from '~/middlewares/authGuard'
 
 const router = express.Router()
 
-router.get('/vnpay-return', orderController.vnpayReturnIPN)
+router.get('/vnpay-return', orderController.vnpayReturn)
 router.post('/momo-ipn', orderController.momoReturnIPN)
 router.get('/momo-return', orderController.momoReturn)
 
