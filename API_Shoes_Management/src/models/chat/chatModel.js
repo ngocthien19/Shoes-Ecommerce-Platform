@@ -33,7 +33,7 @@ const getMessagesByConversation = async (conversationId, limit, offset) => {
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     WHERE m.conversation_id = ?
-    ORDER BY m.created_at DESC
+    ORDER BY m.created_at ASC
     LIMIT ? OFFSET ?
   `
   const [rows] = await pool.query(query, [conversationId, limit, offset])
@@ -43,9 +43,20 @@ const getMessagesByConversation = async (conversationId, limit, offset) => {
 // Tải toàn bộ danh sách phòng chat của người dùng hiện tại
 const getConversationsList = async (userId) => {
   const query = `
-    SELECT c.id AS conversation_id, c.updated_at,
-           s.id AS store_id, s.name AS store_name, s.logo AS store_logo, u_store.is_online AS store_online, u_store.last_active AS store_last_active,
-           u_client.id AS client_id, u_client.fullname AS client_name, u_client.avatar AS client_avatar, u_client.is_online AS client_online, u_client.last_active AS client_last_active
+    SELECT 
+      c.id AS conversation_id, 
+      c.updated_at,
+      s.id AS store_id, 
+      s.name AS store_name, 
+      s.logo AS store_logo, 
+      u_store.id AS store_owner_id, 
+      u_store.is_online AS store_online, 
+      u_store.last_active AS store_last_active,
+      u_client.id AS client_id, 
+      u_client.fullname AS client_name, 
+      u_client.avatar AS client_avatar, 
+      u_client.is_online AS client_online, 
+      u_client.last_active AS client_last_active
     FROM conversations c
     JOIN stores s ON c.store_id = s.id
     JOIN users u_store ON s.owner_id = u_store.id
