@@ -22,6 +22,7 @@ export const CartItemList = ({
       groups[item.store_id] = {
         store_id: item.store_id,
         store_name: item.store_name,
+        store_logo: item.store_logo,
         items: []
       }
     }
@@ -54,7 +55,6 @@ export const CartItemList = ({
         )}
       </div>
 
-      {/* RENDER DANH SÁCH THEO TỪNG BLOCK CỬA HÀNG */}
       {Object.values(groupedCart).map((storeGroup) => {
         // Kiểm tra xem trong cửa hàng này có item nào đang được tick chọn không
         const selectedItemsInStore = storeGroup.items.filter(item => selectedItems.includes(item.variant_id))
@@ -64,17 +64,24 @@ export const CartItemList = ({
         return (
           <div key={storeGroup.store_id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
 
-            {/* ── HEADER CỬA HÀNG (Chứa Tên Shop & Ô chọn Voucher) ── */}
             <div className="bg-gray-50/50 border-b border-gray-100 p-4 flex justify-between items-center">
               <div className="flex items-center gap-2 text-sm font-extrabold text-brand-secondary">
-                <FiHome className="text-brand-primary" size={16} />
+                {storeGroup.store_logo?.secure_url ? (
+                  <img
+                    src={storeGroup.store_logo.secure_url}
+                    alt={storeGroup.store_name}
+                    className="w-5 h-5 rounded-full object-cover border border-gray-100"
+                  />
+                ) : (
+                  <FiHome className="text-brand-primary" size={16} />
+                )}
                 {storeGroup.store_name}
               </div>
 
               {/* Chỉ hiện ô chọn Voucher của Shop khi khách có tick chọn ít nhất 1 món của Shop này */}
               {isStoreActive && (
                 <CartVoucherPicker
-                  item={{ store_id: storeGroup.store_id }} // Fake object truyền xuống để lấy ID quét API
+                  item={{ store_id: storeGroup.store_id }}
                   onSelectVoucher={onStoreVoucherSelect}
                   currentSelectedVoucher={currentVoucher?.code}
                 />

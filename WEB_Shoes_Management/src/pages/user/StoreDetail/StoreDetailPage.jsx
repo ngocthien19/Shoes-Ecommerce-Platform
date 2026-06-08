@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Header } from '~/layouts/user/Header'
 import { Footer } from '~/layouts/user/Footer'
 import { StoreProfileHeader } from './StoreProfileHeader'
@@ -43,35 +44,66 @@ export const StoreDetailPage = () => {
     window.scrollTo({ top: 400, behavior: 'smooth' })
   }
 
-  // Khung xương Loading (Skeleton)
-  if (loading && !store) {
-    return (
-      <div className="min-h-screen bg-gray-50/50 flex flex-col">
-        <Header />
-        <main className="max-w-6xl mx-auto px-4 py-10 flex-1 w-full animate-pulse">
-          <div className="h-64 bg-gray-200 rounded-3xl mb-8"></div>
-          <div className="h-96 bg-gray-200 rounded-3xl"></div>
-        </main>
-        <Footer />
-      </div>
-    )
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.2 } // Tạo độ trễ 0.2s giữa Header và Product List
+    }
+  }
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+  }
+
+  const listVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
   }
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 pt-8 md:pt-12 flex-1 w-full transition-all duration-300">
-        {store && (
-          <>
-            <StoreProfileHeader store={store} />
-            <StoreProductList
-              products={products}
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
-          </>
-        )}
+      <main className="max-w-6xl mx-auto px-4 pt-8 md:pt-12 flex-1 w-full">
+        <AnimatePresence mode="wait">
+          {loading && !store ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              className="w-full animate-pulse"
+            >
+              <div className="h-64 bg-gray-200 rounded-3xl mb-8"></div>
+              <div className="h-96 bg-gray-200 rounded-3xl"></div>
+            </motion.div>
+          ) : (
+            store && (
+              <motion.div
+                key="store-content"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                className="w-full flex flex-col"
+              >
+                <motion.div variants={headerVariants}>
+                  <StoreProfileHeader store={store} />
+                </motion.div>
+
+                <motion.div variants={listVariants} className="mt-8">
+                  <StoreProductList
+                    products={products}
+                    pagination={pagination}
+                    onPageChange={handlePageChange}
+                  />
+                </motion.div>
+              </motion.div>
+            )
+          )}
+        </AnimatePresence>
       </main>
 
       <Footer />

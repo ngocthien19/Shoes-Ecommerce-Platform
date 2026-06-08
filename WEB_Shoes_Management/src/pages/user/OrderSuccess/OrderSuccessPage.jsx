@@ -7,10 +7,10 @@ import { RecommendedProducts } from '~/components/user/RecommendedProducts'
 import { useDispatch } from 'react-redux'
 import { setCartCount } from '~/redux/user/cartSlice'
 import { cartApiService } from '~/services/user/cartService'
+import { motion } from 'framer-motion'
 
 export const OrderSuccessPage = () => {
   const location = useLocation()
-
   const [searchParams] = useSearchParams()
   const dispatch = useDispatch()
 
@@ -46,21 +46,47 @@ export const OrderSuccessPage = () => {
       <Header />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-12 flex flex-col items-center">
-        <div className="bg-white ring ring-brand-primary/50 max-w-[480px] w-full rounded-[32px] p-8 md:p-10 shadow-sm border border-gray-100 flex flex-col items-center text-center animate-fadeIn mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="bg-white ring ring-brand-primary/50 max-w-[480px] w-full rounded-[32px] p-8 md:p-10 shadow-sm border border-gray-100 flex flex-col items-center text-center mb-12"
+        >
 
-          <div className="w-24 h-24 rounded-full border-[3px] border-[#00bfa5] flex items-center justify-center mb-6">
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+            className="w-24 h-24 rounded-full border-[3px] border-[#00bfa5] flex items-center justify-center mb-6"
+          >
             <FiCheck size={48} className="text-[#00bfa5]" />
-          </div>
+          </motion.div>
 
-          <h1 className="text-2xl font-extrabold text-brand-secondary mb-3 tracking-tight">
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-2xl font-extrabold text-brand-secondary mb-3 tracking-tight"
+          >
             Đặt hàng thành công!
-          </h1>
-          <p className="text-sm text-gray-500 leading-relaxed mb-8 px-4">
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-sm text-gray-500 leading-relaxed mb-8 px-4"
+          >
             Cảm ơn bạn đã mua sắm tại <span className="text-base font-extrabold text-brand-primary tracking-wide">Shoes Shop</span>.<br />
             Đơn hàng của bạn đang được xử lý và sẽ sớm được giao đến bạn.
-          </p>
+          </motion.p>
 
-          <div className="bg-gray-50/80 w-full rounded-2xl p-5 space-y-3.5 mb-8 border border-gray-100">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6, ease: 'easeOut' }}
+            className="bg-gray-50/80 w-full rounded-2xl p-5 space-y-3.5 mb-8 border border-gray-100"
+          >
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500 font-medium">Mã đơn hàng:</span>
               <span className="font-bold text-gray-900">{displayOrderId}</span>
@@ -73,21 +99,31 @@ export const OrderSuccessPage = () => {
               <span className="text-gray-500 font-medium">Phương thức:</span>
               <span className="font-bold text-brand-primary">{displayMethod}</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="w-full space-y-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="w-full space-y-3"
+          >
             <Link to="/orders" className="w-full flex items-center justify-center py-3.5 bg-[#f04a5e] hover:bg-[#d93c50] text-white font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95">
               Theo dõi đơn hàng
             </Link>
             <Link to="/products" className="w-full flex items-center justify-center py-3.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all duration-300 active:scale-95">
               Tiếp tục mua sắm
             </Link>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        <div className="w-full animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6, ease: 'circOut' }}
+          className="w-full"
+        >
           <RecommendedProducts type="post-checkout" categoryIds={categoryIds} excludedIds={excludedIds} limit={8} />
-        </div>
+        </motion.div>
       </main>
       <Footer />
     </div>

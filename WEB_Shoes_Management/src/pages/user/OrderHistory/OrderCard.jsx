@@ -1,8 +1,8 @@
 import { formatPrice } from '~/utils/formatters'
-import { getImageUrl } from '~/utils/formatters'
 import { FiMapPin, FiCalendar, FiTag, FiAlertCircle, FiHome } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { ORDER_STATUS } from '~/utils/constant'
+import { motion } from 'framer-motion'
 import {
   Tooltip,
   TooltipContent,
@@ -10,8 +10,7 @@ import {
   TooltipTrigger
 } from '~/components/ui/tooltip'
 
-export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
-
+export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrder }) => {
   // Render màu và text của badge trạng thái
   const renderStatusBadge = (status) => {
     switch (status) {
@@ -25,12 +24,18 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
     }
   }
 
-  // Đảm bảo ép kiểu về số để tính toán cho chuẩn
   const totalAmount = Number(order.total_amount) || 0
   const discountAmount = Number(order.discount_amount) || 0
 
   return (
-    <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md mb-6'>
+    <motion.div
+      whileHover={{
+        y: -4,
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
+      }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6'
+    >
       {/* Header đơn hàng */}
       <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3">
@@ -64,10 +69,12 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
                 to={`/product/${item.slug}`}
                 className="shrink-0 overflow-hidden rounded-xl border border-gray-100 w-20 h-20 block"
               >
-                <img
+                <motion.img
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
                   src={item.images?.[0]?.url || item.images?.[0]?.secure_url}
                   alt={item.product_name}
-                  className="w-full h-full object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer"
+                  className="w-full h-full object-cover cursor-pointer"
                 />
               </Link>
 
@@ -115,12 +122,11 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
           <div className="border-t border-gray-100 pt-4 flex flex-col gap-2.5">
             {discountAmount > 0 && (
               <div className="flex justify-between items-center">
-                {/* Badge Tiết kiệm bên trái */}
                 <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-md">
-        Tiết kiệm
+                  Tiết kiệm
                 </span>
                 <span className="text-sm font-bold text-green-600">
-        - {formatPrice(discountAmount)}
+                  - {formatPrice(discountAmount)}
                 </span>
               </div>
             )}
@@ -141,14 +147,13 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
       {/* Footer / Buttons hành động */}
       <div className="p-4 bg-gray-50/50 flex justify-end items-center gap-3 border-t border-gray-100">
 
-        {/* Badge lý do hủy — chỉ hiện khi CANCELLED */}
         {order.status === ORDER_STATUS.CANCELLED && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-1 rounded-full cursor-default">
                   <FiAlertCircle size={12} />
-            Lý do hủy
+                  Lý do hủy
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[240px] text-center text-xs">
@@ -162,7 +167,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
           to={`/orders/${order.order_id}`}
           className="px-4 py-2 bg-white border border-brand-secondary text-gray-700 font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-secondary hover:text-white hover:border-brand-secondary cursor-pointer active:scale-95"
         >
-    Xem chi tiết
+          Xem chi tiết
         </Link>
 
         {order.status === ORDER_STATUS.PENDING && (
@@ -170,7 +175,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
             onClick={() => onCancelOrder(order.order_id)}
             className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-      Hủy đơn hàng
+            Hủy đơn hàng
           </button>
         )}
 
@@ -179,8 +184,37 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
             onClick={() => onWithdrawCancel(order.order_id)}
             className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-orange-600 cursor-pointer shadow-sm active:scale-95"
           >
-      Rút yêu cầu hủy
+            Rút yêu cầu hủy
           </button>
+        )}
+
+        {order.status === ORDER_STATUS.DELIVERED && (
+          order.is_reviewed ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-block cursor-not-allowed">
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-100 text-gray-400 font-semibold rounded-lg text-sm border border-gray-200 pointer-events-none"
+                    >
+                      Đánh giá
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p>Đã đánh giá đơn hàng</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <button
+              onClick={() => onReviewOrder && onReviewOrder(order)}
+              className="px-4 py-2 border border-brand-primary text-brand-primary font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-primary hover:text-white cursor-pointer shadow-sm active:scale-95"
+            >
+              Đánh giá
+            </button>
+          )
         )}
 
         {(order.status === ORDER_STATUS.DELIVERED || order.status === ORDER_STATUS.CANCELLED) && (
@@ -188,10 +222,10 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
             to={`/product/${order.items[0]?.slug}`}
             className="px-4 py-2 flex items-center justify-center bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-      Mua lại
+            Mua lại
           </Link>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
