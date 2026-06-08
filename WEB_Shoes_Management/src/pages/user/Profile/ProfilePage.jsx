@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { updateUserFields, logoutSuccess, setFavorites, removeFromFavorites } from '~/redux/user/userSlice'
 import { userService } from '~/services/user/userService'
 import { authService } from '~/services/auth/authService'
@@ -18,7 +19,6 @@ export const ProfilePage = () => {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
 
-  // State lưu danh sách chi tiết sản phẩm yêu thích trả về từ API getFavorites
   const [favoriteProducts, setFavoriteProducts] = useState([])
 
   const user = useSelector((state) => state.user.userInfo)
@@ -37,7 +37,6 @@ export const ProfilePage = () => {
     setPreviewAvatar(getImageUrl(user.avatar))
   }, [user])
 
-  // EFFECT GỌI API LẤY DANH SÁCH SẢN PHẨM CHI TIẾT KHI CHUYỂN TAB FAVORITES
   useEffect(() => {
     if (isAuthenticated && activeTab === 'favorites') {
       setLoading(true)
@@ -52,7 +51,6 @@ export const ProfilePage = () => {
     }
   }, [activeTab, isAuthenticated, dispatch])
 
-  // HÀM XỬ LÝ BỎ YÊU THÍCH TRỰC TIẾP TẠI TAB DANH SÁCH WISHLIST
   const handleRemoveFavoriteItem = async (productId) => {
     try {
       const response = await productService.toggleFavorite(productId)
@@ -89,23 +87,17 @@ export const ProfilePage = () => {
     setLoading(true)
     const formData = new FormData()
 
-    // 1. Nếu hành động submit này đến từ Tab Đổi mật khẩu
     if (data.password) {
-      // Đính kèm các trường thông tin cá nhân hiện có từ Redux để Joi validation không bắt lỗi [required]
       formData.append('fullname', user?.fullname || '')
       formData.append('phone', user?.phone || '')
       formData.append('address', user?.address || '')
-
-      // Đính kèm duy nhất mật khẩu mới
       formData.append('password', data.password)
     } else {
-      // 2. Nếu hành động submit đến từ Tab Thông tin cá nhân
       formData.append('fullname', data.fullname)
       formData.append('phone', data.phone)
       formData.append('address', data.address)
     }
 
-    // Nếu người dùng có chọn ảnh đại diện mới qua nút bấm Camera trước đó
     if (selectedFile) {
       formData.append('avatar', selectedFile)
     }
@@ -123,7 +115,6 @@ export const ProfilePage = () => {
       }
     } catch (error) {
       console.error(error)
-      // Quét mảng errors chi tiết động từ Joi Backend đưa xuống để hiển thị Toast
       const backendErrors = error.response?.data?.errors
       const backendMessage = error.response?.data?.message
 
@@ -139,29 +130,59 @@ export const ProfilePage = () => {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15 // Độ trễ giữa Sidebar và Tabs Content
+      }
+    }
+  }
+
+  const sidebarVariants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+  }
+
+  const contentVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1 bg-gray-50/50 py-8 md:py-12 select-none">
-        <div className="app-container grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <ProfileSidebar
-            user={user}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onLogout={handleLogout}
-            avatarUrl={getImageUrl(user.avatar)}
-          />
-          <ProfileTabsContent
-            user={user}
-            activeTab={activeTab}
-            loading={loading}
-            onUpdateProfile={handleUpdateProfile}
-            onFileChange={handleFileChange}
-            previewAvatar={previewAvatar}
-            favoriteProducts={favoriteProducts}
-            onRemoveFavoriteItem={handleRemoveFavoriteItem}
-          />
-        </div>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="app-container grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+        >
+          <motion.div variants={sidebarVariants} className="lg:col-span-3">
+            <ProfileSidebar
+              user={user}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onLogout={handleLogout}
+              avatarUrl={getImageUrl(user.avatar)}
+            />
+          </motion.div>
+
+          <motion.div variants={contentVariants} className="lg:col-span-9">
+            <ProfileTabsContent
+              user={user}
+              activeTab={activeTab}
+              loading={loading}
+              onUpdateProfile={handleUpdateProfile}
+              onFileChange={handleFileChange}
+              previewAvatar={previewAvatar}
+              favoriteProducts={favoriteProducts}
+              onRemoveFavoriteItem={handleRemoveFavoriteItem}
+            />
+          </motion.div>
+        </motion.div>
       </main>
       <Footer />
     </div>

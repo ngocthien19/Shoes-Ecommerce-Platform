@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useSelector, useDispatch } from 'react-redux'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Header } from '~/layouts/user/Header'
 import { Footer } from '~/layouts/user/Footer'
 import { cartApiService } from '~/services/user/cartService'
@@ -85,16 +86,13 @@ export const CartPage = () => {
     if (pendingDeleteIds.length === 0) return
 
     try {
-      // Gọi API xóa hàng loạt (đã cấu hình nhận mảng ở các bước trước)
       const res = await cartApiService.removeFromCart(pendingDeleteIds)
 
       if (res) {
         toast.success(pendingDeleteIds.length > 1 ? 'Đã xóa tất cả sản phẩm thành công!' : 'Đã gỡ sản phẩm khỏi giỏ.')
 
-        // Cập nhật lại UI: Xóa khỏi mảng đang chọn
         setSelectedItems(prev => prev.filter(id => !pendingDeleteIds.includes(id)))
 
-        // Cập nhật lại UI: Xóa mã giảm giá của các mặt hàng đó
         setStoreVouchers(v => {
           const copy = { ...v }
           pendingDeleteIds.forEach(id => delete copy[id])
@@ -106,7 +104,6 @@ export const CartPage = () => {
     } catch (error) {
       toast.error('Gặp lỗi khi xóa sản phẩm!')
     } finally {
-      // Đóng modal và reset data an toàn
       setIsDeleteModalOpen(false)
       setPendingDeleteIds([])
     }
@@ -154,7 +151,6 @@ export const CartPage = () => {
     toast.success('Đã áp dụng mã của cửa hàng thành công!')
   }
 
-  // ── LOGIC CỘNG DỒN TÍNH TOÁN DÒNG TIỀN TỔNG HỢP ──
   const selectedCartObjects = cartItems.filter(item => selectedItems.includes(item.variant_id))
 
   const subTotal = selectedCartObjects.reduce((sum, item) => {
@@ -228,7 +224,6 @@ export const CartPage = () => {
             : '#ORD-UNKNOWN'
 
           const uniqueCategoryIds = [...new Set(selectedCartObjects.map(item => item.category_id))]
-
           const boughtProductIds = selectedCartObjects.map(item => item.product_id)
 
           navigate('/order-success', {
@@ -248,7 +243,6 @@ export const CartPage = () => {
 
         if (data?.paymentUrl) {
           toast.info('Đang chuyển hướng sang cổng thanh toán an toàn...')
-
           window.location.href = data.paymentUrl
         } else {
           toast.error('Không nhận được đường dẫn thanh toán từ cổng điện tử.')
@@ -261,6 +255,26 @@ export const CartPage = () => {
     }
   })
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.15 } }
+  }
+
+  const leftColumnVariants = {
+    hidden: { opacity: 0, x: -40 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+  }
+
+  const rightColumnVariants = {
+    hidden: { opacity: 0, x: 40 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+  }
+
+  const emptyStateVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 150, damping: 15 } }
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg">
       <Header />
@@ -268,93 +282,115 @@ export const CartPage = () => {
       <div className="py-8 w-full flex-1 flex flex-col">
         <main className="app-container flex-1">
 
-          {/* ── Header Giỏ hàng & Nút Xóa hàng loạt ── */}
-          <div className="flex justify-between items-center mb-6">
+          {/* ── Header Giỏ hàng ── */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="flex justify-between items-center mb-6"
+          >
             <h2 className="text-xl font-extrabold text-brand-secondary uppercase tracking-tight flex items-center gap-2.5 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
               <FiShoppingBag size={24} className="text-brand-primary shrink-0" />
               <span>Giỏ hàng của bạn ({cartItems.length} sản phẩm)</span>
             </h2>
-          </div>
+          </motion.div>
 
-          {cartItems.length === 0 ? (
-            <div className="text-center py-16 bg-white border border-gray-100 rounded-3xl shadow-bold max-w-xl mx-auto my-8 animate-fadeIn">
-              <div className="w-16 h-16 bg-brand-primary/5 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-primary">
-                <FiShoppingBag size={32} />
-              </div>
-
-              <h3 className="text-base font-bold text-gray-800 mb-1">Giỏ hàng của bạn đang trống</h3>
-              <p className="text-xs text-gray-400 italic max-w-xs mx-auto mb-6">
-                Có vẻ như bạn chưa thêm bất kỳ đôi giày nào vào giỏ hàng của mình.
-              </p>
-
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-2 bg-brand-primary hover:bg-[#c73652] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+          <AnimatePresence mode="wait">
+            {cartItems.length === 0 ? (
+              <motion.div
+                key="empty-cart"
+                variants={emptyStateVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                className="text-center py-16 bg-white border border-gray-100 rounded-3xl shadow-sm max-w-xl mx-auto my-8"
               >
-                <span>Mua sản phẩm ngay</span>
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="w-16 h-16 bg-brand-primary/5 rounded-full flex items-center justify-center mx-auto mb-4 text-brand-primary">
+                  <FiShoppingBag size={32} />
+                </div>
 
-              {/* CỘT TRÁI (Chiếm 2 phần): Danh sách giày */}
-              <div className="lg:col-span-2">
-                <CartItemList
-                  cartItems={cartItems}
-                  selectedItems={selectedItems}
-                  onToggleSelect={handleToggleSelect}
-                  onToggleSelectAll={handleToggleSelectAll}
-                  onUpdateQuantity={handleUpdateQuantity}
-                  onRemoveItem={handleRequestRemoveSingle}
-                  handleRequestRemoveSelectedBulk={handleRequestRemoveSelectedBulk}
-                  storeVouchers={storeVouchers}
-                  onStoreVoucherSelect={handleStoreVoucherSelect}
-                />
-              </div>
+                <h3 className="text-base font-bold text-gray-800 mb-1">Giỏ hàng của bạn đang trống</h3>
+                <p className="text-xs text-gray-400 italic max-w-xs mx-auto mb-6">
+                  Có vẻ như bạn chưa thêm bất kỳ đôi giày nào vào giỏ hàng của mình.
+                </p>
 
-              {/* CỘT PHẢI (Chiếm 1 phần): Thông tin & Tổng hợp tiền */}
-              <div className="space-y-6">
-                <CheckoutForm
-                  register={register}
-                  errors={errors}
-                  paymentMethod={paymentMethod}
-                  setPaymentMethod={setPaymentMethod}
-                />
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+                  <Link
+                    to="/products"
+                    className="inline-flex items-center gap-2 bg-brand-primary hover:bg-[#c73652] text-white text-sm font-bold px-6 py-3 rounded-xl transition-colors shadow-sm cursor-pointer"
+                  >
+                    <span>Mua sản phẩm ngay</span>
+                  </Link>
+                </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="populated-cart"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start"
+              >
+                <motion.div variants={leftColumnVariants} className="lg:col-span-2">
+                  <CartItemList
+                    cartItems={cartItems}
+                    selectedItems={selectedItems}
+                    onToggleSelect={handleToggleSelect}
+                    onToggleSelectAll={handleToggleSelectAll}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRequestRemoveSingle}
+                    handleRequestRemoveSelectedBulk={handleRequestRemoveSelectedBulk}
+                    storeVouchers={storeVouchers}
+                    onStoreVoucherSelect={handleStoreVoucherSelect}
+                  />
+                </motion.div>
 
-                <CartSummary
-                  subTotal={subTotal}
-                  discountAmount={totalDiscountAmount}
-                  finalTotal={finalTotal}
-                  hasSelectedItems={selectedItems.length > 0}
-                  onSubmitOrder={handleCheckoutProcess}
-                  loadingOrder={loadingOrder}
-                />
-              </div>
+                <motion.div variants={rightColumnVariants} className="space-y-6">
+                  <CheckoutForm
+                    register={register}
+                    errors={errors}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                  />
 
-            </div>
+                  <CartSummary
+                    subTotal={subTotal}
+                    discountAmount={totalDiscountAmount}
+                    finalTotal={finalTotal}
+                    hasSelectedItems={selectedItems.length > 0}
+                    onSubmitOrder={handleCheckoutProcess}
+                    loadingOrder={loadingOrder}
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Sản phẩm gợi ý khi giỏ hàng trống */}
+          {cartItems.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <RecommendedProducts
+                type="empty-cart"
+                limit={8}
+                onAddToCartSuccess={handleReloadAndScrollTop}
+              />
+            </motion.div>
           )}
-          {cartItems.length === 0 ?
-            <RecommendedProducts
-              type="empty-cart"
-              limit={8}
-              onAddToCartSuccess={handleReloadAndScrollTop}
-            />
-            : <></>
-          }
+
         </main>
       </div>
 
-      {/* ── MODAL ĐƯỢC CẤU HÌNH ĐỘNG CHO CẢ XÓA LẺ & HÀNG LOẠT ── */}
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         title={pendingDeleteIds.length > 1 ? 'Xóa hàng loạt sản phẩm' : 'Gỡ sản phẩm khỏi giỏ hàng'}
         message={pendingDeleteIds.length > 1
           ? `Bạn có chắc chắn muốn xóa hoàn toàn ${pendingDeleteIds.length} sản phẩm đang được tick chọn này ra khỏi giỏ hàng không?`
           : 'Hành động này sẽ xóa hoàn toàn sản phẩm và các mã giảm giá đang áp dụng của đôi giày này khỏi giỏ hàng hiện tại.'}
-
-        // Nếu chỉ xóa 1 sản phẩm -> Tìm thông tin sản phẩm đó truyền vào để hiển thị Ảnh thu nhỏ. Xóa nhiều thì tự ẩn.
         productInfo={pendingDeleteIds.length === 1 ? cartItems.find(item => item.variant_id === pendingDeleteIds[0]) : null}
-
         onClose={() => {
           setIsDeleteModalOpen(false)
           setPendingDeleteIds([])

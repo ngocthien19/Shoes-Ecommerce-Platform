@@ -14,6 +14,7 @@ import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
 import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
 import { OrderDetailPage } from '~/pages/user/OrderDetail/OrderDetailPage'
 import { StoreDetailPage } from '~/pages/user/StoreDetail/StoreDetailPage'
+import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
@@ -37,6 +38,7 @@ const App = () => {
           <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
           <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
           <Route path="/store/:id" element={<PageTransition><StoreDetailPage /></PageTransition>} />
+          <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
         </Route>
 
 

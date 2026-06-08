@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { BreadCrumb } from '~/components/user/BreadCrumb'
 import { FilterSidebar } from './FilterSidebar'
 import { Pagination } from '~/components/common/Pagination'
@@ -17,7 +18,7 @@ export const ProductsPage = () => {
   const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 1, currentPage: 1 })
   const [loading, setLoading] = useState(false)
 
-  // KHỞI TẠO STATE TỪ URL (Nếu URL trống thì lấy giá trị mặc định)
+  // KHỞI TẠO STATE TỪ URL
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
     categories: searchParams.get('categories') ? searchParams.get('categories').split(',') : [],
@@ -33,7 +34,6 @@ export const ProductsPage = () => {
   })
 
   useEffect(() => {
-    // Dịch URL thành Object state chuẩn
     const parsedFilters = {
       search: searchParams.get('search') || '',
       categories: searchParams.get('categories') ? searchParams.get('categories').split(',') : [],
@@ -56,11 +56,10 @@ export const ProductsPage = () => {
     })
   }, [location.search])
 
-  // ĐỒNG BỘ STATE LÊN URL MỖI KHI BỘ LỌC THAY ĐỔI
+  // ĐỒNG BỘ STATE LÊN URL
   useEffect(() => {
     const urlParams = {}
 
-    // Chỉ đưa lên URL những tham số nào có chứa dữ liệu (để URL nhìn sạch sẽ, không bị rác)
     if (filters.search) urlParams.search = filters.search
     if (filters.categories.length > 0) urlParams.categories = filters.categories.join(',')
     if (filters.stores.length > 0) urlParams.stores = filters.stores.join(',')
@@ -70,14 +69,11 @@ export const ProductsPage = () => {
     if (filters.colors.length > 0) urlParams.colors = filters.colors.join(',')
     if (filters.isDiscounted) urlParams.isDiscounted = 'true'
 
-    // Chỉ hiển thị số trang nếu nó khác 1, chỉ hiển thị sắp xếp nếu nó khác mặc định
     if (filters.page > 1) urlParams.page = filters.page
     if (filters.sortBy !== 'latest') urlParams.sortBy = filters.sortBy
 
-    // Cập nhật URL
     setSearchParams(urlParams)
   }, [filters, setSearchParams])
-
 
   // GỌI API
   useEffect(() => {
@@ -85,7 +81,6 @@ export const ProductsPage = () => {
       try {
         setLoading(true)
 
-        // ĐÓNG GÓI PARAMS GỬI XUỐNG BACKEND
         const params = {
           ...filters,
           categories: filters.categories.join(','),
@@ -114,7 +109,6 @@ export const ProductsPage = () => {
     setFilters({ ...filters, page: newPage })
   }
 
-  // --- CÁC HÀM XỬ LÝ NHÃN (BADGE) HIỂN THỊ TRẠNG THÁI LỌC ---
   const handleRemoveArrayFilter = (field, value) => {
     setFilters({ ...filters, [field]: filters[field].filter(item => item !== value), page: 1 })
   }
@@ -135,6 +129,19 @@ export const ProductsPage = () => {
     '3000000-5000000': '3tr - 5tr', '5000000-max': 'Trên 5.000.000đ'
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  }
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  }
+
   return (
     <div className="bg-brand-bg min-h-screen flex flex-col">
       <Header />
@@ -142,21 +149,29 @@ export const ProductsPage = () => {
       <main className="app-container py-8 flex-1">
         <BreadCrumb items={[{ label: 'Trang chủ', link: '/' }, { label: 'Tất cả sản phẩm', link: '/products' }]} />
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 mt-4">
 
-          {/* Cột trái: Sidebar Lọc */}
-          <div className="w-full lg:w-1/4 shrink-0">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="w-full lg:w-1/4 shrink-0"
+          >
             <FilterSidebar filters={filters} setFilters={setFilters} />
-          </div>
+          </motion.div>
 
           {/* Cột phải: Content chính */}
-          <div className="flex-1">
+          <div className="flex-1 flex flex-col">
 
-            {/* Thanh Top bar (Sắp xếp & Active Filters) */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6"
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
-                <div className="text-gray-600 font-medium mb-3 sm:mb-0">
-                  <span className="font-bold text-gray-900 text-xl mr-1.5">{pagination.totalItems}</span>
+                <div className="text-gray-600 font-medium mb-3 sm:mb-0 flex items-center">
+                  <span className="font-extrabold text-brand-secondary text-xl mr-2">{pagination.totalItems}</span>
                   Sản phẩm tìm thấy
                 </div>
 
@@ -165,7 +180,7 @@ export const ProductsPage = () => {
                   <select
                     value={filters.sortBy}
                     onChange={(e) => setFilters({ ...filters, sortBy: e.target.value, page: 1 })}
-                    className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-brand-primary bg-gray-50 cursor-pointer transition-colors hover:border-brand-primary"
+                    className="border border-gray-200 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 bg-gray-50 cursor-pointer transition-all hover:border-brand-primary"
                   >
                     <option value="latest">Mới nhất</option>
                     <option value="sold_desc">Bán chạy nhất</option>
@@ -178,87 +193,122 @@ export const ProductsPage = () => {
                 </div>
               </div>
 
-              {/* KHU VỰC HIỂN THỊ BADGE LỌC */}
               {hasActiveFilters && (
-                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 text-sm">
-                  <span className="text-gray-500 mr-2">Đang lọc:</span>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100 text-sm overflow-hidden"
+                >
+                  <span className="text-gray-500 mr-2 font-medium">Đang lọc:</span>
 
-                  {filters.categories.map(cat => (
-                    <span key={cat} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium">
-                      Danh mục: {cat} <FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => handleRemoveArrayFilter('categories', cat)} />
-                    </span>
-                  ))}
+                  <AnimatePresence>
+                    {filters.categories.map(cat => (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={cat} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+                        Danh mục: {cat} <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('categories', cat)} />
+                      </motion.span>
+                    ))}
 
-                  {filters.prices.map(price => (
-                    <span key={price} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium">
-      Giá: {priceLabels[price]} <FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => handleRemoveArrayFilter('prices', price)} />
-                    </span>
-                  ))}
+                    {filters.prices.map(price => (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={price} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+                        Giá: {priceLabels[price]} <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('prices', price)} />
+                      </motion.span>
+                    ))}
 
-                  {filters.sizes.map(size => (
-                    <span key={size} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium">
-                      Size {size} <FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => handleRemoveArrayFilter('sizes', size)} />
-                    </span>
-                  ))}
+                    {filters.sizes.map(size => (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={size} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+                        Size {size} <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('sizes', size)} />
+                      </motion.span>
+                    ))}
 
-                  {filters.colors.map(color => (
-                    <span key={color} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium capitalize">
-                      Màu {color} <FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => handleRemoveArrayFilter('colors', color)} />
-                    </span>
-                  ))}
+                    {filters.colors.map(color => (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={color} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold capitalize">
+                        Màu {color} <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('colors', color)} />
+                      </motion.span>
+                    ))}
 
-                  {filters.ratings.map(rating => (
-                    <span key={rating} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium">
-                      Từ {rating} sao <FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => handleRemoveArrayFilter('ratings', rating)} />
-                    </span>
-                  ))}
+                    {filters.ratings.map(rating => (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={rating} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+                        Từ {rating} sao <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('ratings', rating)} />
+                      </motion.span>
+                    ))}
 
-                  {filters.isDiscounted && (
-                    <span className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium">
-                      Đang giảm giá <FiZap /><FiX className="cursor-pointer hover:text-red-600 hover:scale-110 transition-transform" onClick={() => setFilters({ ...filters, isDiscounted: false, page: 1 })} />
-                    </span>
-                  )}
+                    {filters.isDiscounted && (
+                      <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+                        Đang giảm giá <FiZap /><FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => setFilters({ ...filters, isDiscounted: false, page: 1 })} />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
 
                   <button
                     onClick={handleClearAllFilters}
-                    className="cursor-pointer text-gray-500 hover:text-brand-primary underline ml-2 font-medium transition-colors"
+                    className="cursor-pointer text-gray-500 hover:text-brand-primary underline ml-2 font-bold transition-colors"
                   >
                     Xóa tất cả
                   </button>
-                </div>
+                </motion.div>
               )}
+            </motion.div>
+
+            <div className="flex-1 flex flex-col">
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                    className="flex justify-center items-center h-64"
+                  >
+                    <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                  </motion.div>
+                ) : products.length > 0 ? (
+                  <motion.div
+                    key={`grid-${filters.page}-${JSON.stringify(filters)}`} // Re-trigger khi trang/bộ lọc đổi
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
+                    className="flex-1 flex flex-col"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {products.map(product => (
+                        <motion.div key={product.id} variants={cardVariants}>
+                          <ProductCard product={product} sortBy={filters.sortBy} />
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {pagination.totalPages > 1 && (
+                      <motion.div variants={cardVariants} className="mt-10 flex justify-center">
+                        <Pagination
+                          currentPage={pagination.currentPage}
+                          totalPages={pagination.totalPages}
+                          onPageChange={handlePageChange}
+                        />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="bg-white rounded-3xl p-16 text-center text-gray-500 shadow-sm border border-gray-100 flex flex-col items-center justify-center mt-4"
+                  >
+                    <div className="text-6xl mb-6">👟</div>
+                    <h3 className="text-2xl font-extrabold text-gray-800 mb-2">Không tìm thấy sản phẩm!</h3>
+                    <p className="text-gray-500 font-medium max-w-md">Chúng tôi không tìm thấy kết quả nào phù hợp. Bạn hãy thử bỏ bớt một vài bộ lọc hoặc tìm kiếm bằng từ khóa khác xem sao nhé.</p>
+                    <button
+                      onClick={handleClearAllFilters}
+                      className="cursor-pointer mt-8 px-8 py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-secondary transition-all active:scale-95 shadow-md shadow-brand-primary/20"
+                    >
+                      Xóa bộ lọc ngay
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-
-            {/* Grid Sản phẩm */}
-            {loading ? (
-              <div className="flex justify-center items-center h-64 text-brand-primary font-semibold text-lg">Đang tải dữ liệu...</div>
-            ) : products.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map(product => (
-                    <ProductCard key={product.id} product={product} sortBy={filters.sortBy} />
-                  ))}
-                </div>
-
-                <Pagination
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </>
-            ) : (
-              <div className="bg-white rounded-2xl p-16 text-center text-gray-500 shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-                <div className="text-6xl mb-4">👟</div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Không tìm thấy sản phẩm!</h3>
-                <p>Thử bỏ bớt một vài bộ lọc hoặc tìm kiếm bằng từ khóa khác xem sao nhé.</p>
-                <button
-                  onClick={handleClearAllFilters}
-                  className="cursor-pointer mt-6 px-6 py-2 bg-brand-primary text-white font-bold rounded-lg hover:bg-brand-secondary transition-colors"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
 
           </div>
         </div>

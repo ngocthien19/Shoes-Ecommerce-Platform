@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Header } from '~/layouts/user/Header'
 import { Footer } from '~/layouts/user/Footer'
 import { ProductGallery } from '~/pages/user/ProductDetail/ProductGallery'
@@ -18,14 +19,11 @@ export const ProductDetailPage = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
-
-      // Gọi API để lấy chi tiết sản phẩm
       const productData = await productService.getProductDetail(slug)
       setProduct(productData)
       setStoreId(productData.store_id)
       setLoading(false)
     }
-
     fetchProduct()
   }, [slug])
 
@@ -49,45 +47,53 @@ export const ProductDetailPage = () => {
 
       <main className="app-container py-8 flex-1">
         {/* Breadcrumb */}
-        <BreadCrumb
-          items={[
-            {
-              label: 'Trang chủ',
-              link: '/'
-            },
-            {
-              label: product?.category_name || 'Danh mục',
-              link: `/products?categories=${product?.category_slug}`
-            },
-            {
-              label: product?.name || 'Chi tiết',
-              link: null
-            }
-          ]}
-        />
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <BreadCrumb
+            items={[
+              { label: 'Trang chủ', link: '/' },
+              { label: product?.category_name || 'Danh mục', link: `/products?categories=${product?.category_slug}` },
+              { label: product?.name || 'Chi tiết', link: null }
+            ]}
+          />
+        </motion.div>
 
         {/* Khối nội dung chính */}
-        <div className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100">
+        <motion.div
+          className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.05, ease: 'easeOut' }}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Cột trái: Ảnh */}
-            <div className="w-full">
+            <motion.div
+              className="w-full"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
+            >
               <ProductGallery images={product.images} productName={product.name} />
-            </div>
+            </motion.div>
 
             {/* Cột phải: Thông tin */}
-            <div className="w-full">
+            <motion.div
+              className="w-full"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.45, delay: 0.15, ease: 'easeOut' }}
+            >
               <ProductInfo product={product} />
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Thông tin cửa hàng */}
+        {/* Các section bên dưới  */}
         <StoreInfo storeId={storeId} />
-
-        {/* Đánh giá sản phẩm */}
         <ProductReview product={product} />
-
-        {/* Sản phẩm liên quan */}
         <RelatedProducts products={product.relatedProducts} />
       </main>
 
