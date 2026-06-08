@@ -20,5 +20,10 @@ export const orderTrackingApiService = {
   withdrawCancelRequest: async (orderId) => {
     const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/orders/cancel-withdraw/${orderId}`)
     return response.data
+  },
+
+  getOrderDetail: async (orderId) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/orders/detail/${orderId}`)
+    return response.data
   }
 }
