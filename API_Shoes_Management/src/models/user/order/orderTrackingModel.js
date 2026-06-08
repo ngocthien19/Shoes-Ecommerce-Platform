@@ -1,13 +1,13 @@
 import pool from '~/config/db'
 
-// 1. USER lấy lịch sử đơn hàng (Lấy thêm thông tin người nhận và tiền giảm giá)
+// 1. USER lấy lịch sử đơn hàng
 const getOrderHistoryPaginated = async (userId, page, limit, status) => {
   const offset = (page - 1) * limit
   let queryData = `
     SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
            o.total_amount, o.discount_amount, o.shipping_address, 
            o.status, o.payment_status, o.payment_method, o.created_at,
-           o.applied_voucher, s.name AS store_name
+           o.applied_voucher, o.cancel_reason, s.name AS store_name, s.logo AS store_logo
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id
     WHERE o.user_id = ?

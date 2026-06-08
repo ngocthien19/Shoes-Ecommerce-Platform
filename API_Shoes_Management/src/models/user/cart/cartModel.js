@@ -44,7 +44,8 @@ const getCartByUserId = async (userId) => {
       p.price AS base_price,
       p.images,
       s.id AS store_id,
-      s.name AS store_name
+      s.name AS store_name,
+      s.logo AS store_logo
     FROM cart c
     INNER JOIN product_variants pv ON c.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
