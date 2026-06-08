@@ -12,6 +12,8 @@ import { ProfilePage } from '~/pages/user/Profile/ProfilePage'
 import { CartPage } from '~/pages/user/Cart/CartPage'
 import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
 import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
+import { OrderDetailPage } from '~/pages/user/OrderDetail/OrderDetailPage'
+import { StoreDetailPage } from '~/pages/user/StoreDetail/StoreDetailPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
@@ -33,6 +35,8 @@ const App = () => {
           <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
           <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
           <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
+          <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
+          <Route path="/store/:id" element={<PageTransition><StoreDetailPage /></PageTransition>} />
         </Route>
 
 

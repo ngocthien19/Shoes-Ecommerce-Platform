@@ -1,18 +1,26 @@
 import { formatPrice } from '~/utils/formatters'
-import { FiMapPin, FiCalendar, FiHome } from 'react-icons/fi'
+import { getImageUrl } from '~/utils/formatters'
+import { FiMapPin, FiCalendar, FiTag, FiAlertCircle, FiHome } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
+import { ORDER_STATUS } from '~/utils/constant'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '~/components/ui/tooltip'
 
-export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) => {
+export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel }) => {
 
   // Render màu và text của badge trạng thái
   const renderStatusBadge = (status) => {
     switch (status) {
-    case 'pending': return <span className="text-gray-500 font-bold bg-gray-100 px-3 py-1 rounded-full text-xs">ĐƠN HÀNG MỚI</span>
-    case 'processing': return <span className="text-blue-500 font-bold bg-blue-50 px-3 py-1 rounded-full text-xs">ĐANG XỬ LÝ</span>
-    case 'shipped': return <span className="text-purple-600 font-bold bg-purple-50 px-3 py-1 rounded-full text-xs">ĐANG GIAO HÀNG</span>
-    case 'delivered': return <span className="text-green-600 font-bold bg-green-50 px-3 py-1 rounded-full text-xs">ĐÃ GIAO THÀNH CÔNG</span>
-    case 'cancelled': return <span className="text-red-500 font-bold bg-red-50 px-3 py-1 rounded-full text-xs">ĐÃ HỦY</span>
-    case 'cancel_requested': return <span className="text-orange-500 font-bold bg-orange-50 px-3 py-1 rounded-full text-xs">ĐANG YÊU CẦU HỦY</span>
+    case ORDER_STATUS.PENDING: return <span className="text-gray-500 font-bold bg-gray-100 px-3 py-1 rounded-full text-xs">ĐƠN HÀNG MỚI</span>
+    case ORDER_STATUS.PROCESSING: return <span className="text-blue-500 font-bold bg-blue-50 px-3 py-1 rounded-full text-xs">ĐANG XỬ LÝ</span>
+    case ORDER_STATUS.SHIPPED: return <span className="text-purple-600 font-bold bg-purple-50 px-3 py-1 rounded-full text-xs">ĐANG GIAO HÀNG</span>
+    case ORDER_STATUS.DELIVERED: return <span className="text-green-600 font-bold bg-green-50 px-3 py-1 rounded-full text-xs">ĐÃ GIAO THÀNH CÔNG</span>
+    case ORDER_STATUS.CANCELLED: return <span className="text-red-500 font-bold bg-red-50 px-3 py-1 rounded-full text-xs">ĐÃ HỦY</span>
+    case ORDER_STATUS.CANCEL_REQUESTED: return <span className="text-orange-500 font-bold bg-orange-50 px-3 py-1 rounded-full text-xs">ĐANG YÊU CẦU HỦY</span>
     default: return null
     }
   }
@@ -22,12 +30,21 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) =>
   const discountAmount = Number(order.discount_amount) || 0
 
   return (
-    <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md ${isLast ? '' : 'mb-6'}`}>
+    <div className='bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md mb-6'>
       {/* Header đơn hàng */}
       <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3">
-          <FiHome size={20} className="text-brand-secondary" />
-          <h3 className="font-bold text-brand-secondary">{order.store_name}</h3>
+          {order.store_logo?.secure_url ? (
+            <img
+              src={order.store_logo.secure_url}
+              alt={order.store_name}
+              className="w-6 h-6 rounded-full object-cover border border-gray-100 shrink-0"
+            />
+          ) : (
+            <FiHome size={20} className="text-brand-secondary" />
+          )}
+
+          <h3 className="font-bold text-brand-secondary text-base">{order.store_name}</h3>
           <Link to={`/store/${order.store_id}`} className="text-xs bg-white border border-gray-200 text-brand-primary px-2 py-0.5 rounded font-semibold transition-colors duration-300 hover:bg-brand-primary hover:text-white cursor-pointer">
             Xem Shop
           </Link>
@@ -69,8 +86,9 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) =>
             </div>
           ))}
           {order.applied_voucher && (
-            <div className="inline-block mt-2 bg-green-50 text-green-600 text-[11px] font-bold px-2 py-1 rounded">
-              🎟️ MÃ GIẢM GIÁ: {order.applied_voucher}
+            <div className="inline-flex items-center gap-1.5 mt-2 bg-green-50 text-green-600 text-[11px] font-bold px-2 py-1 rounded border border-green-100">
+              <FiTag size={12} />
+              <span className="uppercase tracking-wider">Mã giảm giá: {order.applied_voucher}</span>
             </div>
           )}
         </div>
@@ -81,14 +99,14 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) =>
             <div className="flex gap-2 items-start">
               <FiMapPin className="text-gray-400 mt-1 shrink-0" />
               <div>
-                <p className="text-xs font-bold text-gray-700">Địa chỉ nhận hàng:</p>
+                <p className="text-sm font-bold text-gray-700">Địa chỉ nhận hàng:</p>
                 <p className="text-xs text-gray-500 mt-0.5">{order.recipient_name} - {order.recipient_phone}</p>
                 <p className="text-xs text-gray-500 line-clamp-2">{order.shipping_address}</p>
               </div>
             </div>
             <div className="flex gap-2 items-center">
               <FiCalendar className="text-gray-400 shrink-0" />
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-500">
                 Ngày đặt: <span className="font-bold text-gray-700">{new Date(order.created_at).toLocaleString('vi-VN')}</span>
               </p>
             </div>
@@ -121,38 +139,56 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, isLast }) =>
       </div>
 
       {/* Footer / Buttons hành động */}
-      <div className="p-4 bg-gray-50/50 flex justify-end gap-3 border-t border-gray-100">
+      <div className="p-4 bg-gray-50/50 flex justify-end items-center gap-3 border-t border-gray-100">
+
+        {/* Badge lý do hủy — chỉ hiện khi CANCELLED */}
+        {order.status === ORDER_STATUS.CANCELLED && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-1 rounded-full cursor-default">
+                  <FiAlertCircle size={12} />
+            Lý do hủy
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[240px] text-center text-xs">
+                {order?.cancel_reason ?? ''}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
         <Link
-          to={`/orders/detail/${order.order_id}`}
+          to={`/orders/${order.order_id}`}
           className="px-4 py-2 bg-white border border-brand-secondary text-gray-700 font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-secondary hover:text-white hover:border-brand-secondary cursor-pointer active:scale-95"
         >
-          Xem chi tiết
+    Xem chi tiết
         </Link>
 
-        {order.status === 'pending' && (
+        {order.status === ORDER_STATUS.PENDING && (
           <button
             onClick={() => onCancelOrder(order.order_id)}
             className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-            Hủy đơn hàng
+      Hủy đơn hàng
           </button>
         )}
 
-        {order.status === 'cancel_requested' && (
+        {order.status === ORDER_STATUS.CANCEL_REQUESTED && (
           <button
             onClick={() => onWithdrawCancel(order.order_id)}
             className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-orange-600 cursor-pointer shadow-sm active:scale-95"
           >
-            Rút yêu cầu hủy
+      Rút yêu cầu hủy
           </button>
         )}
 
-        {(order.status === 'delivered' || order.status === 'cancelled') && (
+        {(order.status === ORDER_STATUS.DELIVERED || order.status === ORDER_STATUS.CANCELLED) && (
           <Link
             to={`/product/${order.items[0]?.slug}`}
             className="px-4 py-2 flex items-center justify-center bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-            Mua lại
+      Mua lại
           </Link>
         )}
       </div>

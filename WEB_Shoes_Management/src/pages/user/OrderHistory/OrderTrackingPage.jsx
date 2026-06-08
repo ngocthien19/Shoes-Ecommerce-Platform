@@ -6,6 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs'
 import { orderTrackingApiService } from '~/services/user/orderTrackingApiService'
 import { toast } from 'react-toastify'
 import { OrderCard } from './OrderCard'
+import { CancelOrderModal } from './CancelOrderModal'
+import { WithdrawCancelModal } from './WithdrawCancelModal'
+import { ORDER_STATUS } from '~/utils/constant'
 import { FiGrid, FiFileText,
   FiPackage, FiTruck,
   FiCheckCircle, FiXCircle,
@@ -18,6 +21,10 @@ export const OrderTrackingPage = () => {
   const [currentTab, setCurrentTab] = useState('all')
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, limit: 5 })
   const [statusCounts, setStatusCounts] = useState({})
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [selectedOrderForCancel, setSelectedOrderForCancel] = useState(null)
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false)
+  const [selectedOrderForWithdraw, setSelectedOrderForWithdraw] = useState(null)
 
   const fetchOrders = async (page = 1, status = 'all') => {
     setLoading(true)
@@ -72,6 +79,40 @@ export const OrderTrackingPage = () => {
     }
   }
 
+  const triggerCancelModal = (order) => {
+    setSelectedOrderForCancel(order)
+    setIsCancelModalOpen(true)
+  }
+
+  const handleConfirmCancel = async (orderId, reason) => {
+    setIsCancelModalOpen(false)
+    try {
+      // Truyền thêm reason vào API call
+      const res = await orderTrackingApiService.cancelOrder(orderId, { reason })
+      toast.success(res.message)
+      fetchOrders(pagination.currentPage, currentTab)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi hủy đơn.')
+    }
+  }
+
+  const triggerWithdrawModal = (order) => {
+    setSelectedOrderForWithdraw(order)
+    setIsWithdrawModalOpen(true)
+  }
+
+  const handleConfirmWithdraw = async (orderId) => {
+    setIsWithdrawModalOpen(false)
+    try {
+      const res = await orderTrackingApiService.withdrawCancelRequest(orderId)
+      toast.success(res.message)
+
+      fetchOrders()
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi rút yêu cầu.')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
       <Header />
@@ -95,7 +136,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="pending" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.PENDING} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiFileText size={16} />
                 <span>Đơn hàng mới</span>
@@ -103,7 +144,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="processing" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.PROCESSING} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiPackage size={16} />
                 <span>Đang xử lý</span>
@@ -111,7 +152,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="shipped" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.SHIPPED} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiTruck size={16} />
                 <span>Đang giao</span>
@@ -119,7 +160,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="delivered" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.DELIVERED} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiCheckCircle size={16} />
                 <span>Đã giao</span>
@@ -127,7 +168,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="cancelled" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.CANCELLED} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiXCircle size={16} />
                 <span>Đã hủy</span>
@@ -135,7 +176,7 @@ export const OrderTrackingPage = () => {
               </div>
             </TabsTrigger>
 
-            <TabsTrigger value="cancel_requested" className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
+            <TabsTrigger value={ORDER_STATUS.CANCEL_REQUESTED} className="flex-1 py-3.5 px-4 text-sm font-medium text-gray-500 rounded-xl hover:text-brand-primary hover:bg-gray-50/80 data-[state=active]:bg-brand-primary/10 data-[state=active]:text-brand-primary data-[state=active]:font-bold transition-all duration-300 ease-in-out active:scale-95 cursor-pointer">
               <div className="flex items-center justify-center gap-2">
                 <FiAlertCircle size={16} />
                 <span>Yêu cầu hủy</span>
@@ -160,15 +201,28 @@ export const OrderTrackingPage = () => {
               </div>
             ) : (
               <>
-                {orders.map((order, index) => (
+                {orders.map((order) => (
                   <OrderCard
                     key={order.order_id}
                     order={order}
-                    onCancelOrder={handleCancelOrder}
-                    onWithdrawCancel={handleWithdrawCancel}
-                    isLast={index === orders.length - 1}
+                    onCancelOrder={() => triggerCancelModal(order)}
+                    onWithdrawCancel={() => triggerWithdrawModal(order)}
                   />
                 ))}
+
+                <CancelOrderModal
+                  isOpen={isCancelModalOpen}
+                  onClose={() => setIsCancelModalOpen(false)}
+                  order={selectedOrderForCancel}
+                  onConfirm={handleConfirmCancel}
+                />
+
+                <WithdrawCancelModal
+                  isOpen={isWithdrawModalOpen}
+                  onClose={() => setIsWithdrawModalOpen(false)}
+                  order={selectedOrderForWithdraw}
+                  onConfirm={handleConfirmWithdraw}
+                />
 
                 {/* Phân trang */}
                 {pagination.totalPages > 1 && (
