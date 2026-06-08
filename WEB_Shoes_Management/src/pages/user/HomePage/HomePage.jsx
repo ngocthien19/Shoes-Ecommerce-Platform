@@ -5,6 +5,7 @@ import { Header } from '~/layouts/user/Header'
 import { HeroSection } from '~/pages/user/HomePage/HeroSection'
 import { Footer } from '~/layouts/user/Footer'
 import { ProductSection } from '~/components/user/ProductSection'
+import { ChatWidget } from '~/components/chat/ChatWidget'
 
 export const HomePage = () => {
   const [data, setData] = useState({ flashSale: [], topSelling: [], latest: [] })
@@ -68,6 +69,8 @@ export const HomePage = () => {
       </main>
 
       <Footer />
+
+      <ChatWidget />
     </div>
   )
 }

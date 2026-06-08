@@ -38,7 +38,7 @@ export const HeroSection = () => {
           </motion.p>
 
           <motion.div
-            className="flex gap-4 pt-4"
+            className="flex flex-wrap gap-4 pt-4" // Thêm flex-wrap để chống bể layout trên mobile nhỏ
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
@@ -47,7 +47,7 @@ export const HeroSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link to="/products" className="flex items-center gap-2 bg-brand-primary text-white px-8 py-4 rounded-full font-bold hover:bg-[#c73652] transition-all hover:shadow-lg hover:shadow-[#e94560]/30">
+              <Link to="/products" className="flex items-center justify-center gap-2 bg-brand-primary text-white px-8 py-4 rounded-full font-bold hover:bg-[#c73652] transition-all hover:shadow-lg hover:shadow-[#e94560]/30 h-full">
                 Mua ngay <FiArrowRight size={20} />
               </Link>
             </motion.div>
@@ -56,7 +56,8 @@ export const HeroSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Link to="/products" className="px-8 py-4 rounded-full font-bold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all">
+              {/* 🟢 ĐÃ FIX: Thêm 'flex items-center justify-center h-full' để bằng chiều cao với nút bên cạnh */}
+              <Link to="/products" className="flex items-center justify-center h-full px-8 py-4 rounded-full font-bold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all">
                 Xem thêm
               </Link>
             </motion.div>
