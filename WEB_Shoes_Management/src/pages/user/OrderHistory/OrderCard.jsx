@@ -198,12 +198,12 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
                       disabled
                       className="px-4 py-2 bg-gray-100 text-gray-400 font-semibold rounded-lg text-sm border border-gray-200 pointer-events-none"
                     >
-                      Đánh giá
+              Đã đánh giá
                     </button>
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top">
-                  <p>Đã đánh giá đơn hàng</p>
+                <TooltipContent side="top" className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg shadow-md">
+                  <p>Bạn đã đánh giá đơn hàng này rồi</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -212,7 +212,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
               onClick={() => onReviewOrder && onReviewOrder(order)}
               className="px-4 py-2 border border-brand-primary text-brand-primary font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-primary hover:text-white cursor-pointer shadow-sm active:scale-95"
             >
-              Đánh giá
+      Đánh giá ngay
             </button>
           )
         )}
