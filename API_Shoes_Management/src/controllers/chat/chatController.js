@@ -42,4 +42,19 @@ const markAsRead = async (req, res) => {
   }
 }
 
-export const chatController = { sendMessage, getChatHistory, getConversationsList, markAsRead }
+const initConversation = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { storeId } = req.body
+    const result = await chatService.initConversation(userId, Number(storeId))
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khởi tạo phòng chat: ${error.message}` })
+  }
+}
+
+export const chatController = {
+  sendMessage, getChatHistory,
+  getConversationsList, markAsRead,
+  initConversation
+}
