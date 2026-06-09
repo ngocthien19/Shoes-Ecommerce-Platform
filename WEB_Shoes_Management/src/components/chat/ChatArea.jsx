@@ -118,7 +118,7 @@ export const ChatArea = ({
             placeholder="Nhập tin nhắn..."
             className="flex-1 rounded-full border-gray-200 focus-visible:ring-brand-primary/20 text-sm h-8"
           />
-          <Tooltip delayDuration={300}>
+          <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="submit"

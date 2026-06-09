@@ -189,7 +189,7 @@ export const ChatWidget = () => {
         )}
       </AnimatePresence>
 
-      <Tooltip delayDuration={300}>
+      <Tooltip>
         <TooltipTrigger asChild>
           <ChatButton isOpen={isOpen} onClick={handleToggleModal} />
         </TooltipTrigger>
