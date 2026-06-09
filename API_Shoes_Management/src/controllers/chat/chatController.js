@@ -31,4 +31,15 @@ const getConversationsList = async (req, res) => {
   }
 }
 
-export const chatController = { sendMessage, getChatHistory, getConversationsList }
+const markAsRead = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { conversationId } = req.params
+    await chatService.markAsRead(Number(conversationId), userId)
+    return res.status(200).json({ success: true })
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi đánh dấu đã đọc: ${error.message}` })
+  }
+}
+
+export const chatController = { sendMessage, getChatHistory, getConversationsList, markAsRead }

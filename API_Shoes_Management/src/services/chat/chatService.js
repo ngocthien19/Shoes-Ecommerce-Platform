@@ -46,8 +46,14 @@ const getConversationsList = async (userId) => {
   return await chatModel.getConversationsList(userId)
 }
 
+const markAsRead = async (conversationId, userId) => {
+  await chatModel.markMessagesAsRead(conversationId, userId)
+  return { success: true }
+}
+
 export const chatService = {
   sendMessage,
   getChatHistory,
-  getConversationsList
+  getConversationsList,
+  markAsRead
 }
