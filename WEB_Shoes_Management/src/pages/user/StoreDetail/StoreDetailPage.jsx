@@ -8,30 +8,40 @@ import { StoreProductList } from './StoreProductList'
 import { StoreReview } from './StoreReview'
 import { storeService } from '~/services/user/storeService'
 import { toast } from 'react-toastify'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { FiStar } from 'react-icons/fi'
+
 
 export const StoreDetailPage = () => {
   const { id } = useParams()
   const [store, setStore] = useState(null)
+
+  // State cho Sản phẩm
   const [products, setProducts] = useState([])
-  const [pagination, setPagination] = useState(null)
+  const [productPagination, setProductPagination] = useState(null)
+
+  // State cho Đánh giá
   const [reviews, setReviews] = useState([])
+  const [reviewPagination, setReviewPagination] = useState(null)
+
   const [loading, setLoading] = useState(true)
 
-  // Hàm tải thông tin đồng thời từ 3 API
-  const fetchStoreData = async (page = 1) => {
+  // Hàm tải thông tin khởi tạo ban đầu (Gọi 3 API cùng lúc)
+  const fetchInitialData = async () => {
     try {
       setLoading(true)
       const [storeDetail, productsData, reviewsData] = await Promise.all([
         storeService.getStoreDetail(id),
-        storeService.getStoreProducts(id, page, 12),
-        storeService.getStoreReviews(id)
+        storeService.getStoreProducts(id, 1, 12),
+        storeService.getStoreReviews(id, 1, 8)
       ])
 
       setStore(storeDetail)
+
       setProducts(productsData.products)
-      setPagination(productsData.pagination)
-      setReviews(reviewsData)
+      setProductPagination(productsData.pagination)
+
+      setReviews(reviewsData.reviews)
+      setReviewPagination(reviewsData.pagination)
     } catch (error) {
       toast.error('Không tìm thấy thông tin cửa hàng.')
     } finally {
@@ -40,15 +50,35 @@ export const StoreDetailPage = () => {
   }
 
   useEffect(() => {
-    fetchStoreData(1)
+    fetchInitialData()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [id])
 
-  const handlePageChange = (newPage) => {
-    fetchStoreData(newPage)
-    window.scrollTo({ top: 400, behavior: 'smooth' })
+  // Xử lý chuyển trang SẢN PHẨM
+  const handleProductPageChange = async (newPage) => {
+    try {
+      const data = await storeService.getStoreProducts(id, newPage, 12)
+      setProducts(data.products)
+      setProductPagination(data.pagination)
+      window.scrollTo({ top: 400, behavior: 'smooth' })
+    } catch (error) {
+      toast.error('Lỗi khi tải trang sản phẩm.')
+    }
   }
 
+  // Xử lý chuyển trang ĐÁNH GIÁ
+  const handleReviewPageChange = async (newPage) => {
+    try {
+      const data = await storeService.getStoreReviews(id, newPage, 8)
+      setReviews(data.reviews)
+      setReviewPagination(data.pagination)
+      window.scrollTo({ top: 400, behavior: 'smooth' })
+    } catch (error) {
+      toast.error('Lỗi khi tải trang đánh giá.')
+    }
+  }
+
+  // Cấu hình Animation
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -62,9 +92,14 @@ export const StoreDetailPage = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
   }
 
-  const listVariants = {
+  const reviewSectionVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+  }
+
+  const productSectionVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut', delay: 0.2 } }
   }
 
   return (
@@ -82,6 +117,7 @@ export const StoreDetailPage = () => {
               className="w-full animate-pulse"
             >
               <div className="h-64 bg-gray-200 rounded-3xl mb-8"></div>
+              <div className="h-96 bg-gray-200 rounded-3xl mb-8"></div>
               <div className="h-96 bg-gray-200 rounded-3xl"></div>
             </motion.div>
           ) : (
@@ -98,39 +134,28 @@ export const StoreDetailPage = () => {
                   <StoreProfileHeader store={store} />
                 </motion.div>
 
-                <motion.div variants={listVariants} className="mt-8">
-                  <Tabs defaultValue="products" className="w-full">
-                    <div className="flex justify-center mb-6">
-                      <TabsList className="bg-white border border-gray-100 p-1.5 rounded-2xl shadow-sm inline-flex h-auto">
-                        <TabsTrigger
-                          value="products"
-                          className="rounded-xl px-8 py-3 text-sm font-bold data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all duration-300"
-                        >
-                          Sản phẩm ({pagination?.total || 0})
-                        </TabsTrigger>
-                        <TabsTrigger
-                          value="reviews"
-                          className="rounded-xl px-8 py-3 text-sm font-bold data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all duration-300"
-                        >
-                          Đánh giá ({reviews.length})
-                        </TabsTrigger>
-                      </TabsList>
-                    </div>
+                {/* Phần Đánh giá */}
+                <motion.div variants={reviewSectionVariants} className="mt-8">
+                  <div className="text-2xl font-extrabold text-brand-secondary tracking-tight flex items-center gap-3 mb-2">
+                    <FiStar className="w-7 h-7 text-brand-primary fill-brand-primary" />
+                    <h2 className="text-2xl font-bold text-gray-900">
+        Đánh giá từ khách hàng
+                    </h2>
+                  </div>
+                  <StoreReview
+                    reviews={reviews}
+                    pagination={reviewPagination}
+                    onPageChange={handleReviewPageChange}
+                  />
+                </motion.div>
 
-                    <TabsContent value="products" className="mt-0 outline-none">
-                      <StoreProductList
-                        products={products}
-                        pagination={pagination}
-                        onPageChange={handlePageChange}
-                      />
-                    </TabsContent>
-
-                    {/* Nội dung Tab Đánh Giá */}
-                    <TabsContent value="reviews" className="mt-0 outline-none">
-                      <StoreReview reviews={reviews} />
-                    </TabsContent>
-                  </Tabs>
-
+                {/* Phần Sản phẩm */}
+                <motion.div variants={productSectionVariants} className="mt-12">
+                  <StoreProductList
+                    products={products}
+                    pagination={productPagination}
+                    onPageChange={handleProductPageChange}
+                  />
                 </motion.div>
               </motion.div>
             )
