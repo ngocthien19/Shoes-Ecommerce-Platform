@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { storeService } from '~/services/user/storeService'
 import { Link } from 'react-router-dom'
+import { useChat } from '~/contexts/ChatContext'
 
 const statVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -16,6 +17,7 @@ const statVariants = {
 
 export const StoreInfo = ({ storeId }) => {
   const [store, setStore] = useState(null)
+  const { openChatWithStore } = useChat()
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -26,6 +28,12 @@ export const StoreInfo = ({ storeId }) => {
     }
     fetchStore()
   }, [storeId])
+
+  const handleChatClick = () => {
+    if (store) {
+      openChatWithStore(store.id, store.name)
+    }
+  }
 
   if (!store) return null
 
@@ -72,6 +80,7 @@ export const StoreInfo = ({ storeId }) => {
             <h3 className="font-bold text-lg text-gray-800 line-clamp-1">{store.name}</h3>
             <div className="flex gap-2">
               <motion.button
+                onClick={handleChatClick}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e94560]/10 text-brand-primary border border-brand-primary/20 rounded-lg text-sm font-semibold hover:bg-brand-primary hover:text-white transition-all duration-300 cursor-pointer"

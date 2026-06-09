@@ -8,6 +8,7 @@ import { DEV_API_URL } from '~/utils/constant'
 import { formatLastActive, formatRelativeTime } from '~/utils/formatters'
 import { ChatButton } from './ChatButton'
 import { ChatModal } from './ChatModal'
+import { useChat } from '~/contexts/ChatContext' // Thêm dòng này
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +18,8 @@ import {
 let socket = null
 
 export const ChatWidget = () => {
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen: contextIsOpen, targetStore, closeChat, clearTargetStore } = useChat()
+  const [localIsOpen, setLocalIsOpen] = useState(false)
   const [conversations, setConversations] = useState([])
   const [activeChat, setActiveChat] = useState(null)
   const [messages, setMessages] = useState([])
@@ -26,6 +28,28 @@ export const ChatWidget = () => {
 
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
   const currentUser = useSelector((state) => state.user.userInfo)
+
+  // Sync với context
+  const isOpen = contextIsOpen || localIsOpen
+
+  // Xử lý khi có targetStore từ context
+  useEffect(() => {
+    if (targetStore && isAuthenticated && conversations.length > 0) {
+      // Tìm conversation với store này
+      const existingConv = conversations.find(conv =>
+        conv.store_id === targetStore.storeId || conv.store_owner_id === targetStore.storeId
+      )
+
+      if (existingConv) {
+        setActiveChat(existingConv)
+      } else {
+        // Nếu chưa có conversation, có thể tạo mới hoặc chờ người dùng nhắn tin
+        console.log('Chưa có conversation với shop này')
+      }
+
+      clearTargetStore()
+    }
+  }, [targetStore, isAuthenticated, conversations, clearTargetStore])
 
   // Khởi tạo Socket.io khi Modal mở ra
   useEffect(() => {
@@ -92,8 +116,9 @@ export const ChatWidget = () => {
     if (!isOpen) {
       setActiveChat(null)
       setMessages([])
+      closeChat()
     }
-  }, [isOpen])
+  }, [isOpen, closeChat])
 
   useEffect(() => {
     if (isOpen && isAuthenticated) {
@@ -149,11 +174,17 @@ export const ChatWidget = () => {
   }
 
   const handleToggleModal = () => {
-    setIsOpen(prev => !prev)
+    if (isOpen) {
+      closeChat()
+      setLocalIsOpen(false)
+    } else {
+      setLocalIsOpen(true)
+    }
   }
 
   const handleCloseModal = () => {
-    setIsOpen(false)
+    closeChat()
+    setLocalIsOpen(false)
   }
 
   const getOnlineStatus = (conv) => {

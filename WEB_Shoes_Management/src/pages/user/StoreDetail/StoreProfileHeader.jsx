@@ -2,14 +2,17 @@ import { motion } from 'framer-motion'
 import { FiMessageSquare, FiMapPin, FiStar, FiPackage, FiCalendar } from 'react-icons/fi'
 import { getImageUrl } from '~/utils/formatters'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify'
+import { useChat } from '~/contexts/ChatContext'
 
 export const StoreProfileHeader = ({ store }) => {
   const navigate = useNavigate()
+  const { openChatWithStore } = useChat()
 
   // Xử lý khi bấm nút Chat
   const handleChatWithStore = () => {
-    toast.success(`Đang mở khung chat với ${store.name}...`)
+    if (store) {
+      openChatWithStore(store.id, store.name)
+    }
   }
 
   // Animation variants
