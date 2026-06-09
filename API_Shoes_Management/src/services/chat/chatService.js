@@ -51,9 +51,15 @@ const markAsRead = async (conversationId, userId) => {
   return { success: true }
 }
 
+const initConversation = async (userId, storeId) => {
+  const conversationId = await chatModel.getOrCreateConversation(userId, storeId)
+  return { conversationId, message: 'Khởi tạo phòng chat thành công' }
+}
+
 export const chatService = {
   sendMessage,
   getChatHistory,
   getConversationsList,
-  markAsRead
+  markAsRead,
+  initConversation
 }
