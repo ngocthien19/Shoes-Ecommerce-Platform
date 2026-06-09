@@ -76,7 +76,42 @@ const getProductsByStoreId = async (storeId, page = 1, limit = 8) => {
   }
 }
 
+const getStoreReviews = async (storeId, page = 1, limit = 8) => {
+  const offset = (page - 1) * limit
+
+  // 1. Đếm tổng số đánh giá
+  const [countResult] = await pool.execute(
+    'SELECT COUNT(*) as total FROM store_reviews WHERE store_id = ? AND is_active = TRUE',
+    [storeId]
+  )
+  const total = countResult[0].total
+
+  // 2. Lấy dữ liệu phân trang
+  const query = `
+    SELECT 
+      sr.id, sr.rating, sr.comment, sr.created_at, 
+      u.fullname AS user_name, u.avatar AS user_avatar
+    FROM store_reviews sr
+    LEFT JOIN users u ON sr.user_id = u.id
+    WHERE sr.store_id = ? AND sr.is_active = TRUE
+    ORDER BY sr.created_at DESC
+    LIMIT ? OFFSET ?
+  `
+  const [reviews] = await pool.execute(query, [storeId, String(limit), String(offset)])
+
+  return {
+    reviews,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  }
+}
+
 export const storeModel = {
   getStoreDetailById,
-  getProductsByStoreId
+  getProductsByStoreId,
+  getStoreReviews
 }
