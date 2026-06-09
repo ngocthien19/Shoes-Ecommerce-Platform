@@ -10,5 +10,10 @@ export const storeService = {
   getStoreProducts: async (storeId, page = 1, limit = 12) => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/stores/products/${storeId}?page=${page}&limit=${limit}`)
     return response.data
+  },
+
+  getStoreReviews: async (storeId) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/stores/${storeId}/reviews}`)
+    return response.data
   }
 }

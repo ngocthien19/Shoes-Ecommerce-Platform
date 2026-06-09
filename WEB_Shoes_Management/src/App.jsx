@@ -18,6 +18,7 @@ import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
 
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
+import { ChatWidget } from '~/components/chat/ChatWidget'
 import 'react-toastify/dist/ReactToastify.css'
 
 const App = () => {
@@ -52,6 +53,7 @@ const App = () => {
         </Route>
 
       </Routes>
+      <ChatWidget />
     </div>
   )
 }
