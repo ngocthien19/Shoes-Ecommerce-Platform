@@ -1,5 +1,12 @@
 export const DEV_API_URL = 'http://localhost:3000'
 
+export const ROLE_ID = {
+  ADMIN: 1,
+  MANAGER: 2,
+  VENDOR: 3,
+  USER: 4
+}
+
 export const ORDER_STATUS = {
   PENDING: 'pending',
   PROCESSING: 'processing',

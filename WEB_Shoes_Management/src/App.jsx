@@ -1,5 +1,7 @@
-// src/App.jsx
 import { Routes, Route } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+
+// USER
 import { HomePage } from '~/pages/user/HomePage/HomePage'
 import { ProductDetailPage } from '~/pages/user/ProductDetail/ProductDetailPage'
 import { ProductsPage } from '~/pages/user/Products/ProductsPage'
@@ -15,13 +17,22 @@ import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
 import { OrderDetailPage } from '~/pages/user/OrderDetail/OrderDetailPage'
 import { StoreDetailPage } from '~/pages/user/StoreDetail/StoreDetailPage'
 import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
+import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePage'
 
+// Common
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
 import { ChatWidget } from '~/components/chat/ChatWidget'
+import { ROLE_ID } from '~/utils/constant'
 import 'react-toastify/dist/ReactToastify.css'
 
+
 const App = () => {
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
+  const userInfo = useSelector((state) => state.user.userInfo)
+
+  const isRegularUser = isAuthenticated && userInfo?.role_id === ROLE_ID.USER
+
   return (
     <div className="app-wrapper">
       <Routes>
@@ -40,6 +51,7 @@ const App = () => {
           <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
           <Route path="/store/:id" element={<PageTransition><StoreDetailPage /></PageTransition>} />
           <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
+          <Route path="/register-store" element={<PageTransition><RegisterStorePage /></PageTransition>} />
         </Route>
 
 
@@ -53,7 +65,7 @@ const App = () => {
         </Route>
 
       </Routes>
-      <ChatWidget />
+      {isRegularUser && <ChatWidget />}
     </div>
   )
 }

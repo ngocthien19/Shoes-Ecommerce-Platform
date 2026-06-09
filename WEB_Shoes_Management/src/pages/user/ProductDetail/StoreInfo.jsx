@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { storeService } from '~/services/user/storeService'
 import { Link } from 'react-router-dom'
 import { useChat } from '~/contexts/ChatContext'
+import { chatApiService } from '~/services/chat/chatApiService'
 
 const statVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -29,8 +30,9 @@ export const StoreInfo = ({ storeId }) => {
     fetchStore()
   }, [storeId])
 
-  const handleChatClick = () => {
+  const handleChatClick = async () => {
     if (store) {
+      await chatApiService.initConversation(store.id)
       openChatWithStore(store.id, store.name)
     }
   }

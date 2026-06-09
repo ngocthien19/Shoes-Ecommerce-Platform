@@ -75,9 +75,18 @@ export const Header = () => {
           {/* Nav links  */}
           <Nav />
 
-          <div className="flex items-center gap-2 text-brand-primary font-bold text-base transition-opacity duration-200 hover:opacity-80 cursor-pointer">
-            <FiPhone size={16} />
-            <span>Hotline: 1900 1234</span>
+          <div className="flex items-center gap-6">
+            <Link
+              to="/register-store"
+              className="text-gray-600 font-semibold text-sm transition-colors duration-200 hover:text-brand-primary hover:underline hover:text-decoration-solid"
+            >
+              Đăng ký Cửa hàng
+            </Link>
+
+            <div className="flex items-center gap-2 text-brand-primary font-bold text-base transition-opacity duration-200 hover:opacity-80 cursor-pointer border-l border-gray-200 pl-6">
+              <FiPhone size={16} />
+              <span>Hotline: 1900 1234</span>
+            </div>
           </div>
         </div>
 
