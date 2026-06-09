@@ -26,5 +26,10 @@ export const chatApiService = {
   markAsRead: async (conversationId) => {
     const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/chats/read/${conversationId}`)
     return response.data
+  },
+
+  initConversation: async (storeId) => {
+    const response = await authorizedAxiosInstance.post(`${DEV_API_URL}/api/chats/init`, { storeId })
+    return response.data
   }
 }

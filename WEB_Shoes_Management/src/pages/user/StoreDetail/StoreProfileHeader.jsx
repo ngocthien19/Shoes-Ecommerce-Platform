@@ -3,14 +3,16 @@ import { FiMessageSquare, FiMapPin, FiStar, FiPackage, FiCalendar } from 'react-
 import { getImageUrl } from '~/utils/formatters'
 import { useNavigate } from 'react-router-dom'
 import { useChat } from '~/contexts/ChatContext'
+import { chatApiService } from '~/services/chat/chatApiService'
 
 export const StoreProfileHeader = ({ store }) => {
   const navigate = useNavigate()
   const { openChatWithStore } = useChat()
 
   // Xử lý khi bấm nút Chat
-  const handleChatWithStore = () => {
+  const handleChatWithStore = async () => {
     if (store) {
+      await chatApiService.initConversation(store.id)
       openChatWithStore(store.id, store.name)
     }
   }
