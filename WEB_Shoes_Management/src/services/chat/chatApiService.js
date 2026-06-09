@@ -21,5 +21,10 @@ export const chatApiService = {
   getConversationsList: async () => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/chats/conversations`)
     return response.data
+  },
+
+  markAsRead: async (conversationId) => {
+    const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/chats/read/${conversationId}`)
+    return response.data
   }
 }
