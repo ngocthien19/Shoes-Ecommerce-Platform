@@ -56,7 +56,11 @@ const getConversationsList = async (userId) => {
       u_client.fullname AS client_name, 
       u_client.avatar AS client_avatar, 
       u_client.is_online AS client_online, 
-      u_client.last_active AS client_last_active
+      u_client.last_active AS client_last_active,
+      (SELECT COUNT(*) FROM messages m 
+       WHERE m.conversation_id = c.id 
+       AND m.is_read = FALSE 
+       AND m.sender_id != ?) AS unread_count
     FROM conversations c
     JOIN stores s ON c.store_id = s.id
     JOIN users u_store ON s.owner_id = u_store.id
@@ -64,8 +68,17 @@ const getConversationsList = async (userId) => {
     WHERE c.user_id = ? OR s.owner_id = ?
     ORDER BY c.updated_at DESC
   `
-  const [rows] = await pool.execute(query, [userId, userId])
+  const [rows] = await pool.execute(query, [userId, userId, userId])
   return rows
+}
+
+const markMessagesAsRead = async (conversationId, userId) => {
+  const query = `
+    UPDATE messages 
+    SET is_read = TRUE 
+    WHERE conversation_id = ? AND sender_id != ? AND is_read = FALSE
+  `
+  await pool.execute(query, [conversationId, userId])
 }
 
 const getConversationInfoById = async (conversationId) => {
@@ -84,5 +97,6 @@ export const chatModel = {
   getMessagesByConversation,
   getConversationsList,
   getConversationInfoById,
-  getStoreOwnerId
+  getStoreOwnerId,
+  markMessagesAsRead
 }
