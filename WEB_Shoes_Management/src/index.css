@@ -7,24 +7,35 @@
 
 @theme {
   --color-brand-primary: #e94560;   
-  --color-brand-secondary: #0f3460;   
+  --color-brand-secondary: #0f3460;
   --color-brand-bg: #f6f9fc;      
   --color-breadcrumb: rgb(129, 129, 250);
 
-  /* 2. Định nghĩa font chữ toàn cục */
+  /* Màu nền Header */
+  --color-header-bg-start: #274a74;
+  --color-header-bg-end: #12365b;
+  --color-header-border: rgba(255, 255, 255, 0.1);
+  
+  /* Màu nền Sidebar*/
+  --color-sidebar-bg-start: #ffffff;
+  --color-sidebar-bg-end: #f8fafc;
+  --color-sidebar-border: #e2e8f0;
+  
+  --color-sidebar-text: #64748b;
+  --color-sidebar-text-hover: #0f3460;
+  --color-sidebar-text-active: #e94560;
+  
+  --color-sidebar-item-hover: rgba(233, 69, 96, 0.08);
+  --color-sidebar-item-active: rgba(233, 69, 96, 0.12);
+
+  /* Định nghĩa font chữ toàn cục */
   --font-sans: "Poppins", "Inter", "sans-serif";
 
-  /* 3. Tự định nghĩa hiệu ứng đổ bóng hệ thống (Box Shadow)  */
+  /* Định nghĩa hiệu ứng đổ bóng hệ thống (Box Shadow) */
   --shadow-custom: 0 4px 16px rgb(43 52 69 / 10%);
-
   --shadow-bold: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  --shadow-glow: 0 0 20px rgba(233, 69, 96, 0.3);
 }
-/* * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-size: 16px;
-} */
 
 body {
   background-color: var(--color-brand-bg);     

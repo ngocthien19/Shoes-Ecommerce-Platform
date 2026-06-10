@@ -128,8 +128,6 @@ export const OrderTrackingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
-      <Header />
-
       <main className="flex-1 w-full max-w-5xl mx-auto pt-8 px-4">
         <motion.div
           initial={{ opacity: 0, x: -30 }}
@@ -281,8 +279,6 @@ export const OrderTrackingPage = () => {
         order={selectedOrderForWithdraw}
         onConfirm={handleConfirmWithdraw}
       />
-
-      <Footer />
     </div>
   )
 }

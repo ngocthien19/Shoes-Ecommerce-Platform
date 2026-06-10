@@ -41,64 +41,131 @@ export const RegisterStoreForm = () => {
     }
   }
 
+  // Animation variants cho container
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 120, damping: 12 } }
+  }
+
+  const rightItemVariants = {
+    hidden: { opacity: 0, x: 30 },
+    visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 120, damping: 12 } }
+  }
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+    <motion.form
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-10"
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Cột trái: Thông tin văn bản */}
-        <div className="space-y-6">
-          <div className="space-y-2">
+        <motion.div variants={itemVariants} className="space-y-6">
+          <motion.div variants={itemVariants} className="space-y-2">
             <label className="text-sm font-bold text-brand-secondary flex items-center gap-2 italic">
-              <FiHome className="text-brand-primary" /> Tên gian hàng <span className="text-red-500">*</span>
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
+                <FiHome className="text-brand-primary" />
+              </motion.div>
+              Tên gian hàng <span className="text-red-500">*</span>
             </label>
             <Input
               {...register('name', { required: 'Tên gian hàng không được để trống' })}
               placeholder="Vd: Sneaker World Luxury"
               className="rounded-2xl py-6 px-5 border-gray-200 focus:border-brand-primary transition-all duration-300 shadow-sm"
             />
-            {errors.name && <p className="text-red-500 text-xs font-medium ml-2">{errors.name.message}</p>}
-          </div>
+            {errors.name && <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 text-xs font-medium ml-2">{errors.name.message}</motion.p>}
+          </motion.div>
 
-          <div className="space-y-2">
+          <motion.div variants={itemVariants} className="space-y-2">
             <label className="text-sm font-bold text-brand-secondary flex items-center gap-2 italic">
-              <FiMapPin className="text-brand-primary" /> Địa chỉ kho hàng <span className="text-red-500">*</span>
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                <FiMapPin className="text-brand-primary" />
+              </motion.div>
+              Địa chỉ kho hàng <span className="text-red-500">*</span>
             </label>
             <Input
               {...register('address', { required: 'Vui lòng nhập địa chỉ lấy hàng' })}
               placeholder="Số nhà, tên đường, quận/huyện..."
               className="rounded-2xl py-6 px-5 border-gray-200 focus:border-brand-primary transition-all duration-300 shadow-sm"
             />
-            {errors.address && <p className="text-red-500 text-xs font-medium ml-2">{errors.address.message}</p>}
-          </div>
+            {errors.address && <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 text-xs font-medium ml-2">{errors.address.message}</motion.p>}
+          </motion.div>
 
-          <div className="space-y-2">
+          <motion.div variants={itemVariants} className="space-y-2">
             <label className="text-sm font-bold text-brand-secondary flex items-center gap-2 italic">
-              <FiAlignLeft className="text-brand-primary" /> Giới thiệu cửa hàng
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+              >
+                <FiAlignLeft className="text-brand-primary" />
+              </motion.div>
+              Giới thiệu cửa hàng
             </label>
             <Textarea
               {...register('bio')}
               placeholder="Viết một vài dòng mô tả về shop của bạn..."
               className="rounded-[1.5rem] p-5 min-h-[180px] border-gray-200 focus:border-brand-primary transition-all duration-300 shadow-sm resize-none"
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Cột phải: Hình ảnh */}
-        <div className="grid grid-cols-1 gap-8">
+        <motion.div variants={rightItemVariants} className="grid grid-cols-1 gap-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
-            <ImageUploadBox label="Logo thương hiệu" file={logoFile} setFile={setLogoFile} />
-            <div className="hidden xl:block opacity-40 p-4 border-2 border-dashed border-gray-100 rounded-[2rem] flex items-center justify-center text-center text-xs font-medium">
-               Ảnh Logo giúp khách hàng nhận diện thương hiệu của bạn tốt hơn trên danh sách sản phẩm.
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+            >
+              <ImageUploadBox label="Logo thương hiệu" file={logoFile} setFile={setLogoFile} />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="hidden xl:block opacity-40 p-4 border-2 border-dashed border-gray-100 rounded-[2rem] flex items-center justify-center text-center text-xs font-medium"
+            >
+              Ảnh Logo giúp khách hàng nhận diện thương hiệu của bạn tốt hơn trên danh sách sản phẩm.
+            </motion.div>
           </div>
-          <ImageUploadBox label="Ảnh bìa gian hàng (Banner)" file={bannerFile} setFile={setBannerFile} aspectClass="aspect-[21/9]" icon={FiLayout} />
-        </div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          >
+            <ImageUploadBox label="Ảnh bìa gian hàng (Banner)" file={bannerFile} setFile={setBannerFile} aspectClass="aspect-[21/9]" icon={FiLayout} />
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Button Submit */}
-      <div className="pt-8 border-t border-gray-100 flex justify-center sm:justify-end">
+      <motion.div
+        variants={itemVariants}
+        className="pt-8 border-t border-gray-100 flex justify-center sm:justify-end"
+      >
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
           type="submit"
           disabled={isSubmitting}
           className="w-full sm:w-auto flex items-center justify-center gap-3 bg-brand-primary text-white px-12 py-4 rounded-2xl font-extrabold shadow-lg shadow-brand-primary/20 hover:bg-[#c73652] transition-all duration-300 cursor-pointer disabled:opacity-50"
@@ -110,7 +177,7 @@ export const RegisterStoreForm = () => {
           )}
           {isSubmitting ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN ĐĂNG KÝ'}
         </motion.button>
-      </div>
-    </form>
+      </motion.div>
+    </motion.form>
   )
 }

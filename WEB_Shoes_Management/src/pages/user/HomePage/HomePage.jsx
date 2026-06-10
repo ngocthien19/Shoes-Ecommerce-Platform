@@ -22,7 +22,6 @@ export const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
 
       <main className="app-container px-4">
         <HeroSection />
@@ -67,7 +66,6 @@ export const HomePage = () => {
         </motion.div>
       </main>
 
-      <Footer />
     </div>
   )
 }
