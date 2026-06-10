@@ -8,7 +8,8 @@ import { DEV_API_URL } from '~/utils/constant'
 import { formatLastActive, formatRelativeTime } from '~/utils/formatters'
 import { ChatButton } from './ChatButton'
 import { ChatModal } from './ChatModal'
-import { useChat } from '~/contexts/ChatContext' // Thêm dòng này
+import { useChat } from '~/contexts/ChatContext'
+import { ROLE_ID } from '~/utils/constant'
 import {
   Tooltip,
   TooltipContent,
@@ -198,7 +199,7 @@ export const ChatWidget = () => {
     return { text: formatLastActive(lastActive), isOnline: false, lastActiveText: formatRelativeTime(lastActive) }
   }
 
-  if (!isAuthenticated) return null
+  if (!isAuthenticated || currentUser?.roleId !== ROLE_ID.USER) return null
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

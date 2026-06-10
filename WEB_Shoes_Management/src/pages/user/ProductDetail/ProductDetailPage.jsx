@@ -43,7 +43,6 @@ export const ProductDetailPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg">
-      <Header />
 
       <main className="app-container py-8 flex-1">
         {/* Breadcrumb */}
@@ -96,8 +95,6 @@ export const ProductDetailPage = () => {
         <ProductReview product={product} />
         <RelatedProducts products={product.relatedProducts} />
       </main>
-
-      <Footer />
     </div>
   )
 }

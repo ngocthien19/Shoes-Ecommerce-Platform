@@ -152,7 +152,6 @@ export const ProfilePage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
       <main className="flex-1 bg-gray-50/50 py-8 md:py-12 select-none">
         <motion.div
           variants={containerVariants}
@@ -184,7 +183,6 @@ export const ProfilePage = () => {
           </motion.div>
         </motion.div>
       </main>
-      <Footer />
     </div>
   )
 }

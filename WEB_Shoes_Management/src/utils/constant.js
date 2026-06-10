@@ -35,3 +35,11 @@ export const CANCEL_REASONS = [
   'Đặt nhầm sản phẩm/kích cỡ',
   'Lý do khác'
 ]
+
+// Định nghĩa các chế độ lọc thời gian cho Dashboard Thống kê
+export const ANALYTICS_TYPES = {
+  TODAY: 'today',
+  SEVEN_DAYS: '7days',
+  ONE_MONTH: '1month',
+  CUSTOM: 'custom'
+}

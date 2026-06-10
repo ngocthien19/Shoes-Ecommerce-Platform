@@ -1,15 +1,10 @@
 import { Routes, Route } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 
-// USER
+// USER PAGES
 import { HomePage } from '~/pages/user/HomePage/HomePage'
 import { ProductDetailPage } from '~/pages/user/ProductDetail/ProductDetailPage'
 import { ProductsPage } from '~/pages/user/Products/ProductsPage'
-import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
-import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
-import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
-import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
-import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
 import { ProfilePage } from '~/pages/user/Profile/ProfilePage'
 import { CartPage } from '~/pages/user/Cart/CartPage'
 import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
@@ -17,45 +12,62 @@ import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
 import { OrderDetailPage } from '~/pages/user/OrderDetail/OrderDetailPage'
 import { StoreDetailPage } from '~/pages/user/StoreDetail/StoreDetailPage'
 import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
-import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePage'
 
-// Common
+// VENDOR PAGES
+import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePage'
+import { VendorDashboardPage } from '~/pages/vendor/Dashboard/VendorDashboardPage'
+import { VendorLayout } from '~/layouts/vendor/VendorLayout'
+
+// AUTH PAGES
+import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
+import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
+import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
+import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
+import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
+
+// LAYOUTS & COMPONENTS
+import { MainLayout } from '~/layouts/user/MainLayout'
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
 import { ChatWidget } from '~/components/chat/ChatWidget'
-import { ROLE_ID } from '~/utils/constant'
 import 'react-toastify/dist/ReactToastify.css'
 
-
 const App = () => {
-  const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
-  const userInfo = useSelector((state) => state.user.userInfo)
-
-  const isRegularUser = isAuthenticated && userInfo?.role_id === ROLE_ID.USER
-
   return (
     <div className="app-wrapper">
       <Routes>
-        {/* ── CÁC ROUTE CÔNG CỘNG (PUBLIC ROUTES) ── */}
-        <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
-        <Route path="/product/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
-        <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
 
+        {/* KHU VỰC CỦA NGƯỜI DÙNG */}
+        <Route element={<MainLayout />}>
 
-        {/* ── CÁC ROUTE BẮT BUỘC ĐĂNG NHẬP (PROTECTED ROUTES) ── */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
-          <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
-          <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
-          <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
-          <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
+          {/* Các trang ai cũng xem được */}
+          <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+          <Route path="/product/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+          <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
           <Route path="/store/:id" element={<PageTransition><StoreDetailPage /></PageTransition>} />
-          <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
-          <Route path="/register-store" element={<PageTransition><RegisterStorePage /></PageTransition>} />
+
+          {/* Các trang bắt buộc Đăng nhập */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
+            <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
+            <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
+            <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
+            <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
+            <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
+            <Route path="/register-store" element={<PageTransition><RegisterStorePage /></PageTransition>} />
+
+          </Route>
+
         </Route>
 
+        {/* KHU VỰC CỦA NGƯỜI BÁN (DÙNG VENDOR LAYOUT)*/}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<VendorLayout />}>
+            <Route path="/vendor/dashboard" element={<VendorDashboardPage />} />
+          </Route>
+        </Route>
 
-        {/* ── CÁC ROUTE CHẶN KHI ĐÃ ĐĂNG NHẬP (REJECTED ROUTES) ── */}
+        {/* KHU VỰC XÁC THỰC (CHẶN KHI ĐÃ ĐĂNG NHẬP) */}
         <Route element={<RejectedRoute />}>
           <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
           <Route path="/verify-otp" element={<PageTransition><VerifyOtpPage /></PageTransition>} />
@@ -65,7 +77,9 @@ const App = () => {
         </Route>
 
       </Routes>
-      {isRegularUser && <ChatWidget />}
+
+      {/* Widget chat độc lập nổi trên cùng */}
+      <ChatWidget />
     </div>
   )
 }

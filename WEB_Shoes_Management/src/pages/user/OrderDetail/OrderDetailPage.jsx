@@ -55,8 +55,7 @@ export const OrderDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
-      <Header />
-      {/* Nới max-w ra một xíu vì thẻ con bên trong có p-16 khá to */}
+
       <main className="max-w-5xl mx-auto px-4 flex-1 w-full">
 
         <motion.div
@@ -107,7 +106,6 @@ export const OrderDetailPage = () => {
           </div>
         </motion.div>
       </main>
-      <Footer />
     </div>
   )
 }

@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useSelector, useDispatch } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { cartApiService } from '~/services/user/cartService'
 import { orderApiService } from '~/services/user/orderService'
 import { setCartCount } from '~/redux/user/cartSlice'
@@ -277,7 +275,6 @@ export const CartPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg">
-      <Header />
 
       <div className="py-8 w-full flex-1 flex flex-col">
         <main className="app-container flex-1">
@@ -397,8 +394,6 @@ export const CartPage = () => {
         }}
         onConfirm={handleConfirmRemoveItemsSubmit}
       />
-
-      <Footer />
     </div>
   )
 }

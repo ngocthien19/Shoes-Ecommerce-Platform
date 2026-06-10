@@ -104,8 +104,6 @@ export const StoreDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
-      <Header />
-
       <main className="max-w-6xl mx-auto px-4 pt-8 md:pt-12 flex-1 w-full">
         <AnimatePresence mode="wait">
           {loading && !store ? (
@@ -162,8 +160,6 @@ export const StoreDetailPage = () => {
           )}
         </AnimatePresence>
       </main>
-
-      <Footer />
     </div>
   )
 }
