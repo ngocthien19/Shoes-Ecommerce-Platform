@@ -20,6 +20,9 @@ import { VendorProductsPage } from '~/pages/vendor/Products/VendorProductsPage'
 import { ProductFormPage } from '~/pages/vendor/Products/ProductForm/ProductFormPage'
 import { VendorProductDetailPage } from '~/pages/vendor/Products/ProductDetail/VendorProductDetailPage'
 import { VendorFavoritesPage } from '~/pages/vendor/Favorites/VendorFavoritesPage'
+import { VendorPromotionsPage } from '~/pages/vendor/Promotions/VendorPromotionsPage'
+import { PromotionFormPage } from '~/pages/vendor/Promotions/PromotionForm/PromotionFormPage'
+import { PromotionDetailPage } from '~/pages/vendor/Promotions/PromotionDetail/PromotionDetailPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -67,12 +70,23 @@ const App = () => {
         {/* KHU VỰC CỦA NGƯỜI BÁN (DÙNG VENDOR LAYOUT)*/}
         <Route element={<ProtectedRoute />}>
           <Route path="/vendor" element={<VendorLayout />}>
+            {/* Dashboard */}
             <Route path="dashboard" element={<VendorDashboardPage />} />
+
+            {/* Promotion */}
             <Route path="products" element={<VendorProductsPage />} />
             <Route path="products/add" element={<ProductFormPage />} />
             <Route path="products/edit/:id" element={<ProductFormPage />} />
             <Route path="products/detail/:id" element={<VendorProductDetailPage />} />
+
+            {/* Favorite */}
             <Route path="favorites" element={<VendorFavoritesPage />} />
+
+            {/* Promotion */}
+            <Route path="promotions" element={<VendorPromotionsPage />} />
+            <Route path="promotions/add" element={<PromotionFormPage />} />
+            <Route path="promotions/edit/:id" element={<PromotionFormPage />} />
+            <Route path="promotions/detail/:id" element={<PromotionDetailPage />} />
           </Route>
         </Route>
 

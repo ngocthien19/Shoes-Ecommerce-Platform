@@ -100,7 +100,6 @@ export const ProductFormPage = () => {
       if (isEditMode) {
         await vendorProductApiService.updateProduct(id, formData)
 
-        // 🟢 SỬA LẠI: Dùng vòng lặp for...of tuần tự thay vì Promise.all
         if (data.variants && data.variants.length > 0) {
           const newVariants = data.variants.filter(variant => !variant.id)
 

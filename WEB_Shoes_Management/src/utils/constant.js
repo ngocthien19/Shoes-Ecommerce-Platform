@@ -43,3 +43,11 @@ export const ANALYTICS_TYPES = {
   ONE_MONTH: '1month',
   CUSTOM: 'custom'
 }
+
+export const PRODUCT_MODERATION_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  BANNED: 'banned',
+  PENDING_REAPPROVAL: 'pending_reapproval'
+}

@@ -8,6 +8,7 @@ import { vendorProductApiService } from '~/services/vendor/vendorProductApiServi
 import { ProductMetricsGrid } from './ProductMetricsGrid'
 import { ProductMainInfo } from './ProductMainInfo'
 import { ProductVariantsTable } from './ProductVariantsTable'
+import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 
 export const VendorProductDetailPage = () => {
   const { id } = useParams()
@@ -28,11 +29,11 @@ export const VendorProductDetailPage = () => {
 
   const renderModerationBadge = (status) => {
     switch (status) {
-    case 'approved': return <span className="bg-green-50 text-green-600 border border-green-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">SẢN PHẨM HỢP LỆ (ĐÃ DUYỆT)</span>
-    case 'pending': return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">ĐANG CHỜ KIỂM DUYỆT</span>
-    case 'pending_reapproval': return <span className="bg-orange-50 text-orange-600 border border-orange-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">KHIẾU NẠI ĐANG CHỜ DUYỆT LẠI</span>
-    case 'rejected': return <span className="bg-red-50 text-red-500 border border-red-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">BỊ TỪ CHỐI HIỂN THỊ</span>
-    case 'banned': return <span className="bg-red-900/10 text-red-700 border border-red-200 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">VI PHẠM (ĐÃ BỊ KHÓA)</span>
+    case PRODUCT_MODERATION_STATUS.APPROVED: return <span className="bg-green-50 text-green-600 border border-green-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">SẢN PHẨM HỢP LỆ (ĐÃ DUYỆT)</span>
+    case PRODUCT_MODERATION_STATUS.PENDING: return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">ĐANG CHỜ KIỂM DUYỆT</span>
+    case PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL: return <span className="bg-orange-50 text-orange-600 border border-orange-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">KHIẾU NẠI ĐANG CHỜ DUYỆT LẠI</span>
+    case PRODUCT_MODERATION_STATUS.REJECTED: return <span className="bg-red-50 text-red-500 border border-red-100 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">BỊ TỪ CHỐI HIỂN THỊ</span>
+    case PRODUCT_MODERATION_STATUS.BANNED: return <span className="bg-red-900/10 text-red-700 border border-red-200 px-4 py-1.5 rounded-xl text-xs font-black shadow-sm">VI PHẠM (ĐÃ BỊ KHÓA)</span>
     default: return null
     }
   }
@@ -98,17 +99,14 @@ export const VendorProductDetailPage = () => {
         )}
       </motion.div>
 
-      {/* 1. Khối 4 Widgets thông số kinh doanh */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
         <ProductMetricsGrid product={product} />
       </motion.div>
 
-      {/* 2. Khối Thư viện ảnh & Thông số danh mục/Mô tả */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <ProductMainInfo product={product} />
       </motion.div>
 
-      {/* 3. Khối bảng danh sách phân loại biến thể kho hàng */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         <ProductVariantsTable variants={product.variants} />
       </motion.div>
