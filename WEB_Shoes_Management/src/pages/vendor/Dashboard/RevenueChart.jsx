@@ -97,12 +97,12 @@ export const RevenueChart = ({ data }) => {
         borderColor: 'rgba(255,255,255,0.08)',
         borderWidth: 1,
         callbacks: {
-          title: ([ctx]) => `📅 ${ctx.label}`,
+          title: ([ctx]) => `Thời gian: ${ctx.label}`,
           label: (ctx) => {
             if (ctx.dataset.yAxisID === 'y') {
-              return `  💰 Doanh thu: ${formatPrice(ctx.raw)}`
+              return `  Doanh thu: ${formatPrice(ctx.raw)}`
             }
-            return `  📦 Đơn hàng: ${ctx.raw} đơn`
+            return `  Đơn hàng: ${ctx.raw} đơn`
           }
         }
       }
