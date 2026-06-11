@@ -19,6 +19,7 @@ import { VendorDashboardPage } from '~/pages/vendor/Dashboard/VendorDashboardPag
 import { VendorProductsPage } from '~/pages/vendor/Products/VendorProductsPage'
 import { ProductFormPage } from '~/pages/vendor/Products/ProductForm/ProductFormPage'
 import { VendorProductDetailPage } from '~/pages/vendor/Products/ProductDetail/VendorProductDetailPage'
+import { VendorFavoritesPage } from '~/pages/vendor/Favorites/VendorFavoritesPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -71,6 +72,7 @@ const App = () => {
             <Route path="products/add" element={<ProductFormPage />} />
             <Route path="products/edit/:id" element={<ProductFormPage />} />
             <Route path="products/detail/:id" element={<VendorProductDetailPage />} />
+            <Route path="favorites" element={<VendorFavoritesPage />} />
           </Route>
         </Route>
 
