@@ -101,7 +101,7 @@ const getFavoritesOverviewStats = async (storeId) => {
   return {
     totalFavoritesAllTime: Number(rowsStats[0].totalStoreFavorites) || 0,
     uniqueProductsFavorited: Number(rowsStats[0].uniqueProductsFavorited) || 0,
-    mostFavoritedProduct: rowsTop[0] ? `${rowsTop[0].name} (${rowsTop[0].total_favorites} ❤)` : 'Chưa có'
+    mostFavoritedProduct: rowsTop[0] ? `${rowsTop[0].name} (${rowsTop[0].total_favorites})` : 'Chưa có'
   }
 }
 
