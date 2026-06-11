@@ -90,7 +90,7 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
           {/* Danh mục */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none cursor-pointer transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors">
                 <span>{currentCategoryLabel}</span>
                 <FiChevronDown size={14} className="text-gray-400" />
               </button>
@@ -107,7 +107,7 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
           {/* Trạng thái */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none cursor-pointer transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors">
                 <span>{currentStatusLabel}</span>
                 <FiChevronDown size={14} className="text-gray-400" />
               </button>
@@ -123,7 +123,7 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
           {/* Lọc lượt tim */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 outline-none cursor-pointer transition-colors">
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-sm font-bold text-rose-600 outline-none cursor-pointer transition-colors">
                 <FiHeart size={14} className="fill-current" />
                 <span>Lọc lượt tim</span>
               </button>

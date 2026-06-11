@@ -1,23 +1,27 @@
-import { formatPrice, getImageUrl } from '~/utils/formatters'
-import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar } from 'react-icons/fi'
+import { formatPrice } from '~/utils/formatters'
+import { FiEdit2, FiTrash2, FiChevronDown, FiPercent, FiCalendar, FiEye } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Link } from 'react-router-dom'
-import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 
-export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, onToggleActive, onDelete }) => {
-
+export const PromotionTable = ({ promotions, selectedIds, onSelectRow, onSelectAll, onToggleActive, onDelete }) => {
   const handleToggleSelectAll = (e) => onSelectAll(e.target.checked)
 
-  const renderModerationBadge = (status) => {
-    switch (status) {
-    case PRODUCT_MODERATION_STATUS.APPROVED: return <span className="bg-green-50 text-green-600 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-black">HỢP LỆ</span>
-    case PRODUCT_MODERATION_STATUS.PENDING: return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT</span>
-    case PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL: return <span className="bg-orange-50 text-orange-600 border border-orange-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT LẠI</span>
-    case PRODUCT_MODERATION_STATUS.REJECTED: return <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ TỪ CHỐI</span>
-    case PRODUCT_MODERATION_STATUS.BANNED: return <span className="bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ KHÓA</span>
-    default: return null
-    }
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—'
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('vi-VN')
+  }
+
+  const isExpired = (endDate) => {
+    return new Date(endDate) < new Date()
+  }
+
+  const isSoonExpiring = (endDate) => {
+    const now = new Date()
+    const end = new Date(endDate)
+    const diffDays = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
+    return diffDays >= 0 && diffDays <= 2
   }
 
   return (
@@ -30,32 +34,31 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                 <input
                   type="checkbox"
                   className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary/20 accent-brand-primary cursor-pointer"
-                  checked={products.length > 0 && selectedIds.length === products.length}
+                  checked={promotions.length > 0 && selectedIds.length === promotions.length}
                   onChange={handleToggleSelectAll}
                 />
               </th>
-              <th className="py-4 px-4">Thông tin sản phẩm</th>
-              <th className="py-4 px-4">Giá bán</th>
-              <th className="py-4 px-4 text-center">Đã bán</th>
-              <th className="py-4 px-4 text-center">Đánh giá</th>
-              <th className="py-4 px-4 text-center">Kiểm duyệt</th>
+              <th className="py-4 px-4">Mã khuyến mãi</th>
+              <th className="py-4 px-4">Giảm giá</th>
+              <th className="py-4 px-4">Đơn tối thiểu</th>
+              <th className="py-4 px-4">Giảm tối đa</th>
+              <th className="py-4 px-4 text-center">Thời gian áp dụng</th>
               <th className="py-4 px-4 text-center">Trạng thái</th>
               <th className="py-4 px-6 text-center">Hành động</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 text-sm font-semibold text-gray-700">
-            {products.length === 0 ? (
+            {promotions.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-16 text-gray-400 font-medium">Không tìm thấy sản phẩm nào phù hợp bộ lọc.</td>
+                <td colSpan="8" className="text-center py-16 text-gray-400 font-medium">
+                  Không tìm thấy chương trình khuyến mãi nào phù hợp.
+                </td>
               </tr>
             ) : (
-              products.map((p) => {
-                let imagesArray = []
-                try {
-                  imagesArray = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
-                } catch (e) { imagesArray = [] }
-
+              promotions.map((p) => {
                 const isChecked = selectedIds.includes(p.id)
+                const expired = isExpired(p.end_date)
+                const soonExpiring = isSoonExpiring(p.end_date) && !expired && p.is_active === 1
 
                 return (
                   <tr key={p.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
@@ -68,28 +71,37 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                       />
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={getImageUrl(imagesArray?.[0], 'https://placehold.co/100x100?text=Giay')}
-                          alt={p.name}
-                          className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-sm"
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-extrabold text-gray-900 line-clamp-1 hover:text-brand-primary transition-colors cursor-pointer">{p.name}</span>
-                          <span className="text-[11px] text-gray-400 mt-0.5">ID: #{p.id}</span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-gray-900 font-mono tracking-wider">{p.name}</span>
+                        {p.description && (
+                          <span className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">{p.description}</span>
+                        )}
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-brand-primary font-black">{formatPrice(p.price)}</td>
-                    <td className="py-4 px-4 text-center text-gray-500 font-bold">{p.sold}</td>
-                    <td className="py-4 px-4 flex justify-center items-center text-center font-bold text-yellow-500">
-                      <FiStar fill='yellow'/>
-                      {Number(p.rating_avg || 0).toFixed(1)}
+                    <td className="py-4 px-4">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 rounded-full text-xs font-black">
+                        {p.discount_value}<FiPercent size={12} />
+                      </span>
                     </td>
-                    <td className="py-4 px-4 text-center min-w-[150px]">{renderModerationBadge(p.status)}</td>
-
+                    <td className="py-4 px-4 text-gray-600">{formatPrice(p.min_order_value)}</td>
+                    <td className="py-4 px-4 text-gray-600">
+                      {p.max_discount_amount ? formatPrice(p.max_discount_amount) : 'Không giới hạn'}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                          <FiCalendar size={10} /> {formatDate(p.start_date)}
+                        </span>
+                        <span className="text-[11px] text-gray-400">→</span>
+                        <span className={`text-[11px] font-bold flex items-center gap-1 ${expired ? 'text-red-500' : soonExpiring ? 'text-amber-500' : 'text-gray-500'}`}>
+                          <FiCalendar size={10} /> {formatDate(p.end_date)}
+                          {expired && <span className="ml-1 text-[9px] bg-red-100 px-1.5 py-0.5 rounded-full">Hết hạn</span>}
+                          {soonExpiring && <span className="ml-1 text-[9px] bg-amber-100 px-1.5 py-0.5 rounded-full">Sắp hết</span>}
+                        </span>
+                      </div>
+                    </td>
                     <td className="py-4 px-4 text-center min-w-[140px]">
-                      {p.status === PRODUCT_MODERATION_STATUS.APPROVED ? (
+                      {!expired ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className={`flex items-center justify-between w-full gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 shadow-sm ${
@@ -97,34 +109,33 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                             }`}>
                               <span className="flex items-center gap-1.5">
                                 <div className={`w-1.5 h-1.5 rounded-full ${p.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
-                                {p.is_active ? 'Đang mở bán' : 'Ngừng bán'}
+                                {p.is_active ? 'Đang chạy' : 'Tạm dừng'}
                               </span>
                               <FiChevronDown size={14} className="opacity-50" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="center" className="rounded-xl shadow-lg border-gray-100 min-w-[150px] z-50">
                             <DropdownMenuItem onClick={() => onToggleActive(p.id, true)} className="text-xs font-bold text-green-600 cursor-pointer py-2">
-                              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" /> Đang mở bán
+                              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" /> Kích hoạt
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onToggleActive(p.id, false)} className="text-xs font-bold text-red-500 cursor-pointer py-2">
-                              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> Ngừng bán
+                              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> Tạm dừng
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
                         <button disabled className="flex items-center justify-center w-full px-3 py-1.5 rounded-xl text-xs font-bold border bg-gray-50 text-gray-400 border-gray-200 opacity-50 cursor-not-allowed">
-                          Không khả dụng
+                          Đã hết hạn
                         </button>
                       )}
                     </td>
-
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
-
+                        {/* Nút Xem chi tiết */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
-                              to={`/vendor/products/detail/${p.id}`}
+                              to={`/vendor/promotions/detail/${p.id}`}
                               className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
                             >
                               <FiEye size={13} />
@@ -135,29 +146,26 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                           </TooltipContent>
                         </Tooltip>
 
+                        {/* Nút Chỉnh sửa */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            {p.status === PRODUCT_MODERATION_STATUS.REJECTED || p.status === PRODUCT_MODERATION_STATUS.BANNED ? (
-                              <button
-                                disabled
-                                className="inline-flex p-2.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl cursor-not-allowed"
-                              >
-                                <FiEdit2 size={13} />
-                              </button>
-                            ) : (
-                              <Link
-                                to={`/vendor/products/edit/${p.id}`}
-                                className="inline-flex p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
-                              >
-                                <FiEdit2 size={13} />
-                              </Link>
-                            )}
+                            <Link
+                              to={`/vendor/promotions/edit/${p.id}`}
+                              className={`inline-flex p-2.5 rounded-xl cursor-pointer active:scale-90 transition-all duration-200 ${
+                                expired
+                                  ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed pointer-events-none'
+                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100'
+                              }`}
+                            >
+                              <FiEdit2 size={13} />
+                            </Link>
                           </TooltipTrigger>
-                          <TooltipContent className={`rounded-lg text-white text-xs border-none font-semibold ${p.status === 'rejected' || p.status === 'banned' ? 'bg-gray-800' : 'bg-blue-600'}`}>
-                            {p.status === PRODUCT_MODERATION_STATUS.REJECTED || p.status === PRODUCT_MODERATION_STATUS.BANNED ? 'Không thể sửa sản phẩm bị từ chối hoặc bị cấm bán' : 'Sửa thông tin'}
+                          <TooltipContent className="rounded-lg bg-blue-600 text-white text-xs border-none font-semibold">
+                            {expired ? 'Không thể sửa mã đã hết hạn' : 'Chỉnh sửa thông tin'}
                           </TooltipContent>
                         </Tooltip>
 
+                        {/* Nút Xóa */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
@@ -168,10 +176,9 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                             </button>
                           </TooltipTrigger>
                           <TooltipContent className="rounded-lg bg-red-600 text-white text-xs border-none font-semibold">
-                            Xóa sản phẩm
+                            Xóa khuyến mãi
                           </TooltipContent>
                         </Tooltip>
-
                       </div>
                     </td>
                   </tr>
