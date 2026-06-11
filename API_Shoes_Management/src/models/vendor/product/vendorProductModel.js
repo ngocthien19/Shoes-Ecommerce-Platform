@@ -80,8 +80,12 @@ const createVariant = async ({ productId, size, color, stock }) => {
 // 8. Lấy danh sách sản phẩm cửa hàng (N nạp thêm p.status vào mảng SELECT để hiển thị thẻ trạng thái)
 const getVendorProductsWithFilters = async (storeId, { search, categoryId, isActive, minPrice, maxPrice, sortBy, limit, offset }) => {
   let query = `
-    SELECT p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at 
+    SELECT 
+      p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, 
+      p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at,
+      c.name AS category_name
     FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.store_id = ?
   `
   const queryParams = [storeId]
