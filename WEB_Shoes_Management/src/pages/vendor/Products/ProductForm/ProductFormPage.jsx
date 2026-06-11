@@ -100,14 +100,14 @@ export const ProductFormPage = () => {
       if (isEditMode) {
         await vendorProductApiService.updateProduct(id, formData)
 
+        // 🟢 SỬA LẠI: Dùng vòng lặp for...of tuần tự thay vì Promise.all
         if (data.variants && data.variants.length > 0) {
           const newVariants = data.variants.filter(variant => !variant.id)
 
           if (newVariants.length > 0) {
-            const variantPromises = newVariants.map(variant =>
-              vendorProductApiService.createVariant(id, variant)
-            )
-            await Promise.all(variantPromises)
+            for (const variant of newVariants) {
+              await vendorProductApiService.createVariant(id, variant)
+            }
           }
         }
 
@@ -120,10 +120,9 @@ export const ProductFormPage = () => {
         const newProductId = resProduct.insertId
 
         if (data.variants && data.variants.length > 0 && newProductId) {
-          const variantPromises = data.variants.map(variant =>
-            vendorProductApiService.createVariant(newProductId, variant)
-          )
-          await Promise.all(variantPromises)
+          for (const variant of data.variants) {
+            await vendorProductApiService.createVariant(newProductId, variant)
+          }
         }
 
         toast.success('Thêm sản phẩm và biến thể thành công!')
