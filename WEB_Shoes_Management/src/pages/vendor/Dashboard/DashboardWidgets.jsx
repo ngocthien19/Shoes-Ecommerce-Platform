@@ -1,27 +1,7 @@
-import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion'
-import { useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { FiDollarSign, FiShoppingBag, FiBox } from 'react-icons/fi'
 import { formatPrice } from '~/utils/formatters'
-
-const CountUp = ({ value, duration = 1.5, suffix = '' }) => {
-  const count = useMotionValue(0)
-  const rounded = useTransform(count, (v) =>
-    Math.round(v).toLocaleString('vi-VN') + suffix
-  )
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
-
-  useEffect(() => {
-    if (!isInView) return
-    const end =
-      typeof value === 'number'
-        ? value
-        : parseFloat(String(value).replace(/[^0-9.-]+/g, '')) || 0
-    animate(count, end, { duration, ease: [0.16, 1, 0.3, 1] })
-  }, [isInView, value])
-
-  return <motion.span ref={ref}>{rounded}</motion.span>
-}
+import { CountUp } from '~/components/common/CountUp'
 
 export const DashboardWidgets = ({ widgets }) => {
   if (!widgets) return null

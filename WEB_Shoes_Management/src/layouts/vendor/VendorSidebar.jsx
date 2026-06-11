@@ -78,7 +78,7 @@ export const VendorSidebar = () => {
               <div key={index} className="flex flex-col">
                 <button
                   onClick={() => item.setIsOpen(!item.isOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 ${
+                  className={`cursor-pointer w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 ${
                     item.children.some(child => checkIsActive(child.path))
                       ? 'bg-sidebar-item-active text-brand-primary font-bold'
                       : 'text-sidebar-text hover:text-sidebar-text-hover hover:bg-sidebar-item-hover font-semibold'
@@ -93,7 +93,6 @@ export const VendorSidebar = () => {
                   <motion.div
                     animate={{ rotate: item.isOpen ? 180 : 0 }}
                     transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
-                    className="transition-all duration-300"
                   >
                     <FiChevronDown size={16} />
                   </motion.div>

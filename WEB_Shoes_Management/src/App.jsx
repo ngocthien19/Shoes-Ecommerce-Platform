@@ -16,6 +16,8 @@ import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
 // VENDOR PAGES
 import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePage'
 import { VendorDashboardPage } from '~/pages/vendor/Dashboard/VendorDashboardPage'
+import { VendorProductsPage } from '~/pages/vendor/Products/VendorProductsPage'
+import { ProductFormPage } from '~/pages/vendor/Products/ProductForm/ProductFormPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -62,8 +64,11 @@ const App = () => {
 
         {/* KHU VỰC CỦA NGƯỜI BÁN (DÙNG VENDOR LAYOUT)*/}
         <Route element={<ProtectedRoute />}>
-          <Route element={<VendorLayout />}>
-            <Route path="/vendor/dashboard" element={<VendorDashboardPage />} />
+          <Route path="/vendor" element={<VendorLayout />}>
+            <Route path="dashboard" element={<VendorDashboardPage />} />
+            <Route path="products" element={<VendorProductsPage />} />
+            <Route path="products/add" element={<ProductFormPage />} />
+            <Route path="products/edit/:id" element={<ProductFormPage />} />
           </Route>
         </Route>
 
