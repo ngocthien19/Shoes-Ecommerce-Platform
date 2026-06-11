@@ -1,0 +1,178 @@
+import { formatPrice, getImageUrl } from '~/utils/formatters'
+import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar } from 'react-icons/fi'
+import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
+import { Link } from 'react-router-dom'
+
+export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, onToggleActive, onDelete }) => {
+
+  const handleToggleSelectAll = (e) => onSelectAll(e.target.checked)
+
+  const renderModerationBadge = (status) => {
+    switch (status) {
+    case 'approved': return <span className="bg-green-50 text-green-600 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-black">HỢP LỆ</span>
+    case 'pending': return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT</span>
+    case 'pending_reapproval': return <span className="bg-orange-50 text-orange-600 border border-orange-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT LẠI</span>
+    case 'rejected': return <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ TỪ CHỐI</span>
+    case 'banned': return <span className="bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ KHÓA</span>
+    default: return null
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
+      <div className="overflow-x-auto min-h-[300px]">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-brand-secondary/5 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
+              <th className="py-4 px-6 w-12 text-center">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary/20 accent-brand-primary cursor-pointer"
+                  checked={products.length > 0 && selectedIds.length === products.length}
+                  onChange={handleToggleSelectAll}
+                />
+              </th>
+              <th className="py-4 px-4">Thông tin sản phẩm</th>
+              <th className="py-4 px-4">Giá bán</th>
+              <th className="py-4 px-4 text-center">Đã bán</th>
+              <th className="py-4 px-4 text-center">Đánh giá</th>
+              <th className="py-4 px-4 text-center">Kiểm duyệt</th>
+              <th className="py-4 px-4 text-center">Trạng thái</th>
+              <th className="py-4 px-6 text-center">Hành động</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 text-sm font-semibold text-gray-700">
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="text-center py-16 text-gray-400 font-medium">Không tìm thấy sản phẩm nào phù hợp bộ lọc.</td>
+              </tr>
+            ) : (
+              products.map((p) => {
+                let imagesArray = []
+                try {
+                  imagesArray = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+                } catch (e) { imagesArray = [] }
+
+                const isChecked = selectedIds.includes(p.id)
+
+                return (
+                  <tr key={p.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
+                    <td className="py-4 px-6 text-center">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary/20 accent-brand-primary cursor-pointer"
+                        checked={isChecked}
+                        onChange={() => onSelectRow(p.id)}
+                      />
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src={getImageUrl(imagesArray?.[0], 'https://placehold.co/100x100?text=Giay')}
+                          alt={p.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-sm"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-gray-900 line-clamp-1 hover:text-brand-primary transition-colors cursor-pointer">{p.name}</span>
+                          <span className="text-[11px] text-gray-400 mt-0.5">ID: #{p.id}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-brand-primary font-black">{formatPrice(p.price)}</td>
+                    <td className="py-4 px-4 text-center text-gray-500 font-bold">{p.sold}</td>
+                    <td className="py-4 px-4 flex justify-center items-center text-center font-bold text-yellow-500">
+                      <FiStar fill='yellow'/>
+                      {Number(p.rating_avg || 0).toFixed(1)}
+                    </td>
+                    <td className="py-4 px-4 text-center min-w-[150px]">{renderModerationBadge(p.status)}</td>
+
+                    <td className="py-4 px-4 text-center min-w-[140px]">
+                      {p.status === 'approved' ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className={`flex items-center justify-between w-full gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 shadow-sm ${
+                              p.is_active ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-red-50 text-red-500 border-red-200 hover:bg-red-100'
+                            }`}>
+                              <span className="flex items-center gap-1.5">
+                                <div className={`w-1.5 h-1.5 rounded-full ${p.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                                {p.is_active ? 'Đang mở bán' : 'Ngừng bán'}
+                              </span>
+                              <FiChevronDown size={14} className="opacity-50" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="center" className="rounded-xl shadow-lg border-gray-100 min-w-[150px] z-50">
+                            <DropdownMenuItem onClick={() => onToggleActive(p.id, true)} className="text-xs font-bold text-green-600 cursor-pointer py-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" /> Đang mở bán
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onToggleActive(p.id, false)} className="text-xs font-bold text-red-500 cursor-pointer py-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> Ngừng bán
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <button disabled className="flex items-center justify-center w-full px-3 py-1.5 rounded-xl text-xs font-bold border bg-gray-50 text-gray-400 border-gray-200 opacity-50 cursor-not-allowed">
+                          Không khả dụng
+                        </button>
+                      )}
+                    </td>
+
+                    <td className="py-4 px-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              to={`/product/${p.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
+                            >
+                              <FiEye size={13} />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent className="rounded-lg bg-gray-800 text-white text-xs border-none font-semibold">
+                            Xem trên cửa hàng
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              to={`/vendor/products/edit/${p.id}`}
+                              className="inline-flex p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
+                            >
+                              <FiEdit2 size={13} />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent className="rounded-lg bg-blue-600 text-white text-xs border-none font-semibold">
+                            Sửa thông tin
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => onDelete(p)}
+                              className="p-2.5 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white border border-red-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
+                            >
+                              <FiTrash2 size={13} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="rounded-lg bg-red-600 text-white text-xs border-none font-semibold">
+                            Xóa sản phẩm
+                          </TooltipContent>
+                        </Tooltip>
+
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
