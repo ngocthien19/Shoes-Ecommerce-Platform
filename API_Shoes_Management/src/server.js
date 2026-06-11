@@ -127,7 +127,7 @@ const START_SERVER = () => {
 
   // Sử dụng `server.listen` thay vì `app.listen` để Socket.io và API chạy chung 1 Port
   server.listen(port, () => {
-    console.log(`Backend Shoes Store đang chạy tại http://localhost:${port} 🚀`)
+    console.log(`Backend Shoes Store đang chạy tại http://localhost:${port}`)
   })
 }
 
