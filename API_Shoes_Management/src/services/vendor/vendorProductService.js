@@ -47,7 +47,10 @@ const createProduct = async (userId, productData) => {
     }).catch(err => console.error(err))
   }
 
-  return { message: 'Đăng ký sản phẩm thành công! Vui lòng chờ Điều hành viên sàn phê duyệt hiển thị.' }
+  return {
+    message: 'Đăng ký sản phẩm thành công! Vui lòng chờ Điều hành viên sàn phê duyệt hiển thị.',
+    insertId: result.insertId
+  }
 }
 
 // Chỉnh sửa thông tin sản phẩm

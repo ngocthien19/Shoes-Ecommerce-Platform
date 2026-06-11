@@ -37,9 +37,21 @@ const updateProduct = async (req, res) => {
     const { id } = req.params
     const { categoryId, name, description, price, oldImages } = req.body
 
-    let images = extractImagesFromReqFiles(req.files)
-    if (images.length === 0 && oldImages) {
-      images = JSON.parse(oldImages)
+    let newImages = extractImagesFromReqFiles(req.files)
+
+    let keptOldImages = []
+    if (oldImages) {
+      try {
+        keptOldImages = JSON.parse(oldImages)
+      } catch (error) {
+        keptOldImages = []
+      }
+    }
+
+    const finalImages = [...keptOldImages, ...newImages]
+
+    if (finalImages.length > 10) {
+      return res.status(400).json({ message: 'Sản phẩm chỉ được phép hiển thị tối đa 10 hình ảnh.' })
     }
 
     const finalDescription = description !== undefined ? description : null
@@ -49,7 +61,7 @@ const updateProduct = async (req, res) => {
       name,
       description: finalDescription,
       price: Number(price),
-      images
+      images: finalImages
     })
     return res.status(200).json(result)
   } catch (error) {
