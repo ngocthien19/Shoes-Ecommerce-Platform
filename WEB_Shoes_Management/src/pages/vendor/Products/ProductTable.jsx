@@ -123,30 +123,37 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
-                              to={`/product/${p.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              to={`/vendor/products/detail/${p.id}`}
                               className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
                             >
                               <FiEye size={13} />
                             </Link>
                           </TooltipTrigger>
                           <TooltipContent className="rounded-lg bg-gray-800 text-white text-xs border-none font-semibold">
-                            Xem trên cửa hàng
+                            Xem chi tiết
                           </TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Link
-                              to={`/vendor/products/edit/${p.id}`}
-                              className="inline-flex p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
-                            >
-                              <FiEdit2 size={13} />
-                            </Link>
+                            {p.status === 'rejected' || p.status === 'banned' ? (
+                              <button
+                                disabled
+                                className="inline-flex p-2.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-xl cursor-not-allowed"
+                              >
+                                <FiEdit2 size={13} />
+                              </button>
+                            ) : (
+                              <Link
+                                to={`/vendor/products/edit/${p.id}`}
+                                className="inline-flex p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
+                              >
+                                <FiEdit2 size={13} />
+                              </Link>
+                            )}
                           </TooltipTrigger>
-                          <TooltipContent className="rounded-lg bg-blue-600 text-white text-xs border-none font-semibold">
-                            Sửa thông tin
+                          <TooltipContent className={`rounded-lg text-white text-xs border-none font-semibold ${p.status === 'rejected' || p.status === 'banned' ? 'bg-gray-800' : 'bg-blue-600'}`}>
+                            {p.status === 'rejected' || p.status === 'banned' ? 'Không thể sửa sản phẩm bị từ chối hoặc bị cấm bán' : 'Sửa thông tin'}
                           </TooltipContent>
                         </Tooltip>
 

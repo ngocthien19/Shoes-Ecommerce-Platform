@@ -18,6 +18,7 @@ import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePag
 import { VendorDashboardPage } from '~/pages/vendor/Dashboard/VendorDashboardPage'
 import { VendorProductsPage } from '~/pages/vendor/Products/VendorProductsPage'
 import { ProductFormPage } from '~/pages/vendor/Products/ProductForm/ProductFormPage'
+import { VendorProductDetailPage } from '~/pages/vendor/Products/ProductDetail/VendorProductDetailPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -69,6 +70,7 @@ const App = () => {
             <Route path="products" element={<VendorProductsPage />} />
             <Route path="products/add" element={<ProductFormPage />} />
             <Route path="products/edit/:id" element={<ProductFormPage />} />
+            <Route path="products/detail/:id" element={<VendorProductDetailPage />} />
           </Route>
         </Route>
 
