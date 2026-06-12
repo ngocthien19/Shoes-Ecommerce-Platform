@@ -98,7 +98,7 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, reviewType, on
         <div className="flex">
           <button
             onClick={() => onReviewTypeChange(REVIEW_TYPES.PRODUCT)}
-            className={`cursor-pointer flex-1 px-5 py-3 text-sm font-bold transition-all duration-300 relative
+            className={`cursor-pointer flex-1 px-5 py-3 text-base font-bold transition-all duration-300 relative
         ${reviewType === REVIEW_TYPES.PRODUCT
       ? 'text-brand-primary font-extrabold'
       : 'text-gray-500 hover:text-gray-700'
@@ -111,7 +111,7 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, reviewType, on
           </button>
           <button
             onClick={() => onReviewTypeChange(REVIEW_TYPES.STORE)}
-            className={`cursor-pointer flex-1 px-5 py-3 text-sm font-bold transition-all duration-300 relative
+            className={`cursor-pointer flex-1 px-5 py-3 text-base font-bold transition-all duration-300 relative
         ${reviewType === REVIEW_TYPES.STORE
       ? 'text-brand-primary font-extrabold'
       : 'text-gray-500 hover:text-gray-700'

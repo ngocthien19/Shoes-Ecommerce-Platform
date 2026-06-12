@@ -12,8 +12,19 @@ export const CancelOrderModal = ({ isOpen, onClose, onConfirm, order }) => {
   if (!order) return null
 
   const handleConfirm = () => {
-    const finalReason = selectedReason === 'Lý do khác' ? customReason : selectedReason
-    onConfirm(order.order_id, finalReason || 'Không có lý do cụ thể')
+    let finalReason = ''
+    if (selectedReason === 'Lý do khác') {
+      finalReason = customReason || 'Lý do khác (không có nội dung cụ thể)'
+    } else {
+      finalReason = selectedReason
+    }
+
+    if (!finalReason) {
+      finalReason = 'Không có lý do cụ thể'
+    }
+
+    onConfirm(order.order_id, finalReason)
+    // Reset state sau khi xác nhận
     setSelectedReason('')
     setCustomReason('')
   }
@@ -80,6 +91,7 @@ export const CancelOrderModal = ({ isOpen, onClose, onConfirm, order }) => {
                   {CANCEL_REASONS.map((reason) => (
                     <button
                       key={reason}
+                      type="button"
                       onClick={() => setSelectedReason(reason)}
                       className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         selectedReason === reason
@@ -94,7 +106,7 @@ export const CancelOrderModal = ({ isOpen, onClose, onConfirm, order }) => {
                 </div>
               </div>
 
-              {/* Ô nhập lý do khác (Shadcn Textarea) */}
+              {/* Ô nhập lý do khác */}
               {selectedReason === 'Lý do khác' && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-2">
                   <Textarea
@@ -103,6 +115,7 @@ export const CancelOrderModal = ({ isOpen, onClose, onConfirm, order }) => {
                     onChange={(e) => setCustomReason(e.target.value)}
                     className="rounded-xl border-gray-200 focus:ring-brand-primary min-h-[100px] text-sm"
                   />
+                  <p className="text-[10px] text-gray-400">* Vui lòng nhập lý do để shop có thể cải thiện dịch vụ</p>
                 </motion.div>
               )}
             </div>
@@ -117,7 +130,7 @@ export const CancelOrderModal = ({ isOpen, onClose, onConfirm, order }) => {
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={!selectedReason || (selectedReason === 'Lý do khác' && !customReason)}
+                disabled={!selectedReason || (selectedReason === 'Lý do khác' && !customReason.trim())}
                 className="flex-1 py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-[#c73652] transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
               >
                 Xác nhận hủy

@@ -26,6 +26,8 @@ import { PromotionDetailPage } from '~/pages/vendor/Promotions/PromotionDetail/P
 import { VendorReviewsPage } from '~/pages/vendor/Reviews/VendorReviewsPage'
 import { ReviewDetailPage } from '~/pages/vendor/Reviews/ReviewDetail/ReviewDetailPage'
 import { VendorPayoutPage } from '~/pages/vendor/Payout/VendorPayoutPage'
+import { VendorOrdersPage } from '~/pages/vendor/Orders/VendorOrdersPage'
+import { VendorOrderDetailPage } from '~/pages/vendor/Orders/OrderDetail/VendorOrderDetailPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -84,6 +86,10 @@ const App = () => {
 
             {/* Favorite */}
             <Route path="favorites" element={<VendorFavoritesPage />} />
+
+            {/* Order */}
+            <Route path="orders" element={<VendorOrdersPage />} />
+            <Route path="orders/detail/:id" element={<VendorOrderDetailPage />} />
 
             {/* Promotion */}
             <Route path="promotions" element={<VendorPromotionsPage />} />

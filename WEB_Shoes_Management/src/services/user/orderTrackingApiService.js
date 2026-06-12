@@ -11,8 +11,8 @@ export const orderTrackingApiService = {
   },
 
   // 2. API Khách hàng Hủy đơn / Yêu cầu hủy
-  cancelOrder: async (orderId) => {
-    const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/orders/cancel/${orderId}`)
+  cancelOrder: async (orderId, reason) => {
+    const response = await authorizedAxiosInstance.put(`${DEV_API_URL}/api/orders/cancel/${orderId}`, { reason })
     return response.data
   },
 
