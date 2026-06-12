@@ -25,6 +25,7 @@ import { PromotionFormPage } from '~/pages/vendor/Promotions/PromotionForm/Promo
 import { PromotionDetailPage } from '~/pages/vendor/Promotions/PromotionDetail/PromotionDetailPage'
 import { VendorReviewsPage } from '~/pages/vendor/Reviews/VendorReviewsPage'
 import { ReviewDetailPage } from '~/pages/vendor/Reviews/ReviewDetail/ReviewDetailPage'
+import { VendorPayoutPage } from '~/pages/vendor/Payout/VendorPayoutPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -93,6 +94,9 @@ const App = () => {
             {/* Review */}
             <Route path="reviews" element={<VendorReviewsPage />} />
             <Route path="reviews/detail/:id" element={<ReviewDetailPage />} />
+
+            {/* Payout */}
+            <Route path="payouts" element={<VendorPayoutPage />} />
           </Route>
         </Route>
 

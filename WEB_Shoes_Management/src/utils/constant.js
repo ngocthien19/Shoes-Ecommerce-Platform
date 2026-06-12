@@ -56,3 +56,9 @@ export const REVIEW_TYPES = {
   PRODUCT: 'product',
   STORE: 'store'
 }
+
+export const PAYOUT_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+}
