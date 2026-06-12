@@ -14,8 +14,9 @@ const cancelOrderByUser = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { orderId } = req.params
+    const { reason } = req.body
 
-    const result = await orderTrackingService.cancelOrderByUser(userId, Number(orderId))
+    const result = await orderTrackingService.cancelOrderByUser(userId, Number(orderId), reason)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi xử lý yêu cầu hủy đơn: ${error.message}` })

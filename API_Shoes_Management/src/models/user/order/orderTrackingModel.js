@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { ORDER_STATUS } from '~/utils/constants'
 
 // 1. USER lấy lịch sử đơn hàng
 const getOrderHistoryPaginated = async (userId, page, limit, status) => {
@@ -64,21 +65,22 @@ const updateOrderStatus = async (orderId, status) => {
 const autoConfirmOrders = async () => {
   const query = `
     UPDATE orders 
-    SET status = 'processing' 
-    WHERE status = 'pending' 
+    SET status = ? 
+    WHERE status = ? 
     AND TIMESTAMPDIFF(MINUTE, created_at, NOW()) >= 30
   `
-  const [result] = await pool.execute(query)
+  const [result] = await pool.execute(query, [ORDER_STATUS.PROCESSING, ORDER_STATUS.PENDING])
   return result.affectedRows
 }
 
 // 6. Rút yêu cầu hủy đơn hàng
 const withdrawCancelOrder = async (orderId) => {
-  const query = 'UPDATE orders SET status = \'processing\' WHERE id = ?'
-  const [result] = await pool.execute(query, [orderId])
+  const query = 'UPDATE orders SET status = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [ORDER_STATUS.PROCESSING, orderId])
   return result
 }
 
+// 7. Lấy số lượng đơn hàng theo từng trạng thái
 const getOrderStatusCounts = async (userId) => {
   const query = `
     SELECT status, COUNT(*) as count
@@ -90,6 +92,7 @@ const getOrderStatusCounts = async (userId) => {
   return rows
 }
 
+// 8. Lấy chi tiết đơn hàng theo orderId và userId
 const getOrderDetailByIdAndUser = async (orderId, userId) => {
   const query = `
     SELECT o.id AS order_id, o.store_id, o.recipient_name, o.recipient_phone, 
@@ -101,7 +104,45 @@ const getOrderDetailByIdAndUser = async (orderId, userId) => {
     WHERE o.id = ? AND o.user_id = ?
   `
   const [rows] = await pool.execute(query, [orderId, userId])
-  return rows[0] // Trả về object đơn hàng nếu có
+  return rows[0]
+}
+
+// 9. Cập nhật trạng thái đơn hàng kèm lý do hủy
+const updateOrderStatusWithReason = async (orderId, status, cancelReason = null) => {
+  let query = 'UPDATE orders SET status = ?'
+  const queryParams = [status]
+
+  if (cancelReason) {
+    query += ', cancel_reason = ?'
+    queryParams.push(cancelReason)
+  }
+
+  query += ' WHERE id = ?'
+  queryParams.push(orderId)
+
+  const [result] = await pool.execute(query, queryParams)
+  return result
+}
+
+// 10. Rút yêu cầu hủy và xóa lý do hủy
+const withdrawCancelOrderAndClearReason = async (orderId) => {
+  const query = 'UPDATE orders SET status = ?, cancel_reason = NULL WHERE id = ?'
+  const [result] = await pool.execute(query, [ORDER_STATUS.PROCESSING, orderId])
+  return result
+}
+
+// 11. Kiểm tra đơn hàng có thuộc quyền sở hữu của user không
+const checkOrderOwnership = async (orderId, userId) => {
+  const query = 'SELECT id FROM orders WHERE id = ? AND user_id = ?'
+  const [rows] = await pool.execute(query, [orderId, userId])
+  return rows.length > 0
+}
+
+// 12. Lấy trạng thái hiện tại của đơn hàng
+const getOrderCurrentStatus = async (orderId) => {
+  const query = 'SELECT status FROM orders WHERE id = ?'
+  const [rows] = await pool.execute(query, [orderId])
+  return rows[0]?.status || null
 }
 
 export const orderTrackingModel = {
@@ -112,5 +153,9 @@ export const orderTrackingModel = {
   autoConfirmOrders,
   withdrawCancelOrder,
   getOrderStatusCounts,
-  getOrderDetailByIdAndUser
+  getOrderDetailByIdAndUser,
+  updateOrderStatusWithReason,
+  withdrawCancelOrderAndClearReason,
+  checkOrderOwnership,
+  getOrderCurrentStatus
 }
