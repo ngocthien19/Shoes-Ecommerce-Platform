@@ -144,7 +144,7 @@ export const ReviewTable = ({
                           <Tooltip>
                             <TooltipTrigger>
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black">
-                                <FiFlag size={10} /> Đã BC
+                                <FiFlag size={10} /> Đã báo cáo
                               </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-[200px] text-center">

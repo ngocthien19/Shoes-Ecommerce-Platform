@@ -1,16 +1,86 @@
 import { motion } from 'framer-motion'
-import { FiStar, FiMessageSquare, FiEyeOff, FiFlag } from 'react-icons/fi'
+import { FiStar, FiMessageSquare, FiEyeOff, FiFlag, FiPackage, FiHome } from 'react-icons/fi'
 import { CountUp } from '~/components/common/CountUp'
+import { REVIEW_TYPES } from '~/utils/constant'
 
-export const ReviewOverviewWidgets = ({ overview }) => {
+export const ReviewOverviewWidgets = ({ overview, reviewType }) => {
   if (!overview) return null
 
-  const items = [
-    { title: 'Tổng đánh giá', value: overview.totalReviews, icon: FiMessageSquare, color: 'border-l-blue-500 text-blue-600', bg: 'from-blue-50/60 to-white', blob: 'bg-blue-100/50' },
-    { title: 'Đánh giá TB', value: overview.averageRating, icon: FiStar, color: 'border-l-amber-500 text-amber-600', bg: 'from-amber-50/60 to-white', blob: 'bg-amber-100/50', suffix: '/5' },
-    { title: 'Đã ẩn', value: overview.inactiveReviews, icon: FiEyeOff, color: 'border-l-gray-500 text-gray-500', bg: 'from-gray-50/60 to-white', blob: 'bg-gray-100/50' },
-    { title: 'Đã báo cáo', value: overview.reportedReviews, icon: FiFlag, color: 'border-l-red-500 text-red-600', bg: 'from-red-50/60 to-white', blob: 'bg-red-100/50' }
+  // Widget cho Product Reviews
+  const productItems = [
+    {
+      title: 'Đánh giá sản phẩm',
+      value: overview.totalProductReviews,
+      icon: FiPackage,
+      color: 'border-l-blue-500 text-blue-600',
+      bg: 'from-blue-50/60 to-white',
+      blob: 'bg-blue-100/50'
+    },
+    {
+      title: 'Đánh giá trung bình',
+      value: overview.avgProductRating,
+      icon: FiStar,
+      color: 'border-l-amber-500 text-amber-600',
+      bg: 'from-amber-50/60 to-white',
+      blob: 'bg-amber-100/50',
+      suffix: '/5'
+    },
+    {
+      title: 'Đã ẩn',
+      value: overview.inactiveReviews,
+      icon: FiEyeOff,
+      color: 'border-l-gray-500 text-gray-500',
+      bg: 'from-gray-50/60 to-white',
+      blob: 'bg-gray-100/50'
+    },
+    {
+      title: 'Đã báo cáo',
+      value: overview.reportedReviews,
+      icon: FiFlag,
+      color: 'border-l-red-500 text-red-600',
+      bg: 'from-red-50/60 to-white',
+      blob: 'bg-red-100/50'
+    }
   ]
+
+  // Widget cho Store Reviews
+  const storeItems = [
+    {
+      title: 'Đánh giá cửa hàng',
+      value: overview.totalStoreReviews,
+      icon: FiHome,
+      color: 'border-l-purple-500 text-purple-600',
+      bg: 'from-purple-50/60 to-white',
+      blob: 'bg-purple-100/50'
+    },
+    {
+      title: 'Đánh giá trung bình',
+      value: overview.avgStoreRating,
+      icon: FiStar,
+      color: 'border-l-amber-500 text-amber-600',
+      bg: 'from-amber-50/60 to-white',
+      blob: 'bg-amber-100/50',
+      suffix: '/5'
+    },
+    {
+      title: 'Đã ẩn',
+      value: overview.inactiveReviews,
+      icon: FiEyeOff,
+      color: 'border-l-gray-500 text-gray-500',
+      bg: 'from-gray-50/60 to-white',
+      blob: 'bg-gray-100/50'
+    },
+    {
+      title: 'Đã báo cáo',
+      value: overview.reportedReviews,
+      icon: FiFlag,
+      color: 'border-l-red-500 text-red-600',
+      bg: 'from-red-50/60 to-white',
+      blob: 'bg-red-100/50'
+    }
+  ]
+
+  const items = reviewType === REVIEW_TYPES.PRODUCT ? productItems : storeItems
 
   return (
     <motion.div
@@ -26,8 +96,8 @@ export const ReviewOverviewWidgets = ({ overview }) => {
             <item.icon size={16} className={item.color.split(' ')[1]} />
           </div>
           <h3 className="text-2xl font-black text-gray-800 mt-2 flex items-baseline gap-1">
-            {item.value === '0.0' || item.value === '0' ? (
-              <span className="text-xl">Chưa có</span>
+            {item.value === '0.0' || item.value === 0 ? (
+              <span className="text-lg font-bold text-black">0</span>
             ) : item.suffix ? (
               <>
                 <CountUp value={parseFloat(item.value)} />
