@@ -9,7 +9,6 @@ const validateUpdateProfile = async (req, res, next) => {
       'any.required': 'Họ và tên là thông tin bắt buộc.'
     }),
 
-    // Số điện thoại phải đúng 10 chữ số và bắt đầu từ số 0
     phone: Joi.string()
       .trim()
       .regex(/^0[0-9]{9}$/)
@@ -25,7 +24,12 @@ const validateUpdateProfile = async (req, res, next) => {
       'string.min': 'Địa chỉ phải dài từ 5 ký tự trở lên để đảm bảo tính chính xác.'
     }),
 
-    // Mật khẩu mới là tùy chọn (chỉ kiểm duyệt nếu người dùng điền vào ô đổi mật khẩu)
+    // Mật khẩu cũ - bắt buộc khi đổi mật khẩu
+    oldPassword: Joi.string().min(6).max(30).trim().optional().allow('', null).messages({
+      'string.min': 'Mật khẩu cũ phải có ít nhất 6 ký tự.'
+    }),
+
+    // Mật khẩu mới
     password: Joi.string().min(6).max(30).trim().optional().allow('', null).messages({
       'string.min': 'Mật khẩu mới nếu thay đổi phải có ít nhất 6 ký tự.',
       'string.max': 'Mật khẩu mới không được vượt quá 30 ký tự.'
@@ -33,7 +37,6 @@ const validateUpdateProfile = async (req, res, next) => {
   })
 
   try {
-    // Thẩm định dữ liệu từ body
     await correctCondition.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {

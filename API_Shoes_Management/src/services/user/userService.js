@@ -2,19 +2,32 @@ import bcrypt from 'bcrypt'
 import { userModel } from '~/models/user/userModel'
 
 const updateProfile = async (userId, bodyData) => {
-  const { fullname, phone, address, password, avatarData } = bodyData
+  const { fullname, phone, address, oldPassword, password, avatarData } = bodyData
   let hashedPassword = null
 
-  // 1. Nếu người dùng yêu cầu đổi mật khẩu, tiến hành mã hóa
+  // Nếu có yêu cầu đổi mật khẩu
   if (password) {
+    // Lấy user hiện tại để kiểm tra mật khẩu cũ
+    const currentUser = await userModel.getLoginUserById(userId)
+    if (!currentUser) {
+      throw new Error('Không tìm thấy người dùng')
+    }
+
+    // Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, currentUser.password)
+    if (!isMatch) {
+      throw new Error('Mật khẩu hiện tại không chính xác')
+    }
+
+    // Mã hóa mật khẩu mới
     const salt = await bcrypt.genSalt(8)
     hashedPassword = await bcrypt.hash(password, salt)
   }
 
-  // 2. Gọi Model cập nhật dữ liệu vào MySQL
+  // Gọi Model cập nhật dữ liệu vào MySQL
   await userModel.updateProfile(userId, { fullname, phone, address, hashedPassword, avatarData })
 
-  // 3. Lấy lại dữ liệu mới nhất (đã lọc các trường nhạy cảm) để gửi về cho Redux lưu trữ
+  // Lấy lại dữ liệu mới nhất
   const updatedUser = await userModel.getUpdatedUserFields(userId)
 
   let successMessage = 'Cập nhật thông tin tài khoản thành công!'
