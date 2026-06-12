@@ -1,6 +1,7 @@
 import { chatModel } from '~/models/chat/chatModel'
 import { SocketProvider } from '~/providers/SocketProvider'
 
+// USER gửi tin nhắn cho SHOP (dùng storeId)
 const sendMessage = async (senderId, storeId, content, imageFiles) => {
   const conversationId = await chatModel.getOrCreateConversation(senderId, storeId)
 
@@ -13,11 +14,10 @@ const sendMessage = async (senderId, storeId, content, imageFiles) => {
 
   const messageId = await chatModel.saveMessage(conversationId, senderId, content, images)
 
-  // Logic truy vấn DB nay đã được chuyển gọn gàng xuống Model
   const info = await chatModel.getConversationInfoById(conversationId)
   const storeOwnerId = await chatModel.getStoreOwnerId(info.store_id)
 
-  // Xác định người nhận tin nhắn (Sender là khách thì Receiver là Shop, và ngược lại)
+  // Xác định người nhận: nếu sender là user (khách) thì receiver là shop owner
   const receiverId = senderId === info.user_id ? storeOwnerId : info.user_id
 
   const messageData = {
@@ -29,8 +29,39 @@ const sendMessage = async (senderId, storeId, content, imageFiles) => {
     createdAt: new Date()
   }
 
-  // Bắn Socket Real-time
   SocketProvider.emitToUser(receiverId, 'new_chat_message', messageData)
+
+  return messageData
+}
+
+const sendMessageToUser = async (senderId, userId, content, imageFiles) => {
+  // Lấy store_id từ senderId (vì sender là vendor - chủ shop)
+  const store = await chatModel.getStoreByOwnerId(senderId)
+  if (!store) throw new Error('Không tìm thấy cửa hàng của bạn')
+
+  // Tìm hoặc tạo conversation giữa user (khách) và store (shop)
+  const conversationId = await chatModel.getOrCreateConversation(userId, store.id)
+
+  let images = []
+  if (imageFiles && imageFiles.length > 0) {
+    imageFiles.forEach(file => {
+      images.push({ public_id: file.filename, secure_url: file.path })
+    })
+  }
+
+  const messageId = await chatModel.saveMessage(conversationId, senderId, content, images)
+
+  const messageData = {
+    id: messageId,
+    conversationId,
+    senderId,
+    content,
+    images,
+    createdAt: new Date()
+  }
+
+  // Bắn socket cho user (khách hàng)
+  SocketProvider.emitToUser(userId, 'new_chat_message', messageData)
 
   return messageData
 }
@@ -58,6 +89,7 @@ const initConversation = async (userId, storeId) => {
 
 export const chatService = {
   sendMessage,
+  sendMessageToUser, // Thêm export
   getChatHistory,
   getConversationsList,
   markAsRead,
