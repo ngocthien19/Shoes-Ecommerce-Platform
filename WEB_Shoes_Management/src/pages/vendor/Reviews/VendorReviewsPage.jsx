@@ -149,8 +149,12 @@ export const VendorReviewsPage = () => {
         </div>
       </div>
 
-      {data?.overview && <ReviewOverviewWidgets overview={data.overview} />}
-
+      {data?.overview && (
+        <ReviewOverviewWidgets
+          overview={data.overview}
+          reviewType={reviewType}
+        />
+      )}
       <ReviewFilters
         filters={activeFilters}
         onFilterChange={handleFilterChange}
