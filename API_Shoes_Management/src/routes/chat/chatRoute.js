@@ -9,7 +9,7 @@ const router = express.Router()
 router.use(authGuard.isAuthorized)
 
 router.post('/init', chatController.initConversation)
-router.post('/send', CloudinaryProvider.uploadChatImages, chatValidation.validateSendMessage, chatController.sendMessage)
+router.post('/send', CloudinaryProvider.uploadChatImages, chatController.sendMessage)
 router.put('/read/:conversationId', chatController.markAsRead)
 router.get('/history/:conversationId', chatController.getChatHistory)
 router.get('/conversations', chatController.getConversationsList)
