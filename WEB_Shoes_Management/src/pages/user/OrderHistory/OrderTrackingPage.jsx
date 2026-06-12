@@ -77,20 +77,21 @@ export const OrderTrackingPage = () => {
     }
   }
 
-  const triggerCancelModal = (order) => {
-    setSelectedOrderForCancel(order)
-    setIsCancelModalOpen(true)
-  }
-
   const handleConfirmCancel = async (orderId, reason) => {
     setIsCancelModalOpen(false)
     try {
-      const res = await orderTrackingApiService.cancelOrder(orderId, { reason })
+      const res = await orderTrackingApiService.cancelOrder(orderId, reason)
       toast.success(res.message)
       fetchOrders(pagination.currentPage, currentTab)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi hủy đơn.')
     }
+    setSelectedOrderForCancel(null)
+  }
+
+  const triggerCancelModal = (order) => {
+    setSelectedOrderForCancel(order)
+    setIsCancelModalOpen(true)
   }
 
   const triggerWithdrawModal = (order) => {
