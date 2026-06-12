@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiEye, FiCheckCircle, FiXCircle, FiTruck, FiPackage, FiClock, FiChevronDown, FiCreditCard, FiAlertCircle, FiInfo } from 'react-icons/fi'
+import { FiEye, FiCheckCircle, FiXCircle, FiTruck, FiPackage, FiClock, FiChevronDown, FiCreditCard, FiAlertCircle, FiInfo, FiPhone } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { formatPrice } from '~/utils/formatters'
@@ -7,7 +7,7 @@ import { ORDER_STATUS, PAYMENT_METHODS } from '~/utils/constant'
 import { CancelRequestModal } from './CancelRequestModal'
 import { Link } from 'react-router-dom'
 
-export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUpdateStatus, onUpdateStatusBulk }) => {
+export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUpdateStatus, onCancelRequest, onUpdateStatusBulk }) => {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
@@ -76,10 +76,15 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
   }
 
   const handleConfirmCancel = async (decision, reason) => {
-    await onUpdateStatus(cancelOrderId, decision, reason)
+    await onCancelRequest(cancelOrderId, decision, reason)
     setIsCancelModalOpen(false)
     setCancelOrderId(null)
     setCancelOrderReason('')
+  }
+
+  // Kiểm tra có lý do hủy không (cho cả CANCEL_REQUESTED và CANCELLED)
+  const hasCancelReason = (order) => {
+    return (order.status === ORDER_STATUS.CANCEL_REQUESTED || order.status === ORDER_STATUS.CANCELLED) && order.cancel_reason
   }
 
   return (
@@ -120,7 +125,7 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                   const PaymentBadge = getPaymentMethodBadge(order.payment_method)
                   const actions = getStatusActions(order.status)
                   const showCancelRequest = order.status === ORDER_STATUS.CANCEL_REQUESTED
-                  const showCancelReason = (order.status === ORDER_STATUS.CANCEL_REQUESTED || order.status === ORDER_STATUS.CANCELLED) && order.cancel_reason
+                  const showCancelReason = hasCancelReason(order)
 
                   return (
                     <tr key={order.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
@@ -137,7 +142,15 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                         <span className="font-mono text-sm font-extrabold text-gray-800">#{order.id}</span>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="text-sm text-gray-700">{order.recipient_name || '—'}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-800">{order.recipient_name || '—'}</span>
+                          {order.recipient_phone && (
+                            <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                              <FiPhone size={10} />
+                              {order.recipient_phone}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-right">
                         <span className="font-extrabold text-brand-primary">{formatPrice(order.total_amount)}</span>
@@ -164,9 +177,9 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                                   </span>
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent className="max-w-[300px] rounded-lg bg-gray-800 text-white text-xs border-none font-semibold p-3">
-                                <p className="font-bold mb-1">Lý do hủy:</p>
-                                <p className="text-gray-300">{order.cancel_reason}</p>
+                              <TooltipContent className="max-w-[350px] rounded-lg bg-gray-800 text-white text-xs border-none font-semibold p-3">
+                                <p className="font-bold mb-1">Lý do {order.status === ORDER_STATUS.CANCEL_REQUESTED ? 'yêu cầu hủy' : 'hủy đơn'}:</p>
+                                <p className="text-gray-300 break-words">{order.cancel_reason}</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : (

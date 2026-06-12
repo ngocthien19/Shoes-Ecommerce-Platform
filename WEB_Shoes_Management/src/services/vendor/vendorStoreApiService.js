@@ -1,7 +1,7 @@
 import authorizedAxiosInstance from '~/utils/authorizedAxios'
 import { DEV_API_URL } from '~/utils/constant'
 
-export const vendorStoreService = {
+export const vendorStoreApiService = {
   registerStore: async (formData) => {
     const response = await authorizedAxiosInstance.post(
       `${DEV_API_URL}/api/vendor/stores/register`,

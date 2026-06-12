@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { motion } from 'framer-motion'
-import { vendorStoreService } from '~/services/vendor/vendorStoreService'
+import { vendorStoreApiService } from '~/services/vendor/vendorStoreApiService'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 import { ImageUploadBox } from './ImageUploadBox'
@@ -31,7 +31,7 @@ export const RegisterStoreForm = () => {
       formData.append('logo', logoFile)
       if (bannerFile) formData.append('banner', bannerFile)
 
-      const res = await vendorStoreService.registerStore(formData)
+      const res = await vendorStoreApiService.registerStore(formData)
       toast.success(res.message)
       navigate('/')
     } catch (error) {
