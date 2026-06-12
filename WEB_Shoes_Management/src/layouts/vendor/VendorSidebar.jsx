@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiPieChart, FiBox, FiHeart, FiShoppingCart,
-  FiTag, FiStar, FiCreditCard, FiLogOut, FiChevronDown, FiList
+  FiTag, FiStar, FiCreditCard, FiLogOut, FiChevronDown, FiList,
+  FiMessageCircle // Thêm icon chat
 } from 'react-icons/fi'
 import { useDispatch } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
@@ -42,7 +43,8 @@ export const VendorSidebar = () => {
     { name: 'Quản lý đơn hàng', path: '/vendor/orders', icon: <FiShoppingCart size={20} /> },
     { name: 'Chương trình Khuyến mãi', path: '/vendor/promotions', icon: <FiTag size={20} /> },
     { name: 'Quản lý Đánh giá', path: '/vendor/reviews', icon: <FiStar size={20} /> },
-    { name: 'Tài chính & Rút tiền', path: '/vendor/payouts', icon: <FiCreditCard size={20} /> }
+    { name: 'Tài chính & Rút tiền', path: '/vendor/payouts', icon: <FiCreditCard size={20} /> },
+    { name: 'Tin nhắn', path: '/vendor/chat', icon: <FiMessageCircle size={20} /> } // Thêm mục Chat
   ]
 
   const checkIsActive = (path, exact = false) => {

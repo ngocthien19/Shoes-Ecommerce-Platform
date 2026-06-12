@@ -30,6 +30,7 @@ import { VendorOrdersPage } from '~/pages/vendor/Orders/VendorOrdersPage'
 import { VendorOrderDetailPage } from '~/pages/vendor/Orders/OrderDetail/VendorOrderDetailPage'
 import { VendorProfileAccount } from '~/pages/vendor/Profile/Account/VendorProfileAccount'
 import { VendorProfileStore } from '~/pages/vendor/Profile/Store/VendorProfileStore'
+import { VendorChatPage } from '~/pages/vendor/Chat/VendorChatPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -109,6 +110,9 @@ const App = () => {
 
             {/* Payout */}
             <Route path="payouts" element={<VendorPayoutPage />} />
+
+            {/* Chat */}
+            <Route path="chat" element={<VendorChatPage />} />
           </Route>
         </Route>
 

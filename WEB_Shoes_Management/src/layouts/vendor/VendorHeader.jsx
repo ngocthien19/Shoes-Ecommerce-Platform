@@ -27,6 +27,7 @@ export const VendorHeader = () => {
     if (location.pathname.includes('/vendor/reviews')) return 'Đánh giá từ khách hàng'
     if (location.pathname.includes('/vendor/payouts')) return 'Tài chính & Rút tiền'
     if (location.pathname.includes('/vendor/profile')) return 'Hồ sơ cửa hàng'
+    if (location.pathname.includes('/vendor/chat')) return 'Tin nhắn'
     return 'Kênh Người Bán'
   }
 
