@@ -7,16 +7,36 @@ export const VendorPasswordChange = ({ loading, onUpdateProfile }) => {
   const [showOldPassword, setShowOldPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [serverError, setServerError] = useState('')
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, setError, formState: { errors } } = useForm({
     defaultValues: { oldPassword: '', password: '', confirmPassword: '' }
   })
 
   const onPasswordSubmit = async (data) => {
-    await onUpdateProfile(
-      { password: data.password },
-      () => reset()
-    )
+    setServerError('')
+    try {
+      await onUpdateProfile(
+        {
+          oldPassword: data.oldPassword,
+          password: data.password
+        },
+        () => reset()
+      )
+    } catch (error) {
+      // Xử lý lỗi từ backend
+      const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
+
+      if (errorMessage.includes('Mật khẩu hiện tại không chính xác') ||
+          errorMessage.includes('mật khẩu hiện tại')) {
+        setError('oldPassword', {
+          type: 'manual',
+          message: 'Mật khẩu hiện tại không chính xác'
+        })
+      } else {
+        setServerError(errorMessage)
+      }
+    }
   }
 
   return (
@@ -29,7 +49,8 @@ export const VendorPasswordChange = ({ loading, onUpdateProfile }) => {
           placeholder="••••••••"
           icon={FiLock}
           {...register('oldPassword', {
-            required: 'Vui lòng nhập mật khẩu hiện tại để xác minh.'
+            required: 'Vui lòng nhập mật khẩu hiện tại để xác minh.',
+            minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự.' }
           })}
           error={errors.oldPassword}
         />
@@ -52,7 +73,12 @@ export const VendorPasswordChange = ({ loading, onUpdateProfile }) => {
           {...register('password', {
             required: 'Vui lòng thiết lập mật khẩu mới.',
             minLength: { value: 6, message: 'Mật khẩu mới phải chứa ít nhất 6 ký tự.' },
-            validate: (value) => value !== watch('oldPassword') || 'Mật khẩu mới không được trùng với mật khẩu hiện tại.'
+            validate: (value) => {
+              if (value && watch('oldPassword') && value === watch('oldPassword')) {
+                return 'Mật khẩu mới không được trùng với mật khẩu hiện tại.'
+              }
+              return true
+            }
           })}
           error={errors.password}
         />
@@ -86,6 +112,13 @@ export const VendorPasswordChange = ({ loading, onUpdateProfile }) => {
           {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
         </button>
       </div>
+
+      {/* Hiển thị lỗi server chung */}
+      {serverError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p className="text-sm text-red-600">{serverError}</p>
+        </div>
+      )}
 
       <div className="flex justify-end pt-4">
         <button

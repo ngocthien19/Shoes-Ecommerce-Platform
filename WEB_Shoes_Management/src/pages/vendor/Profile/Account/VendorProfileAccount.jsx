@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiCamera } from 'react-icons/fi'
+import { FiCamera, FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 
@@ -47,6 +47,7 @@ export const VendorProfileAccount = () => {
       formData.append('fullname', user?.fullname || '')
       formData.append('phone', user?.phone || '')
       formData.append('address', user?.address || '')
+      formData.append('oldPassword', data.oldPassword)
       formData.append('password', data.password)
     } else {
       formData.append('fullname', data.fullname)
@@ -62,10 +63,7 @@ export const VendorProfileAccount = () => {
       const response = await vendorUserApiService.updateProfile(formData)
       toast.success(response.message || 'Cập nhật thành công!')
 
-      // Cập nhật Redux
       dispatch(updateUserFields(response.user))
-
-      // Cập nhật state local
       setUser(response.user)
       setPreviewAvatar(getImageUrl(response.user.avatar))
       setSelectedFile(null)
@@ -77,15 +75,7 @@ export const VendorProfileAccount = () => {
         setActiveTab('profile')
       }
     } catch (error) {
-      const backendErrors = error.response?.data?.errors
-      const backendMessage = error.response?.data?.message
-      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
-        backendErrors.forEach((err) => toast.error(err))
-      } else if (backendMessage) {
-        toast.error(backendMessage)
-      } else {
-        toast.error('Cập nhật thất bại!')
-      }
+      throw error
     } finally {
       setLoading(false)
     }
@@ -107,20 +97,41 @@ export const VendorProfileAccount = () => {
 
   return (
     <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 p-6 sm:p-10 shadow-sm w-full">
-      {/* Header với avatar */}
-      <div className="flex items-center gap-5 pb-8 border-b border-gray-100 w-full mb-8">
-        <div className="relative group/avatar">
-          <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-gray-100 overflow-hidden ring-1 ring-gray-200">
-            <img src={previewAvatar} alt="Hồ sơ" className="w-full h-full object-cover" />
+      {/* Header với avatar và trạng thái */}
+      <div className="flex items-center justify-between gap-5 pb-8 border-b border-gray-100 w-full mb-8">
+        <div className="flex items-center gap-5">
+          <div className="relative group/avatar">
+            <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-gray-100 overflow-hidden ring-1 ring-gray-200">
+              <img src={previewAvatar} alt="Hồ sơ" className="w-full h-full object-cover" />
+            </div>
+            <label htmlFor="avatar-file" className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary text-white border-2 border-white rounded-full flex items-center justify-center shadow-md hover:bg-[#c73652] cursor-pointer transition-all">
+              <FiCamera size={12} />
+            </label>
+            <input type="file" id="avatar-file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </div>
-          <label htmlFor="avatar-file" className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary text-white border-2 border-white rounded-full flex items-center justify-center shadow-md hover:bg-[#c73652] cursor-pointer transition-all">
-            <FiCamera size={12} />
-          </label>
-          <input type="file" id="avatar-file" accept="image/*" onChange={handleFileChange} className="hidden" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-extrabold text-brand-secondary tracking-tight">{user?.fullname}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Mã thành viên: #{user?.id || '0000'}</p>
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-extrabold text-brand-secondary tracking-tight">{user?.fullname}</h1>
+              <span className={`px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1 ${
+                user?.isActive
+                  ? 'px-5 py-3 ring ring-green-600 bg-green-50 text-green-600 border border-green-100'
+                  : 'px-5 py-3 ring ring-red-500 bg-red-50 text-red-500 border border-red-100'
+              }`}>
+                {user?.isActive ? (
+                  <>
+                    <FiCheckCircle size={10} />
+                    Hoạt động
+                  </>
+                ) : (
+                  <>
+                    <FiXCircle size={10} />
+                    Đã khóa
+                  </>
+                )}
+              </span>
+            </div>
+            <p className="text-sm text-gray-400 mt-0.5">Mã thành viên: #{user?.id || '0000'}</p>
+          </div>
         </div>
       </div>
 

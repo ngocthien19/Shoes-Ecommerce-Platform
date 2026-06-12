@@ -9,6 +9,7 @@ import { DashboardWidgets } from './DashboardWidgets'
 import { RevenueChart } from './RevenueChart'
 import { CategoryPieChart } from './CategoryPieChart'
 import { TopProductsList } from './TopProductsList'
+import { QuickActions } from './QuickActions' // Thêm import
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -157,6 +158,9 @@ export const VendorDashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* QUICK ACTIONS SECTION - Thêm mới */}
+      <QuickActions />
 
       {/* CONTENT */}
       <AnimatePresence mode="wait">
