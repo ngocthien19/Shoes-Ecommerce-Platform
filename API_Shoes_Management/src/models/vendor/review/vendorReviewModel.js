@@ -11,8 +11,8 @@ const getStoreByOwnerId = async (ownerId) => {
 const getProductReviews = async (storeId, { search, rating, isActive, isReported, limit, offset }) => {
   let query = `
     SELECT pr.id, pr.user_id, u.fullname, u.avatar, pr.product_id, p.name AS product_name, 
-           pr.order_id, pr.rating, pr.comment, pr.images, pr.is_active, pr.is_reported, 
-           pr.report_reason, pr.created_at
+           p.images AS product_images, pr.order_id, pr.rating, pr.comment, pr.images, 
+           pr.is_active, pr.is_reported, pr.report_reason, pr.created_at
     FROM product_reviews pr
     JOIN products p ON pr.product_id = p.id
     JOIN users u ON pr.user_id = u.id
