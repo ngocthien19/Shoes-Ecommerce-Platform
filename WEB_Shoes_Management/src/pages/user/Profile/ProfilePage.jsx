@@ -9,8 +9,6 @@ import { productService } from '~/services/user/productService'
 import { ProfileSidebar } from './ProfileSidebar'
 import { ProfileTabsContent } from './ProfileTabsContent'
 import { toast } from 'react-toastify'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { getImageUrl } from '~/utils/formatters'
 
 export const ProfilePage = () => {
@@ -24,7 +22,7 @@ export const ProfilePage = () => {
   const user = useSelector((state) => state.user.userInfo)
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
 
-  const [previewAvatar, setPreviewAvatar] = useState(getImageUrl(user.avatar))
+  const [previewAvatar, setPreviewAvatar] = useState(getImageUrl(user?.avatar))
   const [selectedFile, setSelectedFile] = useState(null)
 
   useEffect(() => {
@@ -34,7 +32,7 @@ export const ProfilePage = () => {
   }, [isAuthenticated, navigate])
 
   useEffect(() => {
-    setPreviewAvatar(getImageUrl(user.avatar))
+    setPreviewAvatar(getImageUrl(user?.avatar))
   }, [user])
 
   useEffect(() => {
@@ -87,10 +85,12 @@ export const ProfilePage = () => {
     setLoading(true)
     const formData = new FormData()
 
+    // Nếu có password (đổi mật khẩu)
     if (data.password) {
       formData.append('fullname', user?.fullname || '')
       formData.append('phone', user?.phone || '')
       formData.append('address', user?.address || '')
+      formData.append('oldPassword', data.oldPassword) // Thêm oldPassword
       formData.append('password', data.password)
     } else {
       formData.append('fullname', data.fullname)
@@ -113,18 +113,6 @@ export const ProfilePage = () => {
           resetCallback()
         }
       }
-    } catch (error) {
-      console.error(error)
-      const backendErrors = error.response?.data?.errors
-      const backendMessage = error.response?.data?.message
-
-      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
-        backendErrors.forEach((err) => toast.error(err))
-      } else if (backendMessage) {
-        toast.error(backendMessage)
-      } else {
-        toast.error('Cập nhật thất bại!')
-      }
     } finally {
       setLoading(false)
     }
@@ -135,7 +123,7 @@ export const ProfilePage = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.15 // Độ trễ giữa Sidebar và Tabs Content
+        staggerChildren: 0.15
       }
     }
   }
@@ -165,7 +153,7 @@ export const ProfilePage = () => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               onLogout={handleLogout}
-              avatarUrl={getImageUrl(user.avatar)}
+              avatarUrl={getImageUrl(user?.avatar)}
             />
           </motion.div>
 

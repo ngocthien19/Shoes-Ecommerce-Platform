@@ -1,5 +1,5 @@
 import { FiCamera } from 'react-icons/fi'
-import { motion, AnimatePresence } from 'framer-motion' // 🟢 Import framer-motion
+import { motion, AnimatePresence } from 'framer-motion'
 import { TabProfile } from './Tabs/TabProfile'
 import { TabFavorites } from './Tabs/TabFavorites'
 import { TabPassword } from './Tabs/TabPassword'

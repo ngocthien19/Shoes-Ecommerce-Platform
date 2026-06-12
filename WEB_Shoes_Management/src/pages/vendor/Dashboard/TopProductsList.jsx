@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { FiAward, FiPackage, FiTrendingUp } from 'react-icons/fi'
 import { formatPrice, getImageUrl } from '~/utils/formatters'
+import { Link } from 'react-router-dom' // Thêm import
 
 const MEDALS = [
   { color: '#F59E0B', bg: 'from-yellow-400 to-amber-500', glow: 'shadow-amber-200', label: 'Gold' },
@@ -77,49 +78,54 @@ export const TopProductsList = ({ products }) => {
         {products.map((product, idx) => {
           const pct = Math.round((product.totalRevenue / maxRevenue) * 100)
           return (
-            <motion.div
+            <Link
               key={product.id}
-              variants={itemVariant}
-              whileHover={{ backgroundColor: '#fafafa' }}
-              className="flex items-center gap-4 px-6 py-4 transition-colors duration-150 cursor-pointer group"
+              to={`/vendor/products/detail/${product.id}`}
+              className="block"
             >
-              <RankBadge index={idx} />
+              <motion.div
+                variants={itemVariant}
+                whileHover={{ backgroundColor: '#fafafa' }}
+                className="flex items-center gap-4 px-6 py-4 transition-colors duration-150 cursor-pointer group"
+              >
+                <RankBadge index={idx} />
 
-              {/* Image */}
-              <div className="relative shrink-0">
-                <img
-                  src={getImageUrl(product.imageUrl, 'https://placehold.co/100x100?text=Product')}
-                  alt={product.name}
-                  className="w-11 h-11 rounded-xl object-cover border border-gray-100 shadow-sm group-hover:scale-105 transition-transform duration-200"
-                />
-              </div>
-
-              {/* Info + bar */}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-gray-800 text-sm line-clamp-1 group-hover:text-brand-primary transition-colors duration-150">
-                  {product.name}
-                </h4>
-                <div className="flex items-center gap-2 mt-0.5 mb-2">
-                  <FiTrendingUp size={10} className="text-gray-400" />
-                  <span className="text-xs text-gray-400">Đã bán <span className="font-bold text-gray-600">{product.totalSold}</span> sp</span>
-                </div>
-                {/* Revenue bar */}
-                <div className="h-1 bg-gray-100 rounded-full overflow-hidden w-full">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.8, delay: 0.1 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                    className="h-full rounded-full bg-gradient-to-r from-brand-primary to-rose-400"
+                {/* Image */}
+                <div className="relative shrink-0">
+                  <img
+                    src={getImageUrl(product.imageUrl, 'https://placehold.co/100x100?text=Product')}
+                    alt={product.name}
+                    className="w-11 h-11 rounded-xl object-cover border border-gray-100 shadow-sm group-hover:scale-105 transition-transform duration-200"
                   />
                 </div>
-              </div>
 
-              {/* Revenue */}
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-extrabold text-brand-primary">{formatPrice(product.totalRevenue)}</p>
-                <p className="text-[10px] font-semibold text-gray-400 mt-0.5">{pct}% top</p>
-              </div>
-            </motion.div>
+                {/* Info + bar */}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-gray-800 text-sm line-clamp-1 group-hover:text-brand-primary transition-colors duration-150">
+                    {product.name}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-0.5 mb-2">
+                    <FiTrendingUp size={10} className="text-gray-400" />
+                    <span className="text-xs text-gray-400">Đã bán <span className="font-bold text-gray-600">{product.totalSold}</span> sp</span>
+                  </div>
+                  {/* Revenue bar */}
+                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden w-full">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, delay: 0.1 + idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                      className="h-full rounded-full bg-gradient-to-r from-brand-primary to-rose-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Revenue */}
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-extrabold text-brand-primary">{formatPrice(product.totalRevenue)}</p>
+                  <p className="text-[10px] font-semibold text-gray-400 mt-0.5">{pct}% top</p>
+                </div>
+              </motion.div>
+            </Link>
           )
         })}
       </motion.div>

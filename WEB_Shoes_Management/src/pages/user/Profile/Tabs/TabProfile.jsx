@@ -41,7 +41,7 @@ export const TabProfile = ({ user, loading, onUpdateProfile }) => {
           value={user?.email || ''}
           disabled
           icon={FiMail}
-          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 pl-11 text-sm text-gray-400 cursor-not-allowed outline-none select-none"
+          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-6 px-4 pl-11 text-sm text-gray-900 cursor-not-allowed outline-none select-none"
         />
       </div>
 

@@ -56,10 +56,10 @@ export const PayoutOverviewWidgets = ({ balance, stats }) => {
           <h3 className="text-2xl font-black text-gray-800 mt-2">
             {item.value > 0 ? (
               <span className={item.title === 'Số dư khả dụng' ? 'text-brand-primary' : ''}>
-                <CountUp value={item.value} />₫
+                <CountUp value={item.value} />
               </span>
             ) : (
-              <span className="text-gray-400">0₫</span>
+              <span className="text-gray-400">0</span>
             )}
           </h3>
         </div>

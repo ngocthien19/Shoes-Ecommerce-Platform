@@ -8,17 +8,30 @@ export const TabPassword = ({ loading, onUpdateProfile }) => {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, setError, formState: { errors } } = useForm({
     defaultValues: { oldPassword: '', password: '', confirmPassword: '' }
   })
 
   const onPasswordSubmit = async (data) => {
-    await onUpdateProfile(
-      {
-        password: data.password
-      },
-      () => reset()
-    )
+    try {
+      await onUpdateProfile(
+        {
+          oldPassword: data.oldPassword,
+          password: data.password
+        },
+        () => reset()
+      )
+    } catch (error) {
+      // Xử lý lỗi từ backend
+      const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra'
+
+      if (errorMessage.includes('Mật khẩu hiện tại không chính xác')) {
+        setError('oldPassword', {
+          type: 'manual',
+          message: 'Mật khẩu hiện tại không chính xác'
+        })
+      }
+    }
   }
 
   return (
@@ -36,7 +49,8 @@ export const TabPassword = ({ loading, onUpdateProfile }) => {
           placeholder="••••••••"
           icon={FiLock}
           {...register('oldPassword', {
-            required: 'Vui lòng nhập mật khẩu hiện tại để xác minh.'
+            required: 'Vui lòng nhập mật khẩu hiện tại để xác minh.',
+            minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự.' }
           })}
           error={errors.oldPassword}
         />
@@ -59,7 +73,12 @@ export const TabPassword = ({ loading, onUpdateProfile }) => {
           {...register('password', {
             required: 'Vui lòng thiết lập mật khẩu mới.',
             minLength: { value: 6, message: 'Mật khẩu mới phải chứa ít nhất 6 ký tự.' },
-            validate: (value) => value !== watch('oldPassword') || 'Mật khẩu mới không được trùng với mật khẩu hiện tại.'
+            validate: (value) => {
+              if (value && watch('oldPassword') && value === watch('oldPassword')) {
+                return 'Mật khẩu mới không được trùng với mật khẩu hiện tại.'
+              }
+              return true
+            }
           })}
           error={errors.password}
         />
