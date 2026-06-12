@@ -65,21 +65,25 @@ export const VendorOrdersPage = () => {
     setSelectedIds(isChecked && data?.orders ? data.orders.map(o => o.id) : [])
   }
 
+  // Cập nhật trạng thái đơn hàng thông thường
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       const res = await vendorOrderApiService.updateOrderStatus(id, newStatus)
       toast.success(res.message)
       fetchOrders()
+      setSelectedIds([])
     } catch (error) {
       toast.error(error.message || 'Cập nhật trạng thái thất bại.')
     }
   }
 
+  // Xử lý yêu cầu hủy đơn (accept/reject)
   const handleCancelRequest = async (id, decision, reason) => {
     try {
       const res = await vendorOrderApiService.handleCancelRequest(id, decision, reason)
       toast.success(res.message)
       fetchOrders()
+      setSelectedIds([])
     } catch (error) {
       toast.error(error.message || 'Xử lý yêu cầu hủy thất bại.')
     }
@@ -144,6 +148,7 @@ export const VendorOrdersPage = () => {
               onSelectRow={handleSelectRow}
               onSelectAll={handleSelectAll}
               onUpdateStatus={handleUpdateStatus}
+              onCancelRequest={handleCancelRequest}
               onUpdateStatusBulk={handleBulkUpdate}
             />
 

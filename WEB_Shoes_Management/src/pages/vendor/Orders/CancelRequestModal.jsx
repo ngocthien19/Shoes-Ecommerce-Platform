@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiAlertCircle, FiX, FiCheckCircle, FiXCircle, FiUser } from 'react-icons/fi'
+import { FiAlertCircle, FiX, FiCheckCircle, FiXCircle, FiUser, FiInfo } from 'react-icons/fi'
 
 export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason = '', isLoading = false }) => {
   const [decision, setDecision] = useState(null)
@@ -8,7 +8,17 @@ export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason 
 
   const handleConfirm = () => {
     if (!decision) return
-    onConfirm(decision, reason)
+
+    // Khi chấp nhận hủy: nếu không có lý do bổ sung thì dùng lý do của khách hàng
+    if (decision === 'accept') {
+      const finalReason = reason.trim()
+        ? `${customerReason} (Bổ sung: ${reason})`
+        : customerReason
+      onConfirm(decision, finalReason)
+    } else {
+      // Khi từ chối hủy: bắt buộc có lý do
+      onConfirm(decision, reason)
+    }
   }
 
   return (
@@ -52,7 +62,7 @@ export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason 
 
             {/* Body */}
             <div className="p-5 space-y-4">
-              {/* Lý do từ khách hàng */}
+              {/* Lý do từ khách hàng - Read only */}
               {customerReason && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-2">
@@ -60,6 +70,10 @@ export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason 
                     <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">Lý do từ khách hàng:</span>
                   </div>
                   <p className="text-sm text-blue-800 leading-relaxed">{customerReason}</p>
+                  <div className="mt-2 flex items-center gap-1">
+                    <FiInfo size={10} className="text-blue-400" />
+                    <span className="text-[10px] text-blue-500">* Lý do này do khách hàng cung cấp, sẽ được giữ nguyên khi chấp nhận hủy</span>
+                  </div>
                 </div>
               )}
 
@@ -100,31 +114,39 @@ export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason 
                 </div>
               </div>
 
+              {/* Khi chấp nhận hủy - có thể thêm lý do bổ sung */}
               {decision === 'accept' && (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Lý do hủy (không bắt buộc)</label>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    Lý do bổ sung từ shop <span className="text-gray-400 font-normal">(không bắt buộc)</span>
+                  </label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Nhập lý do hủy đơn hàng..."
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-300"
+                    placeholder="Nhập lý do bổ sung (nếu có)..."
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all duration-300"
                     rows={3}
+                    disabled={isLoading}
                   />
-                  <p className="text-[10px] text-gray-400">* Lý do sẽ được ghi vào đơn hàng và hiển thị cho khách hàng</p>
+                  <p className="text-[10px] text-gray-400">* Nếu không nhập, hệ thống sẽ chỉ ghi lý do từ khách hàng</p>
                 </div>
               )}
 
+              {/* Khi từ chối hủy - bắt buộc nhập lý do */}
               {decision === 'reject' && (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Lý do từ chối (không bắt buộc)</label>
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    Lý do từ chối <span className="text-red-500">*</span>
+                  </label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Nhập lý do từ chối hủy đơn hàng..."
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all duration-300"
+                    className={`w-full rounded-xl border ${!reason.trim() && decision === 'reject' ? 'border-red-300 focus:border-red-500' : 'border-gray-200'} bg-gray-50/50 px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-red-100 transition-all duration-300`}
                     rows={3}
+                    required
                   />
-                  <p className="text-[10px] text-gray-400">* Lý do sẽ được ghi vào đơn hàng và hiển thị cho khách hàng</p>
+                  <p className="text-[10px] text-red-500">* Vui lòng nhập lý do từ chối để khách hàng biết</p>
                 </div>
               )}
             </div>
@@ -140,7 +162,7 @@ export const CancelRequestModal = ({ isOpen, onClose, onConfirm, customerReason 
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={!decision || isLoading}
+                disabled={!decision || isLoading || (decision === 'reject' && !reason.trim())}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   decision === 'accept'
                     ? 'bg-green-500 hover:bg-green-600 text-white'

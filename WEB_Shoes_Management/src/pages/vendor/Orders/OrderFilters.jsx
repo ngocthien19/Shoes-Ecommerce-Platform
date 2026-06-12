@@ -127,7 +127,7 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
           {/* Lọc theo trạng thái */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[130px]">
+              <button className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[130px]">
                 <span>{currentStatusLabel}</span>
                 <FiChevronDown size={14} className="text-gray-400" />
               </button>
@@ -148,7 +148,7 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
           {/* Lọc theo phương thức thanh toán */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[150px]">
+              <button className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[150px]">
                 <FiCreditCard size={12} className="text-gray-400" />
                 <span>{currentPaymentLabel}</span>
                 <FiChevronDown size={14} className="text-gray-400" />

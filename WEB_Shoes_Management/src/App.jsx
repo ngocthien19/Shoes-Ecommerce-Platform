@@ -28,6 +28,8 @@ import { ReviewDetailPage } from '~/pages/vendor/Reviews/ReviewDetail/ReviewDeta
 import { VendorPayoutPage } from '~/pages/vendor/Payout/VendorPayoutPage'
 import { VendorOrdersPage } from '~/pages/vendor/Orders/VendorOrdersPage'
 import { VendorOrderDetailPage } from '~/pages/vendor/Orders/OrderDetail/VendorOrderDetailPage'
+import { VendorProfileAccount } from '~/pages/vendor/Profile/Account/VendorProfileAccount'
+import { VendorProfileStore } from '~/pages/vendor/Profile/Store/VendorProfileStore'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // AUTH PAGES
@@ -77,6 +79,10 @@ const App = () => {
           <Route path="/vendor" element={<VendorLayout />}>
             {/* Dashboard */}
             <Route path="dashboard" element={<VendorDashboardPage />} />
+
+            {/* Profile */}
+            <Route path="profile-account" element={<VendorProfileAccount />} />
+            <Route path="profile-store" element={<VendorProfileStore />} />
 
             {/* Promotion */}
             <Route path="products" element={<VendorProductsPage />} />
