@@ -91,6 +91,11 @@ const getStoreOwnerId = async (storeId) => {
   return rows[0]?.owner_id
 }
 
+const getStoreByOwnerId = async (ownerId) => {
+  const [rows] = await pool.execute('SELECT id FROM stores WHERE owner_id = ?', [ownerId])
+  return rows[0]
+}
+
 export const chatModel = {
   getOrCreateConversation,
   saveMessage,
@@ -98,5 +103,6 @@ export const chatModel = {
   getConversationsList,
   getConversationInfoById,
   getStoreOwnerId,
+  getStoreByOwnerId,
   markMessagesAsRead
 }
