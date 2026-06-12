@@ -130,7 +130,7 @@ export const VendorChatPage = () => {
 
   const handleSendMessage = async (messageText, selectedImage) => {
     const formData = new FormData()
-    formData.append('storeId', activeChat.store_id)
+    formData.append('userId', activeChat.client_id)
     formData.append('content', messageText.trim())
     if (selectedImage) {
       formData.append('chatImages', selectedImage)
