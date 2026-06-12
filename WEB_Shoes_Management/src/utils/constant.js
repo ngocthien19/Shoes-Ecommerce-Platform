@@ -51,3 +51,8 @@ export const PRODUCT_MODERATION_STATUS = {
   BANNED: 'banned',
   PENDING_REAPPROVAL: 'pending_reapproval'
 }
+
+export const REVIEW_TYPES = {
+  PRODUCT: 'product',
+  STORE: 'store'
+}
