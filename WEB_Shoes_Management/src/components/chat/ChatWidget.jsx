@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { io } from 'socket.io-client'
@@ -30,80 +30,109 @@ export const ChatWidget = () => {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
   const currentUser = useSelector((state) => state.user.userInfo)
 
-  // Sync với context
+  const activeChatRef = useRef(activeChat)
+  const conversationsRef = useRef(conversations)
+
+  // Sync refs
+  useEffect(() => {
+    activeChatRef.current = activeChat
+  }, [activeChat])
+
+  useEffect(() => {
+    conversationsRef.current = conversations
+  }, [conversations])
+
   const isOpen = contextIsOpen || localIsOpen
 
-  // Xử lý khi có targetStore từ context
   useEffect(() => {
-    if (targetStore && isAuthenticated && conversations.length > 0) {
-      // Tìm conversation với store này
+    if (targetStore && isAuthenticated && conversations.length > 0 && currentUser) {
       const existingConv = conversations.find(conv =>
         conv.store_id === targetStore.storeId || conv.store_owner_id === targetStore.storeId
       )
-
       if (existingConv) {
         setActiveChat(existingConv)
-      } else {
-        // Nếu chưa có conversation, có thể tạo mới hoặc chờ người dùng nhắn tin
-        console.log('Chưa có conversation với shop này')
       }
-
       clearTargetStore()
     }
-  }, [targetStore, isAuthenticated, conversations, clearTargetStore])
+  }, [targetStore, isAuthenticated, conversations, clearTargetStore, currentUser])
 
   // Khởi tạo Socket.io khi Modal mở ra
   useEffect(() => {
-    if (isOpen && isAuthenticated) {
-      const token = localStorage.getItem('accessToken')
-      socket = io(DEV_API_URL, {
-        auth: { token }
-      })
+    if (!isOpen || !isAuthenticated || !currentUser) return
 
-      socket.on('new_chat_message', (newMessage) => {
-        if (activeChat && activeChat.conversation_id === newMessage.conversationId) {
-          setMessages(prev => [...prev, newMessage])
+    socket = io(DEV_API_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
+
+    socket.on('connect', () => {
+      console.log('Socket connected')
+    })
+
+    socket.on('new_chat_message', (newMessage) => {
+      console.log('New message:', newMessage)
+
+      const currentConvId = activeChatRef.current?.conversation_id
+      const isCurrentConversation = currentConvId === newMessage.conversationId
+
+      if (isCurrentConversation) {
+        setMessages(prev => [...prev, newMessage])
+        chatApiService.markAsRead(newMessage.conversationId).catch(console.error)
+        setConversations(prev => prev.map(conv =>
+          conv.conversation_id === newMessage.conversationId
+            ? { ...conv, unread_count: 0 }
+            : conv
+        ))
+      } else {
+        setConversations(prev => prev.map(conv => {
+          if (conv.conversation_id === newMessage.conversationId) {
+            return { ...conv, unread_count: (conv.unread_count || 0) + 1 }
+          }
+          return conv
+        }))
+      }
+
+      setConversations(prev => {
+        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversationId)
+        if (updatedConv) {
+          const newList = prev.filter(c => c.conversation_id !== newMessage.conversationId)
+          return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
         }
-        fetchConversations()
+        return prev
       })
+    })
 
-      socket.on('user_online_status', ({ userId, isOnline, lastActive }) => {
-        updateConversationOnlineStatus(userId, isOnline, lastActive)
-        updateActiveChatOnlineStatus(userId, isOnline, lastActive)
-      })
+    socket.on('user_online_status', ({ userId, isOnline, lastActive }) => {
+      setConversations(prev => prev.map(conv => {
+        const isUserClient = currentUser.id === conv.client_id
+        if (isUserClient && conv.store_owner_id === userId) {
+          return { ...conv, store_online: isOnline, store_last_active: lastActive }
+        }
+        if (!isUserClient && conv.client_id === userId) {
+          return { ...conv, client_online: isOnline, client_last_active: lastActive }
+        }
+        return conv
+      }))
 
-      return () => {
-        socket.disconnect()
+      if (activeChatRef.current) {
+        const isUserClient = currentUser.id === activeChatRef.current.client_id
+        if (isUserClient && activeChatRef.current.store_owner_id === userId) {
+          setActiveChat(prev => ({ ...prev, store_online: isOnline, store_last_active: lastActive }))
+        }
+        if (!isUserClient && activeChatRef.current.client_id === userId) {
+          setActiveChat(prev => ({ ...prev, client_online: isOnline, client_last_active: lastActive }))
+        }
       }
+    })
+
+    return () => {
+      socket.disconnect()
     }
-  }, [isOpen, isAuthenticated, activeChat])
+  }, [isOpen, isAuthenticated, currentUser])
 
-  const updateConversationOnlineStatus = (userId, isOnline, lastActive) => {
-    setConversations(prev => prev.map(conv => {
-      const isUserClient = currentUser.id === conv.client_id
-      if (isUserClient && conv.store_owner_id === userId) {
-        return { ...conv, store_online: isOnline, store_last_active: lastActive }
-      }
-      if (!isUserClient && conv.client_id === userId) {
-        return { ...conv, client_online: isOnline, client_last_active: lastActive }
-      }
-      return conv
-    }))
-  }
-
-  const updateActiveChatOnlineStatus = (userId, isOnline, lastActive) => {
-    if (!activeChat) return
-
-    const isUserClient = currentUser.id === activeChat.client_id
-    if (isUserClient && activeChat.store_owner_id === userId) {
-      setActiveChat(prev => ({ ...prev, store_online: isOnline, store_last_active: lastActive }))
-    }
-    if (!isUserClient && activeChat.client_id === userId) {
-      setActiveChat(prev => ({ ...prev, client_online: isOnline, client_last_active: lastActive }))
-    }
-  }
-
-  // Lấy danh sách Chat bên trái
   const fetchConversations = async () => {
     try {
       const data = await chatApiService.getConversationsList()
@@ -122,20 +151,17 @@ export const ChatWidget = () => {
   }, [isOpen, closeChat])
 
   useEffect(() => {
-    if (isOpen && isAuthenticated) {
+    if (isOpen && isAuthenticated && currentUser) {
       setLoadingList(true)
       fetchConversations().finally(() => setLoadingList(false))
     }
-  }, [isOpen, isAuthenticated])
+  }, [isOpen, isAuthenticated, currentUser])
 
-  // Gọi khi Click chọn 1 phòng chat để lấy lịch sử
   useEffect(() => {
     if (activeChat) {
       setLoadingChat(true)
       chatApiService.getChatHistory(activeChat.conversation_id)
-        .then(data => {
-          setMessages(data)
-        })
+        .then(data => setMessages(data))
         .catch(() => toast.error('Không thể tải tin nhắn'))
         .finally(() => setLoadingChat(false))
     }
@@ -143,7 +169,6 @@ export const ChatWidget = () => {
 
   const handleSelectConversation = async (conv) => {
     setActiveChat(conv)
-
     if (conv.unread_count > 0) {
       try {
         await chatApiService.markAsRead(conv.conversation_id)
@@ -151,12 +176,14 @@ export const ChatWidget = () => {
           c.conversation_id === conv.conversation_id ? { ...c, unread_count: 0 } : c
         ))
       } catch (error) {
-        console.error('Lỗi khi đánh dấu đã đọc', error)
+        console.error('Lỗi đánh dấu đã đọc', error)
       }
     }
   }
 
   const handleSendMessage = async (messageText, selectedImage) => {
+    if (!activeChat) return false
+
     const formData = new FormData()
     formData.append('storeId', activeChat.store_id)
     formData.append('content', messageText.trim())
@@ -164,11 +191,23 @@ export const ChatWidget = () => {
       formData.append('chatImages', selectedImage)
     }
 
+    const tempMessage = {
+      id: Date.now(),
+      conversationId: activeChat.conversation_id,
+      senderId: currentUser?.id,
+      content: messageText.trim(),
+      images: selectedImage ? [{ secure_url: URL.createObjectURL(selectedImage) }] : [],
+      createdAt: new Date().toISOString(),
+      isTemp: true
+    }
+    setMessages(prev => [...prev, tempMessage])
+
     try {
       const result = await chatApiService.sendMessage(formData)
-      setMessages(prev => [...prev, result])
+      setMessages(prev => prev.map(msg => msg.id === tempMessage.id ? result : msg))
       return true
     } catch (error) {
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id))
       toast.error('Gửi tin nhắn thất bại')
       return false
     }
@@ -189,6 +228,8 @@ export const ChatWidget = () => {
   }
 
   const getOnlineStatus = (conv) => {
+    if (!currentUser) return { text: 'Đang tải...', isOnline: false, lastActiveText: null }
+
     const isUserClient = currentUser.id === conv.client_id
     const isOnline = isUserClient ? conv.store_online : conv.client_online
     const lastActive = isUserClient ? conv.store_last_active : conv.client_last_active
@@ -199,7 +240,7 @@ export const ChatWidget = () => {
     return { text: formatLastActive(lastActive), isOnline: false, lastActiveText: formatRelativeTime(lastActive) }
   }
 
-  if (!isAuthenticated || currentUser?.roleId !== ROLE_ID.USER) return null
+  if (!isAuthenticated || !currentUser || currentUser?.roleId !== ROLE_ID.USER) return null
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

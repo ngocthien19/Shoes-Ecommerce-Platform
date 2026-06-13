@@ -24,90 +24,132 @@ export const VendorChatPage = () => {
 
   const messagesEndRef = useRef(null)
   const activeChatRef = useRef(activeChat)
+  const conversationsRef = useRef(conversations)
+  const socketInitialized = useRef(false)
 
-  // Cập nhật ref khi activeChat thay đổi
   useEffect(() => {
     activeChatRef.current = activeChat
   }, [activeChat])
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    conversationsRef.current = conversations
+  }, [conversations])
 
-    const token = localStorage.getItem('accessToken')
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) return
+    if (socketInitialized.current) return
+
+    socketInitialized.current = true
+
     socket = io(DEV_API_URL, {
-      auth: { token }
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
+
+    socket.on('connect', () => {
+      console.log('Vendor Socket connected')
+    })
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message)
+      socketInitialized.current = false
     })
 
     socket.on('new_chat_message', (newMessage) => {
-      // Dùng ref để lấy activeChat mới nhất mà không cần dependency
-      if (activeChatRef.current && activeChatRef.current.conversation_id === newMessage.conversationId) {
+      console.log('Vendor received:', newMessage)
+
+      const currentConvId = activeChatRef.current?.conversation_id
+      const isCurrentConversation = currentConvId === newMessage.conversationId
+
+      if (isCurrentConversation) {
         setMessages(prev => [...prev, newMessage])
+        chatApiService.markAsRead(newMessage.conversationId).catch(console.error)
+        setConversations(prev => prev.map(conv =>
+          conv.conversation_id === newMessage.conversationId
+            ? { ...conv, unread_count: 0 }
+            : conv
+        ))
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      } else {
+        setConversations(prev => prev.map(conv => {
+          if (conv.conversation_id === newMessage.conversationId) {
+            return { ...conv, unread_count: (conv.unread_count || 0) + 1 }
+          }
+          return conv
+        }))
       }
-      fetchConversations()
+
+      setConversations(prev => {
+        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversationId)
+        if (updatedConv) {
+          const newList = prev.filter(c => c.conversation_id !== newMessage.conversationId)
+          return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
+        }
+        return prev
+      })
     })
 
     socket.on('user_online_status', ({ userId, isOnline, lastActive }) => {
-      updateConversationOnlineStatus(userId, isOnline, lastActive)
+      setConversations(prev => prev.map(conv => {
+        if (conv.client_id === userId) {
+          return { ...conv, client_online: isOnline, client_last_active: lastActive }
+        }
+        return conv
+      }))
+
       if (activeChatRef.current && activeChatRef.current.client_id === userId) {
         setActiveChat(prev => prev ? { ...prev, client_online: isOnline, client_last_active: lastActive } : prev)
       }
     })
 
     return () => {
-      socket.disconnect()
-    }
-  }, [isAuthenticated])
-
-  const updateConversationOnlineStatus = (userId, isOnline, lastActive) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.client_id === userId) {
-        return { ...conv, client_online: isOnline, client_last_active: lastActive }
+      if (socket) {
+        socket.disconnect()
+        socket = null
+        socketInitialized.current = false
       }
-      return conv
-    }))
-  }
+    }
+  }, [isAuthenticated, currentUser])
 
-  // Lấy danh sách hội thoại
   const fetchConversations = async () => {
     try {
       const data = await chatApiService.getConversationsList()
       setConversations(data)
     } catch (err) {
-      console.error('Lỗi tải danh sách:', err)
+      console.error('Loi tai danh sach:', err)
     }
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && currentUser) {
       setLoadingList(true)
       fetchConversations().finally(() => setLoadingList(false))
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, currentUser])
 
-  // Lấy lịch sử tin nhắn khi chọn phòng chat
   useEffect(() => {
     if (activeChat) {
       setLoadingChat(true)
       chatApiService.getChatHistory(activeChat.conversation_id)
-        .then(data => {
-          setMessages(data)
-        })
-        .catch(() => toast.error('Không thể tải tin nhắn'))
+        .then(data => setMessages(data))
+        .catch(() => toast.error('Khong the tai tin nhan'))
         .finally(() => setLoadingChat(false))
     }
   }, [activeChat])
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (messages.length > 0 && activeChat) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [messages, activeChat])
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 200)
-  }
-
-  // Đánh dấu đã đọc khi chọn phòng chat
   useEffect(() => {
     if (activeChat && activeChat.unread_count > 0) {
       const markAsRead = async () => {
@@ -117,7 +159,7 @@ export const VendorChatPage = () => {
             c.conversation_id === activeChat.conversation_id ? { ...c, unread_count: 0 } : c
           ))
         } catch (error) {
-          console.error('Lỗi khi đánh dấu đã đọc', error)
+          console.error('Loi khi danh dau da doc', error)
         }
       }
       markAsRead()
@@ -129,6 +171,8 @@ export const VendorChatPage = () => {
   }
 
   const handleSendMessage = async (messageText, selectedImage) => {
+    if (!activeChat || !currentUser) return false
+
     const formData = new FormData()
     formData.append('userId', activeChat.client_id)
     formData.append('content', messageText.trim())
@@ -136,14 +180,37 @@ export const VendorChatPage = () => {
       formData.append('chatImages', selectedImage)
     }
 
+    const tempMessage = {
+      id: Date.now(),
+      conversationId: activeChat.conversation_id,
+      senderId: currentUser.id,
+      content: messageText.trim(),
+      images: selectedImage ? [{ secure_url: URL.createObjectURL(selectedImage) }] : [],
+      createdAt: new Date().toISOString(),
+      isTemp: true
+    }
+    setMessages(prev => [...prev, tempMessage])
+
+    setConversations(prev => {
+      const updatedConv = prev.find(c => c.conversation_id === activeChat.conversation_id)
+      if (updatedConv) {
+        const newList = prev.filter(c => c.conversation_id !== activeChat.conversation_id)
+        return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
+      }
+      return prev
+    })
+
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+
     try {
       const result = await chatApiService.sendMessage(formData)
-      setMessages(prev => [...prev, result])
-      fetchConversations()
-      scrollToBottom()
+      setMessages(prev => prev.map(msg => msg.id === tempMessage.id ? result : msg))
       return true
     } catch (error) {
-      toast.error('Gửi tin nhắn thất bại')
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id))
+      toast.error('Gui tin nhan that bai')
       console.error(error)
       return false
     }
@@ -154,12 +221,12 @@ export const VendorChatPage = () => {
     const lastActive = conv.client_last_active
 
     if (isOnline) {
-      return { text: 'Đang hoạt động', isOnline: true, lastActiveText: null }
+      return { text: 'Dang hoat dong', isOnline: true, lastActiveText: null }
     }
     return { text: formatLastActive(lastActive), isOnline: false, lastActiveText: formatRelativeTime(lastActive) }
   }
 
-  if (!isAuthenticated) return null
+  if (!isAuthenticated || !currentUser) return null
 
   return (
     <div className="h-[calc(100vh-120px)]">
