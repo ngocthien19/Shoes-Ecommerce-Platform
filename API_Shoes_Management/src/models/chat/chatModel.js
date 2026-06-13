@@ -26,18 +26,17 @@ const saveMessage = async (conversationId, senderId, content, images) => {
   return result.insertId
 }
 
-// Tải lịch sử tin nhắn của một phòng chat cụ thể (Phân trang lùi)
 const getMessagesByConversation = async (conversationId, limit, offset) => {
   const query = `
     SELECT m.id, m.sender_id, m.content, m.images, m.is_read, m.created_at, u.fullname AS sender_name
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     WHERE m.conversation_id = ?
-    ORDER BY m.created_at ASC
+    ORDER BY m.created_at DESC
     LIMIT ? OFFSET ?
   `
   const [rows] = await pool.query(query, [conversationId, limit, offset])
-  return rows
+  return rows.reverse()
 }
 
 // Tải toàn bộ danh sách phòng chat của người dùng hiện tại

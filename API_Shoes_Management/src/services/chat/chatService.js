@@ -20,13 +20,14 @@ const sendMessage = async (senderId, storeId, content, imageFiles) => {
   // Xác định người nhận: nếu sender là user (khách) thì receiver là shop owner
   const receiverId = senderId === info.user_id ? storeOwnerId : info.user_id
 
+  // FIX: Trả về snake_case để đồng bộ với DB
   const messageData = {
     id: messageId,
-    conversationId,
-    senderId,
-    content,
-    images,
-    createdAt: new Date()
+    conversation_id: conversationId,
+    sender_id: senderId,
+    content: content,
+    images: images,
+    created_at: new Date()
   }
 
   SocketProvider.emitToUser(receiverId, 'new_chat_message', messageData)
@@ -34,6 +35,7 @@ const sendMessage = async (senderId, storeId, content, imageFiles) => {
   return messageData
 }
 
+// VENDOR gửi tin nhắn cho USER (khách hàng)
 const sendMessageToUser = async (senderId, userId, content, imageFiles) => {
   // Lấy store_id từ senderId (vì sender là vendor - chủ shop)
   const store = await chatModel.getStoreByOwnerId(senderId)
@@ -51,13 +53,14 @@ const sendMessageToUser = async (senderId, userId, content, imageFiles) => {
 
   const messageId = await chatModel.saveMessage(conversationId, senderId, content, images)
 
+  // FIX: Trả về snake_case để đồng bộ với DB
   const messageData = {
     id: messageId,
-    conversationId,
-    senderId,
-    content,
-    images,
-    createdAt: new Date()
+    conversation_id: conversationId,
+    sender_id: senderId,
+    content: content,
+    images: images,
+    created_at: new Date()
   }
 
   // Bắn socket cho user (khách hàng)
@@ -89,7 +92,7 @@ const initConversation = async (userId, storeId) => {
 
 export const chatService = {
   sendMessage,
-  sendMessageToUser, // Thêm export
+  sendMessageToUser,
   getChatHistory,
   getConversationsList,
   markAsRead,
