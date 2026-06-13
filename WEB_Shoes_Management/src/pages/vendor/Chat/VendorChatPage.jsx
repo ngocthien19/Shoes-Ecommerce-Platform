@@ -180,37 +180,28 @@ export const VendorChatPage = () => {
       formData.append('chatImages', selectedImage)
     }
 
-    const tempMessage = {
-      id: Date.now(),
-      conversationId: activeChat.conversation_id,
-      senderId: currentUser.id,
-      content: messageText.trim(),
-      images: selectedImage ? [{ secure_url: URL.createObjectURL(selectedImage) }] : [],
-      createdAt: new Date().toISOString(),
-      isTemp: true
-    }
-    setMessages(prev => [...prev, tempMessage])
-
-    setConversations(prev => {
-      const updatedConv = prev.find(c => c.conversation_id === activeChat.conversation_id)
-      if (updatedConv) {
-        const newList = prev.filter(c => c.conversation_id !== activeChat.conversation_id)
-        return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
-      }
-      return prev
-    })
-
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
-
     try {
       const result = await chatApiService.sendMessage(formData)
-      setMessages(prev => prev.map(msg => msg.id === tempMessage.id ? result : msg))
+
+      // Chỉ thêm tin nhắn vào state sau khi API thành công
+      setMessages(prev => [...prev, result])
+
+      setConversations(prev => {
+        const updatedConv = prev.find(c => c.conversation_id === activeChat.conversation_id)
+        if (updatedConv) {
+          const newList = prev.filter(c => c.conversation_id !== activeChat.conversation_id)
+          return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
+        }
+        return prev
+      })
+
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+
       return true
     } catch (error) {
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id))
-      toast.error('Gui tin nhan that bai')
+      toast.error('Gửi tin nhắn thất bại')
       console.error(error)
       return false
     }
