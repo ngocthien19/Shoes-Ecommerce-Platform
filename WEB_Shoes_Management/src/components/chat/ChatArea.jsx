@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { FiX, FiChevronLeft, FiImage, FiSend, FiMessageCircle } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
-import { getImageUrl, formatLastActive, formatMessageTime, shouldShowTimeDivider } from '~/utils/formatters'
+import { getImageUrl, formatLastActive } from '~/utils/formatters'
 import { MessageList } from './MessageList'
 import {
   Tooltip,
@@ -13,14 +13,39 @@ export const ChatArea = ({
   activeChat,
   messages,
   loadingChat,
+  loadingMore,
   currentUser,
   onSendMessage,
   onBack,
   onClose,
-  messagesEndRef
+  messagesEndRef,
+  onLoadMore,
+  hasMore
 }) => {
   const [messageText, setMessageText] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const fileInputRef = useRef(null)
+  const isLoadingMoreRef = useRef(false)
+
+  useEffect(() => {
+    if (selectedImage) {
+      setImagePreview(URL.createObjectURL(selectedImage))
+    } else {
+      setImagePreview(null)
+    }
+  }, [selectedImage])
+
+  const handleScroll = useCallback((e) => {
+    const container = e.target
+    if (container.scrollTop <= 50 && !isLoadingMoreRef.current && hasMore && !loadingChat) {
+      isLoadingMoreRef.current = true
+      onLoadMore?.()
+      setTimeout(() => {
+        isLoadingMoreRef.current = false
+      }, 500)
+    }
+  }, [hasMore, loadingChat, onLoadMore])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,12 +55,23 @@ export const ChatArea = ({
     if (success) {
       setMessageText('')
       setSelectedImage(null)
+      setImagePreview(null)
     }
   }
 
   const handleImageChange = (e) => {
     const file = e.target.files[0]
-    if (file) setSelectedImage(file)
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   if (!activeChat) {
@@ -91,17 +127,25 @@ export const ChatArea = ({
       </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {loadingMore && (
+          <div className="flex justify-center py-2 bg-gray-50">
+            <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-gray-400 ml-2">Đang tải tin nhắn cũ...</span>
+          </div>
+        )}
+
         <MessageList
           messages={messages}
           loadingChat={loadingChat}
           currentUser={currentUser}
           messagesEndRef={messagesEndRef}
+          onScroll={handleScroll}
         />
 
-        {selectedImage && (
+        {imagePreview && (
           <div className="px-3 py-1.5 bg-gray-100 border-t border-gray-200 relative flex items-center">
-            <img src={URL.createObjectURL(selectedImage)} alt="preview" className="h-12 w-12 object-cover rounded-lg" />
-            <button onClick={() => setSelectedImage(null)} className="absolute top-1 left-12 bg-black/50 text-white rounded-full p-0.5 shadow-sm hover:bg-black/70">
+            <img src={imagePreview} alt="preview" className="h-12 w-12 object-cover rounded-lg" />
+            <button onClick={removeImage} className="absolute top-1 left-12 bg-black/50 text-white rounded-full p-0.5 shadow-sm hover:bg-black/70">
               <FiX size={12} />
             </button>
           </div>
@@ -132,7 +176,6 @@ export const ChatArea = ({
               <p>Gửi</p>
             </TooltipContent>
           </Tooltip>
-
         </form>
       </div>
     </div>

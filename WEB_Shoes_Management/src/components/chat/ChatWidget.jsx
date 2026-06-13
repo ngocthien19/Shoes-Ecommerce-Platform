@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { io } from 'socket.io-client'
@@ -26,14 +26,19 @@ export const ChatWidget = () => {
   const [messages, setMessages] = useState([])
   const [loadingList, setLoadingList] = useState(false)
   const [loadingChat, setLoadingChat] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
   const currentUser = useSelector((state) => state.user.userInfo)
 
   const activeChatRef = useRef(activeChat)
   const conversationsRef = useRef(conversations)
+  const socketInitialized = useRef(false)
+  const isLoadingMoreRef = useRef(false)
 
-  // Sync refs
   useEffect(() => {
     activeChatRef.current = activeChat
   }, [activeChat])
@@ -43,6 +48,71 @@ export const ChatWidget = () => {
   }, [conversations])
 
   const isOpen = contextIsOpen || localIsOpen
+
+  // Lấy tổng số tin nhắn chưa đọc từ API
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated || !currentUser) return
+
+    try {
+      const conversationsData = await chatApiService.getConversationsList()
+      const totalUnread = conversationsData.reduce((total, conv) => {
+        return total + (conv.unread_count || 0)
+      }, 0)
+      setUnreadCount(totalUnread)
+    } catch (error) {
+      console.error('Lỗi lấy số tin nhắn chưa đọc:', error)
+    }
+  }, [isAuthenticated, currentUser])
+
+  // Lấy số lượng chưa đọc khi component mount
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      fetchUnreadCount()
+    }
+  }, [isAuthenticated, currentUser, fetchUnreadCount])
+
+  // Lắng nghe sự kiện real-time từ chat
+  useEffect(() => {
+    const handleNewChatMessage = () => {
+      fetchUnreadCount()
+    }
+
+    const handleMessagesRead = () => {
+      fetchUnreadCount()
+    }
+
+    window.addEventListener('newChatMessage', handleNewChatMessage)
+    window.addEventListener('messagesRead', handleMessagesRead)
+
+    return () => {
+      window.removeEventListener('newChatMessage', handleNewChatMessage)
+      window.removeEventListener('messagesRead', handleMessagesRead)
+    }
+  }, [fetchUnreadCount])
+
+  // Cập nhật badge khi focus lại tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCount()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchUnreadCount])
+
+  // Khi đóng modal, reset activeChat
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveChat(null)
+      setMessages([])
+      closeChat()
+    }
+  }, [isOpen, closeChat])
 
   useEffect(() => {
     if (targetStore && isAuthenticated && conversations.length > 0 && currentUser) {
@@ -56,9 +126,12 @@ export const ChatWidget = () => {
     }
   }, [targetStore, isAuthenticated, conversations, clearTargetStore, currentUser])
 
-  // Khởi tạo Socket.io khi Modal mở ra
+  // Khởi tạo Socket
   useEffect(() => {
     if (!isOpen || !isAuthenticated || !currentUser) return
+    if (socketInitialized.current) return
+
+    socketInitialized.current = true
 
     socket = io(DEV_API_URL, {
       transports: ['websocket', 'polling'],
@@ -69,36 +142,46 @@ export const ChatWidget = () => {
     })
 
     socket.on('connect', () => {
-      console.log('Socket connected')
+      console.log('Socket đã kết nối')
+    })
+
+    socket.on('connect_error', (error) => {
+      console.error('Lỗi kết nối Socket:', error.message)
+      socketInitialized.current = false
     })
 
     socket.on('new_chat_message', (newMessage) => {
-      console.log('New message:', newMessage)
+      console.log('Tin nhắn mới nhận:', newMessage)
 
       const currentConvId = activeChatRef.current?.conversation_id
-      const isCurrentConversation = currentConvId === newMessage.conversationId
+      const isCurrentConversation = currentConvId === newMessage.conversation_id
 
       if (isCurrentConversation) {
         setMessages(prev => [...prev, newMessage])
-        chatApiService.markAsRead(newMessage.conversationId).catch(console.error)
+        chatApiService.markAsRead(newMessage.conversation_id).catch(console.error)
         setConversations(prev => prev.map(conv =>
-          conv.conversation_id === newMessage.conversationId
+          conv.conversation_id === newMessage.conversation_id
             ? { ...conv, unread_count: 0 }
             : conv
         ))
       } else {
         setConversations(prev => prev.map(conv => {
-          if (conv.conversation_id === newMessage.conversationId) {
+          if (conv.conversation_id === newMessage.conversation_id) {
             return { ...conv, unread_count: (conv.unread_count || 0) + 1 }
           }
           return conv
         }))
       }
 
+      // Cập nhật lại số lượng chưa đọc cho badge
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('newChatMessage'))
+      }
+
       setConversations(prev => {
-        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversationId)
+        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversation_id)
         if (updatedConv) {
-          const newList = prev.filter(c => c.conversation_id !== newMessage.conversationId)
+          const newList = prev.filter(c => c.conversation_id !== newMessage.conversation_id)
           return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
         }
         return prev
@@ -129,26 +212,23 @@ export const ChatWidget = () => {
     })
 
     return () => {
-      socket.disconnect()
+      if (socket) {
+        socket.disconnect()
+        socket = null
+        socketInitialized.current = false
+      }
     }
   }, [isOpen, isAuthenticated, currentUser])
 
   const fetchConversations = async () => {
     try {
       const data = await chatApiService.getConversationsList()
+      console.log('Danh sách hội thoại đã tải:', data)
       setConversations(data)
     } catch (err) {
       console.error('Lỗi tải danh sách:', err)
     }
   }
-
-  useEffect(() => {
-    if (!isOpen) {
-      setActiveChat(null)
-      setMessages([])
-      closeChat()
-    }
-  }, [isOpen, closeChat])
 
   useEffect(() => {
     if (isOpen && isAuthenticated && currentUser) {
@@ -157,13 +237,81 @@ export const ChatWidget = () => {
     }
   }, [isOpen, isAuthenticated, currentUser])
 
+  // Tải tin nhắn lần đầu khi chọn hội thoại
+  const loadInitialMessages = async (conversationId) => {
+    setPage(1)
+    setHasMore(true)
+    setLoadingChat(true)
+    try {
+      const data = await chatApiService.getChatHistory(conversationId, 1, 20)
+      console.log('Tin nhắn ban đầu đã tải:', data.length)
+      setMessages(data)
+      if (data.length < 20) {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Lỗi tải tin nhắn:', err)
+      toast.error('Không thể tải tin nhắn')
+    } finally {
+      setLoadingChat(false)
+    }
+  }
+
+  // Tải thêm tin nhắn cũ hơn
+  const loadMoreMessages = async () => {
+    if (!activeChat) return
+    if (isLoadingMoreRef.current) return
+    if (!hasMore) return
+
+    isLoadingMoreRef.current = true
+    setLoadingMore(true)
+
+    const nextPage = page + 1
+    try {
+      const data = await chatApiService.getChatHistory(activeChat.conversation_id, nextPage, 20)
+      console.log('Tin nhắn cũ hơn đã tải:', data.length)
+
+      if (data.length > 0) {
+        setMessages(prev => [...data, ...prev])
+        setPage(nextPage)
+      }
+
+      if (data.length < 20) {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Lỗi tải thêm tin nhắn:', err)
+    } finally {
+      setLoadingMore(false)
+      isLoadingMoreRef.current = false
+    }
+  }
+
   useEffect(() => {
     if (activeChat) {
-      setLoadingChat(true)
-      chatApiService.getChatHistory(activeChat.conversation_id)
-        .then(data => setMessages(data))
-        .catch(() => toast.error('Không thể tải tin nhắn'))
-        .finally(() => setLoadingChat(false))
+      loadInitialMessages(activeChat.conversation_id)
+    }
+  }, [activeChat])
+
+  // Đánh dấu đã đọc khi chọn phòng chat
+  useEffect(() => {
+    if (activeChat && activeChat.unread_count > 0) {
+      const markAsRead = async () => {
+        try {
+          await chatApiService.markAsRead(activeChat.conversation_id)
+          setConversations(prev => prev.map(c =>
+            c.conversation_id === activeChat.conversation_id ? { ...c, unread_count: 0 } : c
+          ))
+
+          // Dispatch sự kiện để badge cập nhật
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('messagesRead'))
+          }
+        } catch (error) {
+          console.error('Lỗi đánh dấu đã đọc', error)
+        }
+      }
+      markAsRead()
     }
   }, [activeChat])
 
@@ -250,11 +398,14 @@ export const ChatWidget = () => {
             messages={messages}
             loadingList={loadingList}
             loadingChat={loadingChat}
+            loadingMore={loadingMore}
             currentUser={currentUser}
             onSelectConversation={handleSelectConversation}
             onSendMessage={handleSendMessage}
             onClose={handleCloseModal}
             onBack={() => setActiveChat(null)}
+            onLoadMore={loadMoreMessages}
+            hasMore={hasMore}
             getOnlineStatus={getOnlineStatus}
           />
         )}
@@ -262,7 +413,11 @@ export const ChatWidget = () => {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <ChatButton isOpen={isOpen} onClick={handleToggleModal} />
+          <ChatButton
+            isOpen={isOpen}
+            onClick={handleToggleModal}
+            unreadCount={unreadCount}
+          />
         </TooltipTrigger>
         <TooltipContent side="left">
           <p>{isOpen ? 'Đóng chat' : 'Mở chat'}</p>

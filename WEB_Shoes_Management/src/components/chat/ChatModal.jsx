@@ -9,11 +9,14 @@ export const ChatModal = ({
   messages,
   loadingList,
   loadingChat,
+  loadingMore,
   currentUser,
   onSelectConversation,
   onSendMessage,
   onClose,
   onBack,
+  onLoadMore,
+  hasMore,
   getOnlineStatus
 }) => {
   const messagesEndRef = useRef(null)
@@ -59,11 +62,14 @@ export const ChatModal = ({
           activeChat={activeChat}
           messages={messages}
           loadingChat={loadingChat}
+          loadingMore={loadingMore}
           currentUser={currentUser}
           onSendMessage={onSendMessage}
           onBack={onBack}
           onClose={onClose}
           messagesEndRef={messagesEndRef}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
         />
       </div>
     </motion.div>
