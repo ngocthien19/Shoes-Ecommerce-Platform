@@ -1,6 +1,6 @@
 import { formatMessageTime, shouldShowTimeDivider } from '~/utils/formatters'
 
-export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef }) => {
+export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef, onScroll }) => {
   if (loadingChat) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -11,7 +11,7 @@ export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar" onScroll={onScroll}>
         <p className="text-center text-xs text-gray-400 my-6">Hãy bắt đầu cuộc trò chuyện với cửa hàng</p>
         <div ref={messagesEndRef} />
       </div>
@@ -19,7 +19,7 @@ export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+    <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar" onScroll={onScroll}>
       {messages.map((msg, idx) => {
         const actualSenderId = msg.sender_id || msg.senderId
         const actualCreatedAt = msg.created_at || msg.createdAt
@@ -28,6 +28,15 @@ export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef
         const prevMsg = idx > 0 ? messages[idx - 1] : null
         const prevCreatedAt = prevMsg ? (prevMsg.created_at || prevMsg.createdAt) : null
         const showTimeDivider = shouldShowTimeDivider(prevCreatedAt, actualCreatedAt)
+
+        let images = []
+        if (msg.images) {
+          try {
+            images = typeof msg.images === 'string' ? JSON.parse(msg.images) : msg.images
+          } catch (e) {
+            images = []
+          }
+        }
 
         return (
           <div key={idx}>
@@ -47,9 +56,9 @@ export const MessageList = ({ messages, loadingChat, currentUser, messagesEndRef
               }`}>
                 {msg.content && <p className="text-sm break-words">{msg.content}</p>}
 
-                {msg.images && msg.images.length > 0 && (
+                {images.length > 0 && (
                   <img
-                    src={msg.images[0].secure_url}
+                    src={images[0].secure_url}
                     alt="img"
                     className="max-w-full mt-1 rounded-lg"
                   />

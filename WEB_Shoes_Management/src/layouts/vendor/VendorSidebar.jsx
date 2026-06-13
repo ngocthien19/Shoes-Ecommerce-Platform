@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiPieChart, FiBox, FiHeart, FiShoppingCart,
   FiTag, FiStar, FiCreditCard, FiLogOut, FiChevronDown, FiList,
-  FiMessageCircle // Thêm icon chat
+  FiMessageCircle
 } from 'react-icons/fi'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
+import { chatApiService } from '~/services/chat/chatApiService'
 
 export const VendorSidebar = () => {
   const location = useLocation()
@@ -15,12 +16,86 @@ export const VendorSidebar = () => {
   const dispatch = useDispatch()
 
   const [isProductMenuOpen, setIsProductMenuOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  useEffect(() => {
-    if (location.pathname.includes('/vendor/products') || location.pathname.includes('/vendor/favorites')) {
-      setIsProductMenuOpen(true)
+  const currentUser = useSelector((state) => state.user.userInfo)
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
+
+  // Lấy tổng số tin nhắn chưa đọc từ API
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated || !currentUser) return
+
+    try {
+      const conversations = await chatApiService.getConversationsList()
+      const totalUnread = conversations.reduce((total, conv) => {
+        return total + (conv.unread_count || 0)
+      }, 0)
+
+      // Chỉ cập nhật nếu số lượng thay đổi
+      setUnreadCount(prev => {
+        if (prev !== totalUnread) {
+          console.log(`Cập nhật badge: ${prev} -> ${totalUnread}`)
+        }
+        return totalUnread
+      })
+    } catch (error) {
+      console.error('Lỗi lấy số tin nhắn chưa đọc:', error)
     }
-  }, [location.pathname])
+  }, [isAuthenticated, currentUser])
+
+  // Lấy số lượng chưa đọc khi component mount
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      fetchUnreadCount()
+    }
+  }, [isAuthenticated, currentUser, fetchUnreadCount])
+
+  // Lắng nghe sự kiện real-time từ chat
+  useEffect(() => {
+    const handleNewChatMessage = () => {
+      fetchUnreadCount()
+    }
+
+    // Lắng nghe sự kiện custom từ component chat
+    window.addEventListener('newChatMessage', handleNewChatMessage)
+
+    return () => {
+      window.removeEventListener('newChatMessage', handleNewChatMessage)
+    }
+  }, [fetchUnreadCount])
+
+  // Khi vào trang chat hoặc chuyển tab, vẫn giữ nguyên khả năng cập nhật
+  // Không reset unreadCount ngay khi vào chat vì có thể chưa đọc hết
+  // Thay vào đó, sẽ reset khi người dùng thực sự đọc tin nhắn (component chat sẽ dispatch event)
+
+  // Lắng nghe sự kiện đã đọc tin nhắn
+  useEffect(() => {
+    const handleMessagesRead = () => {
+      fetchUnreadCount()
+    }
+
+    window.addEventListener('messagesRead', handleMessagesRead)
+
+    return () => {
+      window.removeEventListener('messagesRead', handleMessagesRead)
+    }
+  }, [fetchUnreadCount])
+
+  // Cập nhật badge khi focus lại tab (phòng trường hợp bỏ lỡ sự kiện)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab được focus, cập nhật badge...')
+        fetchUnreadCount()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchUnreadCount])
 
   const handleLogout = () => {
     dispatch(logoutSuccess())
@@ -44,7 +119,12 @@ export const VendorSidebar = () => {
     { name: 'Chương trình Khuyến mãi', path: '/vendor/promotions', icon: <FiTag size={20} /> },
     { name: 'Quản lý Đánh giá', path: '/vendor/reviews', icon: <FiStar size={20} /> },
     { name: 'Tài chính & Rút tiền', path: '/vendor/payouts', icon: <FiCreditCard size={20} /> },
-    { name: 'Tin nhắn', path: '/vendor/chat', icon: <FiMessageCircle size={20} /> } // Thêm mục Chat
+    {
+      name: 'Tin nhắn',
+      path: '/vendor/chat',
+      icon: <FiMessageCircle size={20} />,
+      badge: unreadCount
+    }
   ]
 
   const checkIsActive = (path, exact = false) => {
@@ -156,9 +236,21 @@ export const VendorSidebar = () => {
               <span className="transition-all duration-300 group-hover:scale-110">
                 {item.icon}
               </span>
-              <span>{item.name}</span>
+              <span className="flex-1">{item.name}</span>
+
+              {/* Badge hiển thị số tin nhắn chưa đọc */}
+              {item.badge > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-md"
+                >
+                  {item.badge > 99 ? '99+' : item.badge}
+                </motion.span>
+              )}
+
               {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
               )}
             </Link>
           )

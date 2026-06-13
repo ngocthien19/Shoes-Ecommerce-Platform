@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { io } from 'socket.io-client'
@@ -18,14 +18,19 @@ export const VendorChatPage = () => {
   const [messages, setMessages] = useState([])
   const [loadingList, setLoadingList] = useState(false)
   const [loadingChat, setLoadingChat] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
 
   const currentUser = useSelector((state) => state.user.userInfo)
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
 
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const activeChatRef = useRef(activeChat)
   const conversationsRef = useRef(conversations)
   const socketInitialized = useRef(false)
+  const isLoadingMoreRef = useRef(false)
 
   useEffect(() => {
     activeChatRef.current = activeChat
@@ -35,6 +40,7 @@ export const VendorChatPage = () => {
     conversationsRef.current = conversations
   }, [conversations])
 
+  // Khoi tao Socket
   useEffect(() => {
     if (!isAuthenticated || !currentUser) return
     if (socketInitialized.current) return
@@ -62,13 +68,13 @@ export const VendorChatPage = () => {
       console.log('Vendor received:', newMessage)
 
       const currentConvId = activeChatRef.current?.conversation_id
-      const isCurrentConversation = currentConvId === newMessage.conversationId
+      const isCurrentConversation = currentConvId === newMessage.conversation_id
 
       if (isCurrentConversation) {
         setMessages(prev => [...prev, newMessage])
-        chatApiService.markAsRead(newMessage.conversationId).catch(console.error)
+        chatApiService.markAsRead(newMessage.conversation_id).catch(console.error)
         setConversations(prev => prev.map(conv =>
-          conv.conversation_id === newMessage.conversationId
+          conv.conversation_id === newMessage.conversation_id
             ? { ...conv, unread_count: 0 }
             : conv
         ))
@@ -77,17 +83,22 @@ export const VendorChatPage = () => {
         }, 100)
       } else {
         setConversations(prev => prev.map(conv => {
-          if (conv.conversation_id === newMessage.conversationId) {
+          if (conv.conversation_id === newMessage.conversation_id) {
             return { ...conv, unread_count: (conv.unread_count || 0) + 1 }
           }
           return conv
         }))
       }
 
+      // Cập nhật lại số lượng chưa đọc cho sidebar
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('newChatMessage'))
+      }
+
       setConversations(prev => {
-        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversationId)
+        const updatedConv = prev.find(c => c.conversation_id === newMessage.conversation_id)
         if (updatedConv) {
-          const newList = prev.filter(c => c.conversation_id !== newMessage.conversationId)
+          const newList = prev.filter(c => c.conversation_id !== newMessage.conversation_id)
           return [{ ...updatedConv, updated_at: new Date().toISOString() }, ...newList]
         }
         return prev
@@ -119,6 +130,7 @@ export const VendorChatPage = () => {
   const fetchConversations = async () => {
     try {
       const data = await chatApiService.getConversationsList()
+      console.log('Conversations loaded:', data)
       setConversations(data)
     } catch (err) {
       console.error('Loi tai danh sach:', err)
@@ -132,13 +144,70 @@ export const VendorChatPage = () => {
     }
   }, [isAuthenticated, currentUser])
 
+  // Load tin nhan lan dau khi chon conversation
+  const loadInitialMessages = async (conversationId) => {
+    setPage(1)
+    setHasMore(true)
+    setLoadingChat(true)
+    try {
+      const data = await chatApiService.getChatHistory(conversationId, 1, 20)
+      console.log('Initial messages loaded:', data.length)
+      setMessages(data)
+      // Neu so tin nhan it hon 20 -> khong con tin nhan cu hon
+      if (data.length < 20) {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Error loading messages:', err)
+      toast.error('Khong the tai tin nhan')
+    } finally {
+      setLoadingChat(false)
+    }
+  }
+
+  // Load them tin nhan cu hon (khi cuon len dau trang)
+  const loadMoreMessages = async () => {
+    if (!activeChat) return
+    if (isLoadingMoreRef.current) return
+    if (!hasMore) return
+
+    isLoadingMoreRef.current = true
+    setLoadingMore(true)
+
+    const nextPage = page + 1
+    try {
+      const data = await chatApiService.getChatHistory(activeChat.conversation_id, nextPage, 20)
+      console.log('More messages loaded:', data.length)
+
+      if (data.length > 0) {
+        // Chen tin nhan cu vao dau mang (vi du: tin nhan 1-20)
+        setMessages(prev => [...data, ...prev])
+        setPage(nextPage)
+      }
+
+      if (data.length < 20) {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Error loading more messages:', err)
+    } finally {
+      setLoadingMore(false)
+      isLoadingMoreRef.current = false
+    }
+  }
+
+  // Xu ly scroll de phat hien khi cuo len dau trang
+  const handleScroll = useCallback((e) => {
+    const container = e.target
+    // Khi cuon len gan dau nhat (scrollTop <= 50px)
+    if (container.scrollTop <= 50 && !loadingMore && hasMore && !loadingChat) {
+      loadMoreMessages()
+    }
+  }, [loadingMore, hasMore, loadingChat])
+
   useEffect(() => {
     if (activeChat) {
-      setLoadingChat(true)
-      chatApiService.getChatHistory(activeChat.conversation_id)
-        .then(data => setMessages(data))
-        .catch(() => toast.error('Khong the tai tin nhan'))
-        .finally(() => setLoadingChat(false))
+      loadInitialMessages(activeChat.conversation_id)
     }
   }, [activeChat])
 
@@ -150,6 +219,7 @@ export const VendorChatPage = () => {
     }
   }, [messages, activeChat])
 
+  // Đánh dấu đã đọc khi chọn phòng chat
   useEffect(() => {
     if (activeChat && activeChat.unread_count > 0) {
       const markAsRead = async () => {
@@ -158,6 +228,12 @@ export const VendorChatPage = () => {
           setConversations(prev => prev.map(c =>
             c.conversation_id === activeChat.conversation_id ? { ...c, unread_count: 0 } : c
           ))
+
+          // Dispatch sự kiện để sidebar cập nhật badge
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('messagesRead'))
+            console.log('Đã dispatch sự kiện messagesRead, badge sẽ được cập nhật')
+          }
         } catch (error) {
           console.error('Loi khi danh dau da doc', error)
         }
@@ -167,6 +243,7 @@ export const VendorChatPage = () => {
   }, [activeChat])
 
   const handleSelectConversation = (conv) => {
+    console.log('Selected conversation:', conv)
     setActiveChat(conv)
   }
 
@@ -182,8 +259,8 @@ export const VendorChatPage = () => {
 
     try {
       const result = await chatApiService.sendMessage(formData)
+      console.log('Message sent, result:', result)
 
-      // Chỉ thêm tin nhắn vào state sau khi API thành công
       setMessages(prev => [...prev, result])
 
       setConversations(prev => {
@@ -201,7 +278,7 @@ export const VendorChatPage = () => {
 
       return true
     } catch (error) {
-      toast.error('Gửi tin nhắn thất bại')
+      toast.error('Gui tin nhan that bai')
       console.error(error)
       return false
     }
@@ -241,11 +318,14 @@ export const VendorChatPage = () => {
             activeChat={activeChat}
             messages={messages}
             loadingChat={loadingChat}
+            loadingMore={loadingMore}
             currentUser={currentUser}
             onSendMessage={handleSendMessage}
             onBack={() => setActiveChat(null)}
             onClose={() => setActiveChat(null)}
             messagesEndRef={messagesEndRef}
+            onLoadMore={loadMoreMessages}
+            hasMore={hasMore}
           />
         </div>
       </motion.div>

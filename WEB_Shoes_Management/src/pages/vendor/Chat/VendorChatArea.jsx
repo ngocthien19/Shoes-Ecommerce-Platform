@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { FiX, FiChevronLeft, FiImage, FiSend, FiPhone, FiMail, FiMessageCircle } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import { getImageUrl, formatLastActive } from '~/utils/formatters'
@@ -13,16 +13,21 @@ export const VendorChatArea = ({
   activeChat,
   messages,
   loadingChat,
+  loadingMore,
   currentUser,
   onSendMessage,
   onBack,
   onClose,
-  messagesEndRef
+  messagesEndRef,
+  onLoadMore,
+  hasMore
 }) => {
   const [messageText, setMessageText] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const fileInputRef = useRef(null)
+  const messageListRef = useRef(null)
+  const isLoadingMoreRef = useRef(false)
 
   // Reset image preview when selectedImage changes
   useEffect(() => {
@@ -32,6 +37,19 @@ export const VendorChatArea = ({
       setImagePreview(null)
     }
   }, [selectedImage])
+
+  // Xử lý scroll để load thêm tin nhắn cũ
+  const handleScroll = useCallback((e) => {
+    const container = e.target
+    // Khi cuộn lên gần đầu (scrollTop <= 50px)
+    if (container.scrollTop <= 50 && !isLoadingMoreRef.current && hasMore && !loadingChat) {
+      isLoadingMoreRef.current = true
+      onLoadMore?.()
+      setTimeout(() => {
+        isLoadingMoreRef.current = false
+      }, 500)
+    }
+  }, [hasMore, loadingChat, onLoadMore])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -137,13 +155,25 @@ export const VendorChatArea = ({
         </div>
       </div>
 
-      {/* Message List */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Message List - Đặt onScroll ở đây */}
+      <div
+        ref={messageListRef}
+        className="flex-1 flex flex-col h-full overflow-hidden"
+      >
+        {/* Hiển thị loading indicator khi đang load thêm tin nhắn cũ */}
+        {loadingMore && (
+          <div className="flex justify-center py-2 bg-gray-50">
+            <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-gray-400 ml-2">Đang tải tin nhắn cũ...</span>
+          </div>
+        )}
+
         <VendorMessageList
           messages={messages}
           loadingChat={loadingChat}
           currentUser={currentUser}
           messagesEndRef={messagesEndRef}
+          onScroll={handleScroll}
         />
 
         {/* Image Preview */}

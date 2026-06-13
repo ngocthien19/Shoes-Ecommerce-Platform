@@ -1,8 +1,13 @@
 import { formatMessageTime, shouldShowTimeDivider } from '~/utils/formatters'
-import { getImageUrl } from '~/utils/formatters'
 import { FiMessageCircle } from 'react-icons/fi'
 
-export const VendorMessageList = ({ messages, loadingChat, currentUser, messagesEndRef }) => {
+export const VendorMessageList = ({
+  messages,
+  loadingChat,
+  currentUser,
+  messagesEndRef,
+  onScroll // Thêm prop onScroll
+}) => {
   if (loadingChat) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -25,7 +30,10 @@ export const VendorMessageList = ({ messages, loadingChat, currentUser, messages
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-gradient-to-b from-gray-50 to-white">
+    <div
+      className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-gradient-to-b from-gray-50 to-white"
+      onScroll={onScroll}
+    >
       {messages.map((msg, idx) => {
         const actualSenderId = msg.sender_id || msg.senderId
         const actualCreatedAt = msg.created_at || msg.createdAt
@@ -61,17 +69,14 @@ export const VendorMessageList = ({ messages, loadingChat, currentUser, messages
                   ? 'bg-brand-primary text-white rounded-br-none'
                   : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
               }`}>
-                {/* Tên người gửi (hiển thị khi không phải mình) */}
                 {!isMe && (
                   <p className="text-[10px] font-semibold text-brand-primary mb-1">
                     {msg.sender_name || 'Khách hàng'}
                   </p>
                 )}
 
-                {/* Nội dung text */}
                 {msg.content && <p className="text-sm break-words whitespace-pre-wrap">{msg.content}</p>}
 
-                {/* Hình ảnh */}
                 {images.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-1">
                     {images.map((img, imgIdx) => (
@@ -86,7 +91,6 @@ export const VendorMessageList = ({ messages, loadingChat, currentUser, messages
                   </div>
                 )}
 
-                {/* Thời gian */}
                 <div className={`text-[9px] mt-1 ${isMe ? 'text-white/60 text-right' : 'text-gray-400'}`}>
                   {formatMessageTime(actualCreatedAt)}
                 </div>
