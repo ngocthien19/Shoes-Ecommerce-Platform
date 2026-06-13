@@ -343,7 +343,7 @@ export const VendorOrderDetailPage = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Tổng tiền hàng</span>
                 <span className="text-sm font-bold text-gray-800">
-                  {formatPrice((order.total_amount || 0) + (order.discount_amount || 0))}
+                  {formatPrice(Number(order.total_amount) + Number(order.discount_amount))}
                 </span>
               </div>
 
@@ -356,7 +356,7 @@ export const VendorOrderDetailPage = () => {
               )}
 
               {/* Thành tiền (sau giảm giá) */}
-              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                 <span className="text-base font-extrabold text-gray-800">Thành tiền</span>
                 <span className="text-xl font-extrabold text-brand-primary">{formatPrice(order.total_amount)}</span>
               </div>
@@ -364,10 +364,27 @@ export const VendorOrderDetailPage = () => {
               {/* Phí sàn */}
               {order.commission_rate_snapshot && (
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Phí sàn ({order.commission_rate_snapshot}%)</span>
-                  <span className="text-xs text-gray-500">
-                    {formatPrice((order.total_amount || 0) * order.commission_rate_snapshot / 100)}
+                  <span className="text-sm font-semibold text-gray-600">Phí sàn ({order.commission_rate_snapshot}%)</span>
+                  <span className="text-sm font-semibold text-amber-600">
+          -{formatPrice((order.total_amount || 0) * order.commission_rate_snapshot / 100)}
                   </span>
+                </div>
+              )}
+
+              {/* Tiền thực nhận */}
+              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+                <span className="text-base font-extrabold text-gray-800">Tiền thực nhận</span>
+                <span className="text-xl font-extrabold text-green-600">
+                  {formatPrice((order.total_amount || 0) * (1 - (order.commission_rate_snapshot || 0) / 100))}
+                </span>
+              </div>
+
+              {/* Chi tiết phí sàn (tooltip) */}
+              {order.commission_rate_snapshot && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                  <p className="text-[10px] text-gray-500 text-center">
+          * Phí sàn được tính dựa trên tỷ lệ {order.commission_rate_snapshot}% khi tạo đơn hàng
+                  </p>
                 </div>
               )}
             </div>

@@ -22,6 +22,13 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
     return date.toLocaleString('vi-VN')
   }
 
+  // Tính phí sàn và tiền thực nhận
+  const calculateNetAmount = (totalAmount, commissionRate) => {
+    const fee = totalAmount * (commissionRate / 100)
+    const netAmount = totalAmount - fee
+    return { fee, netAmount }
+  }
+
   const getStatusBadge = (status) => {
     switch (status) {
     case ORDER_STATUS.PENDING:
@@ -82,7 +89,6 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
     setCancelOrderReason('')
   }
 
-  // Kiểm tra có lý do hủy không (cho cả CANCEL_REQUESTED và CANCELLED)
   const hasCancelReason = (order) => {
     return (order.status === ORDER_STATUS.CANCEL_REQUESTED || order.status === ORDER_STATUS.CANCELLED) && order.cancel_reason
   }
@@ -91,7 +97,7 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
     <>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
         <div className="overflow-x-auto min-h-[300px]">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[1100px]">
             <thead>
               <tr className="bg-brand-secondary/5 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
                 <th className="py-4 px-4 w-12 text-center">
@@ -105,6 +111,8 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                 <th className="py-4 px-4">Mã đơn hàng</th>
                 <th className="py-4 px-4">Khách hàng</th>
                 <th className="py-4 px-4 text-right">Tổng tiền</th>
+                <th className="py-4 px-4 text-right">Phí sàn</th>
+                <th className="py-4 px-4 text-right">Thực nhận</th>
                 <th className="py-4 px-4 text-center">PTTT</th>
                 <th className="py-4 px-4 text-center">Ngày đặt</th>
                 <th className="py-4 px-4 text-center">Trạng thái</th>
@@ -114,7 +122,7 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
             <tbody className="divide-y divide-gray-50 text-sm font-semibold text-gray-700">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-16 text-gray-400 font-medium">
+                  <td colSpan="10" className="text-center py-16 text-gray-400 font-medium">
                     Không tìm thấy đơn hàng nào.
                   </td>
                 </tr>
@@ -126,6 +134,7 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                   const actions = getStatusActions(order.status)
                   const showCancelRequest = order.status === ORDER_STATUS.CANCEL_REQUESTED
                   const showCancelReason = hasCancelReason(order)
+                  const { fee, netAmount } = calculateNetAmount(order.total_amount, order.commission_rate_snapshot)
 
                   return (
                     <tr key={order.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
@@ -154,6 +163,15 @@ export const OrderTable = ({ orders, selectedIds, onSelectRow, onSelectAll, onUp
                       </td>
                       <td className="py-4 px-4 text-right">
                         <span className="font-extrabold text-brand-primary">{formatPrice(order.total_amount)}</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-semibold text-amber-600">{formatPrice(fee)}</span>
+                          <span className="text-[10px] text-gray-400">({order.commission_rate_snapshot}%)</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <span className="font-extrabold text-green-600">{formatPrice(netAmount)}</span>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border ${PaymentBadge.className}`}>
