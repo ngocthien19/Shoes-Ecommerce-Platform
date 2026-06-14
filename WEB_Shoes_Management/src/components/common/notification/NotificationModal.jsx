@@ -1,0 +1,363 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { FiBell, FiX, FiCheckCircle, FiAlertCircle, FiClock, FiPackage, FiShoppingBag, FiTag, FiStar, FiFlag, FiMessageSquare, FiDollarSign, FiHome, FiUser } from 'react-icons/fi'
+import { formatRelativeTime } from '~/utils/formatters'
+import { notificationApiService } from '~/services/notification/notificationApiService'
+import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constant'
+import { Link } from 'react-router-dom'
+import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
+
+export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChange }) => {
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const containerRef = useRef(null)
+
+  const fetchNotifications = async (pageNum = 1, append = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+      const res = await notificationApiService.getNotifications(pageNum, 20)
+
+      const unread = res.filter(n => !n.is_read).length
+      setUnreadCount(unread)
+
+      if (onUnreadCountChange) {
+        onUnreadCountChange(unread)
+      }
+
+      if (append) {
+        setNotifications(prev => [...prev, ...res])
+      } else {
+        setNotifications(res)
+      }
+
+      setHasMore(res.length === 20)
+    } catch (error) {
+      console.error('Lỗi tải thông báo:', error)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications(1, false)
+    }
+  }, [isOpen])
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationApiService.markAllAsRead()
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      setUnreadCount(0)
+
+      if (onUnreadCountChange) {
+        onUnreadCountChange(0)
+      }
+    } catch (error) {
+      console.error('Lỗi đánh dấu đã đọc:', error)
+    }
+  }
+
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current
+    if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore && !loadingMore) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchNotifications(nextPage, true)
+    }
+  }, [hasMore, loadingMore, page])
+
+  const getIconByType = (type) => {
+    switch (type) {
+    // Sản phẩm
+    case NOTIFICATION_TYPES.PRODUCT_PENDING:
+    case NOTIFICATION_TYPES.PRODUCT_APPROVED:
+    case NOTIFICATION_TYPES.PRODUCT_REJECTED:
+    case NOTIFICATION_TYPES.PRODUCT_BANNED:
+    case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
+      return { icon: FiPackage, color: 'text-blue-500', bg: 'bg-blue-50' }
+      // Cửa hàng
+    case NOTIFICATION_TYPES.STORE_PENDING:
+    case NOTIFICATION_TYPES.STORE_APPROVED:
+    case NOTIFICATION_TYPES.STORE_REJECTED:
+    case NOTIFICATION_TYPES.STORE_BANNED:
+      return { icon: FiHome, color: 'text-purple-500', bg: 'bg-purple-50' }
+      // Đánh giá
+    case NOTIFICATION_TYPES.REVIEW_REPORTED:
+    case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
+    case NOTIFICATION_TYPES.REVIEW_RESOLVED_APPROVED:
+    case NOTIFICATION_TYPES.REVIEW_RESOLVED_BANNED:
+      return { icon: FiFlag, color: 'text-amber-500', bg: 'bg-amber-50' }
+      // Rút tiền
+    case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
+    case NOTIFICATION_TYPES.PAYOUT_APPROVED:
+    case NOTIFICATION_TYPES.PAYOUT_REJECTED:
+      return { icon: FiDollarSign, color: 'text-green-500', bg: 'bg-green-50' }
+      // Khiếu nại cửa hàng
+    case NOTIFICATION_TYPES.APPEAL_REQUESTED:
+    case NOTIFICATION_TYPES.APPEAL_APPROVED:
+    case NOTIFICATION_TYPES.APPEAL_REJECTED:
+      return { icon: FiAlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
+    default:
+      return { icon: FiBell, color: 'text-gray-500', bg: 'bg-gray-50' }
+    }
+  }
+
+  const getTitleByType = (type) => {
+    switch (type) {
+    case NOTIFICATION_TYPES.PRODUCT_PENDING:
+      return 'Sản phẩm chờ duyệt'
+    case NOTIFICATION_TYPES.PRODUCT_APPROVED:
+      return 'Sản phẩm đã được duyệt'
+    case NOTIFICATION_TYPES.PRODUCT_REJECTED:
+      return 'Sản phẩm bị từ chối'
+    case NOTIFICATION_TYPES.PRODUCT_BANNED:
+      return 'Sản phẩm bị khóa'
+    case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
+      return 'Yêu cầu duyệt lại sản phẩm'
+    case NOTIFICATION_TYPES.STORE_PENDING:
+      return 'Cửa hàng chờ duyệt'
+    case NOTIFICATION_TYPES.STORE_APPROVED:
+      return 'Cửa hàng đã được duyệt'
+    case NOTIFICATION_TYPES.STORE_REJECTED:
+      return 'Cửa hàng bị từ chối'
+    case NOTIFICATION_TYPES.STORE_BANNED:
+      return 'Cửa hàng bị khóa'
+    case NOTIFICATION_TYPES.REVIEW_REPORTED:
+      return 'Đánh giá bị báo cáo'
+    case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
+      return 'Yêu cầu mở lại đánh giá'
+    case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
+      return 'Yêu cầu rút tiền mới'
+    case NOTIFICATION_TYPES.PAYOUT_APPROVED:
+      return 'Yêu cầu rút tiền được duyệt'
+    case NOTIFICATION_TYPES.PAYOUT_REJECTED:
+      return 'Yêu cầu rút tiền bị từ chối'
+    default:
+      return 'Thông báo'
+    }
+  }
+
+  const getLinkByType = (notification) => {
+    const { type, reference_id } = notification
+
+    if (userRole === ROLE_ID.VENDOR) {
+      switch (type) {
+      case NOTIFICATION_TYPES.PRODUCT_PENDING:
+      case NOTIFICATION_TYPES.PRODUCT_APPROVED:
+      case NOTIFICATION_TYPES.PRODUCT_REJECTED:
+      case NOTIFICATION_TYPES.PRODUCT_BANNED:
+      case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
+        return reference_id ? `/vendor/products/detail/${reference_id}` : null
+      case NOTIFICATION_TYPES.STORE_PENDING:
+      case NOTIFICATION_TYPES.STORE_APPROVED:
+      case NOTIFICATION_TYPES.STORE_REJECTED:
+      case NOTIFICATION_TYPES.STORE_BANNED:
+        return '/vendor/profile-store'
+      case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
+      case NOTIFICATION_TYPES.PAYOUT_APPROVED:
+      case NOTIFICATION_TYPES.PAYOUT_REJECTED:
+        return '/vendor/payouts'
+      default:
+        return null
+      }
+    } else if (userRole === ROLE_ID.USER) {
+      switch (type) {
+      case NOTIFICATION_TYPES.PAYOUT_APPROVED:
+      case NOTIFICATION_TYPES.PAYOUT_REJECTED:
+        return '/orders'
+      default:
+        return null
+      }
+    } else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
+      switch (type) {
+      case NOTIFICATION_TYPES.PRODUCT_PENDING:
+      case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
+        return reference_id ? `/manager/products/detail/${reference_id}` : null
+      case NOTIFICATION_TYPES.STORE_PENDING:
+        return reference_id ? `/manager/stores/detail/${reference_id}` : null
+      case NOTIFICATION_TYPES.REVIEW_REPORTED:
+      case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
+        return reference_id ? `/manager/reviews/detail/${reference_id}` : null
+      case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
+        return reference_id ? `/admin/financial/payouts/${reference_id}` : null
+      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
+        return reference_id ? `/manager/appeals/detail/${reference_id}` : null
+      default:
+        return null
+      }
+    }
+    return null
+  }
+
+  const parseContent = (content) => {
+    try {
+      return JSON.parse(content)
+    } catch {
+      return { message: content }
+    }
+  }
+
+  const modalVariants = {
+    hidden: { opacity: 0, y: -20, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+    exit: { opacity: 0, y: -20, scale: 0.95, transition: { duration: 0.2 } }
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pt-16">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          />
+
+          <motion.div
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-10"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-brand-primary/5 to-transparent">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                    <FiBell className="text-brand-primary" size={18} />
+                  </div>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-brand-secondary tracking-tight">Thông báo</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Cập nhật hoạt động hệ thống</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs font-semibold text-brand-primary hover:underline cursor-pointer"
+                      >
+                        Đánh dấu đã đọc
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Đánh dấu tất cả đã đọc</TooltipContent>
+                  </Tooltip>
+                )}
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-full hover:bg-gray-100"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              ref={containerRef}
+              onScroll={handleScroll}
+              className="max-h-[60vh] overflow-y-auto divide-y divide-gray-50"
+            >
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <div className="w-8 h-8 border-3 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-gray-400">Đang tải thông báo...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FiBell size={28} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Chưa có thông báo nào</p>
+                  <p className="text-xs text-gray-400">Khi có hoạt động mới sẽ hiển thị tại đây</p>
+                </div>
+              ) : (
+                <>
+                  {notifications.map((notif) => {
+                    const { icon: Icon, color, bg } = getIconByType(notif.type)
+                    const displayTitle = getTitleByType(notif.type)
+                    const contentData = parseContent(notif.content)
+                    const isUnread = !notif.is_read
+                    const link = getLinkByType(notif)
+
+                    return (
+                      <div
+                        key={notif.id}
+                        className={`p-4 hover:bg-gray-50/50 transition-all duration-200 ${isUnread ? 'bg-brand-primary/5' : ''}`}
+                      >
+                        <div className="flex gap-3">
+                          <div className={`shrink-0 w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
+                            <Icon size={16} className={color} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className={`text-sm font-bold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>
+                                {displayTitle}
+                              </h4>
+                              <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                                {formatRelativeTime(notif.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                              {contentData.message}
+                            </p>
+                            {link && (
+                              <Link
+                                to={link}
+                                className="inline-block mt-2 text-[10px] font-semibold text-brand-primary hover:underline"
+                                onClick={onClose}
+                              >
+                                Xem chi tiết
+                              </Link>
+                            )}
+                            {!isUnread && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <FiCheckCircle size={10} className="text-gray-400" />
+                                <span className="text-[9px] text-gray-400">Đã đọc</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {loadingMore && (
+                    <div className="flex justify-center py-4">
+                      <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
+              <p className="text-[10px] text-center text-gray-400">
+                Chỉ hiển thị thông báo trong 30 ngày gần nhất
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
