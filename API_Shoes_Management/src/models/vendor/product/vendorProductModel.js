@@ -244,6 +244,12 @@ const requestProductsReapprovalBulk = async (productIds, storeId) => {
   return result.affectedRows
 }
 
+const updateProductStatus = async (productId, status) => {
+  const query = 'UPDATE products SET status = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [status, productId])
+  return result
+}
+
 export const vendorProductModel = {
   getStoreByOwnerId,
   checkProductOwnership,
@@ -260,5 +266,6 @@ export const vendorProductModel = {
   updateProductsStatusBulk,
   getMultipleProductImages,
   hardDeleteProductsBulk,
-  requestProductsReapprovalBulk
+  requestProductsReapprovalBulk,
+  updateProductStatus
 }
