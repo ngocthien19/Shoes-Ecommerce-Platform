@@ -8,5 +8,6 @@ router.use(authGuard.isAuthorized)
 
 router.get('/', notificationController.getNotifications)
 router.put('/mark-as-read', notificationController.markAllAsRead)
+router.get('/unread-count', notificationController.getUnreadCount)
 
 export const notificationRouter = router
