@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FiGrid, FiInfo, FiLayers, FiCalendar } from 'react-icons/fi'
+import { FiGrid, FiInfo, FiLayers, FiCalendar, FiAlertCircle } from 'react-icons/fi'
+import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 
 export const ProductMainInfo = ({ product }) => {
   const [activeImgIndex, setActiveImgIndex] = useState(0)
@@ -14,6 +15,10 @@ export const ProductMainInfo = ({ product }) => {
   }
 
   const mainImageUrl = imagesArray?.[activeImgIndex]?.secure_url || 'https://placehold.co/600x600?text=No+Image'
+
+  // Kiểm tra có reject_reason không
+  const hasRejectReason = product.reject_reason &&
+    (product.status === 'rejected' || product.status === 'banned')
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -101,6 +106,25 @@ export const ProductMainInfo = ({ product }) => {
               </div>
             </div>
           </div>
+
+          {/* 👇 THÊM: Hiển thị lý do từ chối/khóa */}
+          {hasRejectReason && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                  <FiAlertCircle className="text-red-500" size={16} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-2">
+                    Lý do từ chối/khóa sản phẩm
+                  </p>
+                  <p className="text-sm font-semibold text-red-700 mt-1 leading-relaxed">
+                    {product.reject_reason}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Khối mô tả sản phẩm */}
           <div className="space-y-2 pt-2">

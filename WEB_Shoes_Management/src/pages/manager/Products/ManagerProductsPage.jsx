@@ -32,8 +32,6 @@ export const ManagerProductsPage = () => {
     placeholder: ''
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [detailModalOpen, setDetailModalOpen] = useState(false)
-  const [selectedSlug, setSelectedSlug] = useState(null)
 
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10
@@ -222,11 +220,6 @@ export const ManagerProductsPage = () => {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleViewDetail = (slug) => {
-    setSelectedSlug(slug)
-    setDetailModalOpen(true)
   }
 
   const getActiveFiltersCount = () => {

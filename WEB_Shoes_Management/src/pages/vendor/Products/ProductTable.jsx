@@ -1,5 +1,5 @@
 import { formatPrice, getImageUrl } from '~/utils/formatters'
-import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar, FiInfo } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Link } from 'react-router-dom'
@@ -9,15 +9,50 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
 
   const handleToggleSelectAll = (e) => onSelectAll(e.target.checked)
 
-  const renderModerationBadge = (status) => {
-    switch (status) {
-    case PRODUCT_MODERATION_STATUS.APPROVED: return <span className="bg-green-50 text-green-600 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-black">HỢP LỆ</span>
-    case PRODUCT_MODERATION_STATUS.PENDING: return <span className="bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT</span>
-    case PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL: return <span className="bg-orange-50 text-orange-600 border border-orange-100 px-2.5 py-1 rounded-full text-[10px] font-black">CHỜ DUYỆT LẠI</span>
-    case PRODUCT_MODERATION_STATUS.REJECTED: return <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ TỪ CHỐI</span>
-    case PRODUCT_MODERATION_STATUS.BANNED: return <span className="bg-red-50 text-red-600 border border-red-100 px-2.5 py-1 rounded-full text-[10px] font-black">BỊ KHÓA</span>
-    default: return null
+  // Component badge riêng để có tooltip
+  const ModerationBadge = ({ status, rejectReason }) => {
+    const getBadgeContent = () => {
+      switch (status) {
+      case PRODUCT_MODERATION_STATUS.APPROVED:
+        return { label: 'HỢP LỆ', className: 'bg-green-50 text-green-600 border-green-100' }
+      case PRODUCT_MODERATION_STATUS.PENDING:
+        return { label: 'CHỜ DUYỆT', className: 'bg-amber-50 text-amber-600 border-amber-100' }
+      case PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL:
+        return { label: 'CHỜ DUYỆT LẠI', className: 'bg-orange-50 text-orange-600 border-orange-100' }
+      case PRODUCT_MODERATION_STATUS.REJECTED:
+        return { label: 'BỊ TỪ CHỐI', className: 'bg-gray-100 text-gray-600' }
+      case PRODUCT_MODERATION_STATUS.BANNED:
+        return { label: 'BỊ KHÓA', className: 'bg-red-50 text-red-600 border-red-100' }
+      default:
+        return null
+      }
     }
+
+    const badge = getBadgeContent()
+    if (!badge) return null
+
+    // Nếu là REJECTED hoặc BANNED và có reject_reason, hiển thị tooltip
+    if ((status === PRODUCT_MODERATION_STATUS.REJECTED || status === PRODUCT_MODERATION_STATUS.BANNED) && rejectReason) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border cursor-help ${badge.className}`}>
+              {badge.label}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
+            <p className="font-semibold mb-1">Lý do:</p>
+            <p className="break-words">{rejectReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+
+    return (
+      <div className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${badge.className}`}>
+        {badge.label}
+      </div>
+    )
   }
 
   return (
@@ -82,11 +117,13 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                     </td>
                     <td className="py-4 px-4 text-brand-primary font-black">{formatPrice(p.price)}</td>
                     <td className="py-4 px-4 text-center text-gray-500 font-bold">{p.sold}</td>
-                    <td className="py-4 px-4 flex justify-center items-center text-center font-bold text-yellow-500">
-                      <FiStar fill='yellow'/>
+                    <td className="py-4 px-4 flex justify-center items-center text-center font-bold text-yellow-500 gap-1">
+                      <FiStar fill='yellow' />
                       {Number(p.rating_avg || 0).toFixed(1)}
                     </td>
-                    <td className="py-4 px-4 text-center min-w-[150px]">{renderModerationBadge(p.status)}</td>
+                    <td className="py-4 px-4 text-center min-w-[150px]">
+                      <ModerationBadge status={p.status} rejectReason={p.reject_reason} />
+                    </td>
 
                     <td className="py-4 px-4 text-center min-w-[140px]">
                       {p.status === PRODUCT_MODERATION_STATUS.APPROVED ? (
@@ -120,7 +157,6 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
 
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
-
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
@@ -171,7 +207,6 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                             Xóa sản phẩm
                           </TooltipContent>
                         </Tooltip>
-
                       </div>
                     </td>
                   </tr>

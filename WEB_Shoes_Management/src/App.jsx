@@ -133,7 +133,7 @@ const App = () => {
           <Route path="stores" element={<ManagerStoresPage />} />
           <Route path="stores/:id" element={<ManagerStoreDetailPage />} />
           <Route path="products" element={<ManagerProductsPage />} />
-          <Route path="products/detail/:slug" element={<ManagerProductDetailPage />} />
+          <Route path="products/detail/:id" element={<ManagerProductDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />

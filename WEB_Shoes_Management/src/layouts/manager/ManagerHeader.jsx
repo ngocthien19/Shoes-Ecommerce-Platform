@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiBell, FiUser, FiLogOut, FiChevronDown, FiShield } from 'react-icons/fi'
 import { useSelector, useDispatch } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { toast } from 'react-toastify'
+import { io } from 'socket.io-client'
 import { getImageUrl } from '~/utils/formatters'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { NotificationModal } from '~/components/common/notification/NotificationModal'
@@ -26,6 +28,52 @@ export const ManagerHeader = () => {
   const user = useSelector((state) => state.user.userInfo)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const socketRef = useRef(null)
+
+  useEffect(() => {
+    const socket = io(DEV_API_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
+
+    socket.on('connect', () => {
+      console.log('Manager socket connected for notifications')
+    })
+
+    socket.on('connect_error', (error) => {
+      console.error('Manager socket connection error:', error.message)
+    })
+
+    // Lắng nghe thông báo mới
+    socket.on('new_notification', (notification) => {
+
+      // Cập nhật số lượng chưa đọc
+      setUnreadNotificationCount(prev => prev + 1)
+
+      // Kích hoạt hiệu ứng rung
+
+      // Hiển thị toast thông báo
+      toast.info(notification.title, {
+        position: 'top-right',
+        autoClose: 5000,
+        onClick: () => {
+          setIsNotificationOpen(true)
+        }
+      })
+
+      // Phát sự kiện để component khác cập nhật
+      window.dispatchEvent(new CustomEvent('newNotification', { detail: notification }))
+    })
+
+    socketRef.current = socket
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
 
   const getPageTitle = () => {
     if (location.pathname === '/manager') return 'Tổng quan'
@@ -81,7 +129,7 @@ export const ManagerHeader = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Nút thông báo */}
+          {/* Nút thông báo với hiệu ứng rung */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.button

@@ -146,7 +146,7 @@ export const ProductTable = ({
                       <div className="flex items-center justify-center gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Link to={`/manager/products/detail/${product.slug}`}
+                            <Link to={`/manager/products/detail/${product.id}`}
                               className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
                             >
                               <FiEye size={13} />

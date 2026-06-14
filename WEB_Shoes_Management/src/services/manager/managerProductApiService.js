@@ -18,9 +18,15 @@ export const managerProductApiService = {
     return response.data
   },
 
+<<<<<<< Updated upstream
   // Lấy chi tiết sản phẩm theo slug
   getProductDetail: async (slug) => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/products/detail/${slug}`)
+=======
+  // Lấy chi tiết sản phẩm theo id (DÀNH CHO MANAGER)
+  getProductDetail: async (id) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/manager/products/${id}`)
+>>>>>>> Stashed changes
     return response.data
   },
 
