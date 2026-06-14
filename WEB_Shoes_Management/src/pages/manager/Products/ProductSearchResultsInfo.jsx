@@ -19,7 +19,7 @@ export const ProductSearchResultsInfo = ({ totalItems, currentPage, limit, activ
                 <FiPackage className="text-brand-primary" size={16} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số sản phẩm</p>
                 <p className="text-xl font-extrabold text-gray-900 leading-tight">
                   {totalItems.toLocaleString('vi-VN')}
                 </p>

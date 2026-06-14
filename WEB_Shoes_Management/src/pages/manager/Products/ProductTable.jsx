@@ -1,5 +1,5 @@
 import { formatRelativeTime, formatDateTime, getImageUrl, formatPrice } from '~/utils/formatters'
-import { FiEye, FiCheckCircle, FiXCircle, FiMoreVertical, FiStar } from 'react-icons/fi'
+import { FiEye, FiCheckCircle, FiXCircle, FiMoreVertical, FiStar, FiInfo } from 'react-icons/fi'
 import { FaBan } from 'react-icons/fa'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import {
@@ -72,7 +72,7 @@ export const ProductTable = ({
             ) : (
               products.map((product) => {
                 const isChecked = selectedIds.includes(product.id)
-                const imageUrl = getImageUrl(product.images, 'https://placehold.co/100x100?text=Product')
+                const imageUrl = getImageUrl(product.images?.[0], 'https://placehold.co/100x100?text=Product')
                 const rating = Number(product.rating_avg) || 0
 
                 return (
@@ -124,7 +124,23 @@ export const ProductTable = ({
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center min-w-[120px]">
-                      {getStatusBadge(product.status)}
+                      <div className="flex items-center justify-center gap-1">
+                        {(product.status === PRODUCT_MODERATION_STATUS.REJECTED || product.status === PRODUCT_MODERATION_STATUS.BANNED) && product.reject_reason ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {getStatusBadge(product.status)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
+                              <p className="font-semibold mb-1">Lý do:</p>
+                              <p>{product.reject_reason}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          getStatusBadge(product.status)
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
