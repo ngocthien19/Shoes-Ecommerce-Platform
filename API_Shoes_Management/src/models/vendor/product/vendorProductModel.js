@@ -82,7 +82,7 @@ const getVendorProductsWithFilters = async (storeId, { search, categoryId, isAct
   let query = `
     SELECT 
       p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, 
-      p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at,
+      p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at, p.reject_reason,
       c.name AS category_name
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id
