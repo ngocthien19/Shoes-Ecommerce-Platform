@@ -50,7 +50,7 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
   const oldStatus = info.status
 
   // Cập nhật trạng thái mới xuống Database
-  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus)
+  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus, reason)
   if (affectedRows === 0) throw new Error('Cập nhật trạng thái sản phẩm thất bại.')
 
   let thumbnail = ''
@@ -196,7 +196,7 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
   }
 
   // Thực thi cập nhật đồng bộ hàng loạt dưới Database qua câu lệnh IN
-  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus)
+  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus, reason)
   if (affectedRows === 0) throw new Error('Không có sản phẩm nào được thay đổi trạng thái.')
 
   // Gọi Model bốc thông tin lên để gom nhóm chống spam hòm thư Vendor
