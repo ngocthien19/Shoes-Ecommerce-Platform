@@ -205,14 +205,32 @@ const getReviewsOverviewStats = async (storeId) => {
       (SELECT AVG(sr.rating) FROM store_reviews sr 
        WHERE sr.store_id = ? AND sr.is_active = TRUE) AS avgStoreRating,
       
-      -- Tổng số đánh giá đang bị ẩn (từ cả 2 bảng)
+      -- Tổng số đánh giá sản phẩm đang bị ẩn
+      (SELECT COUNT(*) FROM product_reviews pr 
+       JOIN products p ON pr.product_id = p.id 
+       WHERE p.store_id = ? AND pr.is_active = FALSE) AS inactiveProductReviews,
+      
+      -- Tổng số đánh giá cửa hàng đang bị ẩn
+      (SELECT COUNT(*) FROM store_reviews sr 
+       WHERE sr.store_id = ? AND sr.is_active = FALSE) AS inactiveStoreReviews,
+      
+      -- Tổng số đánh giá sản phẩm đã bị báo cáo
+      (SELECT COUNT(*) FROM product_reviews pr 
+       JOIN products p ON pr.product_id = p.id 
+       WHERE p.store_id = ? AND pr.is_reported = TRUE) AS reportedProductReviews,
+      
+      -- Tổng số đánh giá cửa hàng đã bị báo cáo
+      (SELECT COUNT(*) FROM store_reviews sr 
+       WHERE sr.store_id = ? AND sr.is_reported = TRUE) AS reportedStoreReviews,
+      
+      -- Tổng số đánh giá đang bị ẩn (từ cả 2 bảng) - giữ lại cho tương thích cũ
       (SELECT COUNT(*) FROM product_reviews pr 
        JOIN products p ON pr.product_id = p.id 
        WHERE p.store_id = ? AND pr.is_active = FALSE) +
       (SELECT COUNT(*) FROM store_reviews sr 
        WHERE sr.store_id = ? AND sr.is_active = FALSE) AS totalInactiveReviews,
       
-      -- Tổng số đánh giá đã bị báo cáo (từ cả 2 bảng)
+      -- Tổng số đánh giá đã bị báo cáo (từ cả 2 bảng) - giữ lại cho tương thích cũ
       (SELECT COUNT(*) FROM product_reviews pr 
        JOIN products p ON pr.product_id = p.id 
        WHERE p.store_id = ? AND pr.is_reported = TRUE) +
@@ -220,14 +238,18 @@ const getReviewsOverviewStats = async (storeId) => {
        WHERE sr.store_id = ? AND sr.is_reported = TRUE) AS totalReportedReviews
   `
   const [rows] = await pool.execute(query, [
-    storeId, // totalProductReviews
-    storeId, // totalStoreReviews
-    storeId, // avgProductRating
-    storeId, // avgStoreRating
-    storeId, // inactive product reviews
-    storeId, // inactive store reviews
-    storeId, // reported product reviews
-    storeId // reported store reviews
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId,
+    storeId
   ])
 
   const totalReviews = Number(rows[0].totalProductReviews) + Number(rows[0].totalStoreReviews)
@@ -246,13 +268,19 @@ const getReviewsOverviewStats = async (storeId) => {
 
   return {
     totalReviews: totalReviews,
-    totalProductReviews: Number(rows[0].totalProductReviews) || 0,
-    totalStoreReviews: Number(rows[0].totalStoreReviews) || 0,
     averageRating: averageRating,
+    totalInactiveReviews: Number(rows[0].totalInactiveReviews) || 0,
+    totalReportedReviews: Number(rows[0].totalReportedReviews) || 0,
+
+    totalProductReviews: Number(rows[0].totalProductReviews) || 0,
     avgProductRating: productAvg.toFixed(1),
+    inactiveProductReviews: Number(rows[0].inactiveProductReviews) || 0,
+    reportedProductReviews: Number(rows[0].reportedProductReviews) || 0,
+
+    totalStoreReviews: Number(rows[0].totalStoreReviews) || 0,
     avgStoreRating: storeAvg.toFixed(1),
-    inactiveReviews: Number(rows[0].totalInactiveReviews) || 0,
-    reportedReviews: Number(rows[0].totalReportedReviews) || 0
+    inactiveStoreReviews: Number(rows[0].inactiveStoreReviews) || 0,
+    reportedStoreReviews: Number(rows[0].reportedStoreReviews) || 0
   }
 }
 
