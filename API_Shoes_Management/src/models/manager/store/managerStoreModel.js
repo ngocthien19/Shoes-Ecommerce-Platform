@@ -19,6 +19,7 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
     queryParams.push(`%${search}%`, `%${search}%`)
   }
 
+  // Sửa: isActive (đã được truyền từ service)
   if (isActive !== undefined && isActive !== null) {
     query += ' AND s.is_active = ?'
     queryParams.push(Number(isActive))

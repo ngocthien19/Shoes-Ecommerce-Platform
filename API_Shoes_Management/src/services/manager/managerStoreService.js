@@ -11,7 +11,7 @@ const getStoresList = async (filters) => {
 
   const filterParams = {
     search: filters.search || null,
-    isActive: filters.isActive !== undefined ? filters.isActive : null,
+    isActive: filters.is_active !== undefined ? filters.is_active : null,
     startDate: filters.startDate || null,
     endDate: filters.endDate || null,
     limit,
