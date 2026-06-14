@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiBell, FiX, FiCheckCircle, FiPackage, FiShoppingBag, FiFlag, FiDollarSign, FiHome, FiAlertCircle, FiUser, FiClock, FiMapPin, FiMail, FiPhone } from 'react-icons/fi'
+import {
+  FiBell, FiX, FiCheckCircle, FiPackage, FiShoppingBag, FiFlag,
+  FiDollarSign, FiHome, FiAlertCircle, FiUser, FiClock, FiMapPin,
+  FiMail, FiPhone, FiExternalLink, FiMoreHorizontal
+} from 'react-icons/fi'
 import { formatRelativeTime, getImageUrl } from '~/utils/formatters'
 import { notificationApiService } from '~/services/notification/notificationApiService'
 import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constant'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '~/components/ui/dropdown-menu'
 
 export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChange }) => {
   const [notifications, setNotifications] = useState([])
@@ -15,6 +25,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const containerRef = useRef(null)
+  const navigate = useNavigate()
 
   const fetchNotifications = async (pageNum = 1, append = false) => {
     try {
@@ -67,6 +78,23 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     }
   }
 
+  // Đánh dấu đã đọc một thông báo
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await notificationApiService.markAsRead(notificationId)
+      setNotifications(prev => prev.map(n =>
+        n.id === notificationId ? { ...n, is_read: true } : n
+      ))
+      const newUnreadCount = unreadCount - 1
+      setUnreadCount(newUnreadCount)
+      if (onUnreadCountChange) {
+        onUnreadCountChange(newUnreadCount)
+      }
+    } catch (error) {
+      console.error('Lỗi đánh dấu đã đọc:', error)
+    }
+  }
+
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current
@@ -102,7 +130,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     case NOTIFICATION_TYPES.APPEAL_REJECTED:
       return { icon: FiAlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
     default:
-      return { icon: FiBell, color: 'text-gray-500', bg: 'bg-gray-50' }
+      return { icon: FiBell, color: 'text-brand-secondary', bg: 'bg-brand-secondary/10' }
     }
   }
 
@@ -156,6 +184,20 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
       }
     }
     return null
+  }
+
+  // Xử lý chuyển sang trang xem tất cả
+  const handleViewAll = () => {
+    onClose()
+    if (userRole === ROLE_ID.VENDOR) {
+      navigate('/vendor/notifications')
+    } else if (userRole === ROLE_ID.MANAGER) {
+      navigate('/manager/notifications')
+    } else if (userRole === ROLE_ID.ADMIN) {
+      navigate('/admin/notifications')
+    } else {
+      navigate('/notifications')
+    }
   }
 
   // Render thông tin chi tiết dựa trên nội dung JSON
@@ -351,12 +393,41 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h4 className={`text-sm font-bold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>
+                              <h4 className={`text-base font-bold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>
                                 {notif.title}
                               </h4>
-                              <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                                {formatRelativeTime(notif.created_at)}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[12px] text-gray-400 whitespace-nowrap">
+                                  {formatRelativeTime(notif.created_at)}
+                                </span>
+
+                                {/* Dropdown menu cho từng thông báo */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-all">
+                                      <FiMoreHorizontal size={14} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-lg border-gray-100">
+                                    {isUnread && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleMarkAsRead(notif.id)}
+                                        className="cursor-pointer text-xs font-semibold py-2 gap-2"
+                                      >
+                                        <FiCheckCircle size={12} />
+                                        Đánh dấu đã đọc
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                      onClick={handleViewAll}
+                                      className="cursor-pointer text-xs font-semibold py-2 gap-2"
+                                    >
+                                      <FiExternalLink size={12} />
+                                      Xem tất cả
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
 
                             {/* Nội dung chính */}
@@ -382,7 +453,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                             {link && (
                               <Link
                                 to={link}
-                                className="inline-block mt-2 text-[10px] font-semibold text-brand-primary hover:underline"
+                                className="inline-block mt-2 text-[12px] font-semibold text-brand-primary hover:underline"
                                 onClick={onClose}
                               >
                                 Xem chi tiết
@@ -391,9 +462,9 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
 
                             {/* Trạng thái đã đọc */}
                             {!isUnread && (
-                              <div className="flex items-center gap-1 mt-2">
-                                <FiCheckCircle size={10} className="text-gray-400" />
-                                <span className="text-[9px] text-gray-400">Đã đọc</span>
+                              <div className="flex items-center gap-1 mt-2 font-bold">
+                                <FiCheckCircle size={10} className="text-green-400" />
+                                <span className="text-[10px] text-green-500">Đã đọc</span>
                               </div>
                             )}
                           </div>
@@ -410,10 +481,20 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
               )}
             </div>
 
+            {/* Footer với nút xem tất cả */}
             <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
-              <p className="text-[10px] text-center text-gray-400">
-                Chỉ hiển thị thông báo trong 30 ngày gần nhất
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] text-gray-400">
+                  Chỉ hiển thị thông báo trong 30 ngày gần nhất
+                </p>
+                <button
+                  onClick={handleViewAll}
+                  className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer transition-all hover:translate-x-0.5"
+                >
+                  Xem tất cả
+                  <FiExternalLink size={10} />
+                </button>
+              </div>
             </div>
           </motion.div>
         </div>
