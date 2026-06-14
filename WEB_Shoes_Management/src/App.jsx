@@ -37,6 +37,7 @@ import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 // MANAGER PAGES
 import { ManagerLayout } from '~/layouts/manager/ManagerLayout'
 import { ManagerStoresPage } from '~/pages/manager/Store/ManagerStoresPage'
+import { ManagerStoreDetailPage } from '~/pages/manager/Store/StoreDetail/ManagerStoreDetailPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -128,6 +129,7 @@ const App = () => {
         <Route path="/manager" element={<ManagerLayout />}>
           {/* Quản lý Cửa hàng */}
           <Route path="stores" element={<ManagerStoresPage />} />
+          <Route path="stores/:id" element={<ManagerStoreDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />

@@ -3,7 +3,7 @@ import { EmailProvider } from '~/providers/EmailProvider'
 import { notificationService } from '~/services/notification/notificationService'
 import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constants'
 
-// A. Lấy danh sách gian hàng (Hỗ trợ phân trang, tìm kiếm búa xua, lọc khoảng ngày)
+// A. Lấy danh sách gian hàng (Hỗ trợ phân trang, lọc khoảng ngày)
 const getStoresList = async (filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
