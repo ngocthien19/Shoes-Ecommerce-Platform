@@ -1,28 +1,153 @@
+import { Routes, Route } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+
+// USER PAGES
+import { HomePage } from '~/pages/user/HomePage/HomePage'
+import { ProductDetailPage } from '~/pages/user/ProductDetail/ProductDetailPage'
+import { ProductsPage } from '~/pages/user/Products/ProductsPage'
+import { ProfilePage } from '~/pages/user/Profile/ProfilePage'
+import { CartPage } from '~/pages/user/Cart/CartPage'
+import { OrderSuccessPage } from '~/pages/user/OrderSuccess/OrderSuccessPage'
+import { OrderTrackingPage } from '~/pages/user/OrderHistory/OrderTrackingPage'
+import { OrderDetailPage } from '~/pages/user/OrderDetail/OrderDetailPage'
+import { StoreDetailPage } from '~/pages/user/StoreDetail/StoreDetailPage'
+import { ReviewOrderPage } from '~/pages/user/Review/ReviewOrderPage'
+
+// VENDOR PAGES
+import { RegisterStorePage } from '~/pages/vendor/RegisterStore/RegisterStorePage'
+import { VendorDashboardPage } from '~/pages/vendor/Dashboard/VendorDashboardPage'
+import { VendorProductsPage } from '~/pages/vendor/Products/VendorProductsPage'
+import { ProductFormPage } from '~/pages/vendor/Products/ProductForm/ProductFormPage'
+import { VendorProductDetailPage } from '~/pages/vendor/Products/ProductDetail/VendorProductDetailPage'
+import { VendorFavoritesPage } from '~/pages/vendor/Favorites/VendorFavoritesPage'
+import { VendorPromotionsPage } from '~/pages/vendor/Promotions/VendorPromotionsPage'
+import { PromotionFormPage } from '~/pages/vendor/Promotions/PromotionForm/PromotionFormPage'
+import { PromotionDetailPage } from '~/pages/vendor/Promotions/PromotionDetail/PromotionDetailPage'
+import { VendorReviewsPage } from '~/pages/vendor/Reviews/VendorReviewsPage'
+import { ReviewDetailPage } from '~/pages/vendor/Reviews/ReviewDetail/ReviewDetailPage'
+import { VendorPayoutPage } from '~/pages/vendor/Payout/VendorPayoutPage'
+import { VendorOrdersPage } from '~/pages/vendor/Orders/VendorOrdersPage'
+import { VendorOrderDetailPage } from '~/pages/vendor/Orders/OrderDetail/VendorOrderDetailPage'
+import { VendorProfileAccount } from '~/pages/vendor/Profile/Account/VendorProfileAccount'
+import { VendorProfileStore } from '~/pages/vendor/Profile/Store/VendorProfileStore'
+import { VendorChatPage } from '~/pages/vendor/Chat/VendorChatPage'
+import { AllNotificationsPage } from '~/pages/common/AllNotificationsPage'
+import { VendorLayout } from '~/layouts/vendor/VendorLayout'
+
+// MANAGER PAGES
+import { ManagerLayout } from '~/layouts/manager/ManagerLayout'
+import { ManagerStoresPage } from '~/pages/manager/Store/ManagerStoresPage'
+import { ManagerStoreDetailPage } from '~/pages/manager/Store/StoreDetail/ManagerStoreDetailPage'
+
+// AUTH PAGES
+import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
+import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
+import { LoginPage } from '~/pages/auth/LoginPage/LoginPage'
+import { ForgotPasswordPage } from '~/pages/auth/ForgotPasswordPage/ForgotPasswordPage'
+import { ResetPasswordPage } from '~/pages/auth/ResetPasswordPage/ResetPasswordPage'
+
+// LAYOUTS & COMPONENTS
+import { MainLayout } from '~/layouts/user/MainLayout'
+import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
+import { PageTransition } from '~/components/common/PageTransition'
+import { ChatWidget } from '~/components/chat/ChatWidget'
+import 'react-toastify/dist/ReactToastify.css'
+
 const App = () => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+    <div className="app-wrapper">
+      <Routes>
 
-      {/* Thẻ Card áp dụng shadow-custom đã định nghĩa ở index.css */}
-      <div className="bg-white p-8 rounded-2xl shadow-custom text-center max-w-sm space-y-4">
+        {/* KHU VỰC CỦA NGƯỜI DÙNG */}
+        <Route element={<MainLayout />}>
 
-        {/* text-brand-primary: màu chữ #e94560 */}
-        <h1 className="text-3xl font-bold text-brand-primary">
-          Shoes Store 👟
-        </h1>
+          {/* Các trang ai cũng xem được */}
+          <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+          <Route path="/product/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+          <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
+          <Route path="/store/:id" element={<PageTransition><StoreDetailPage /></PageTransition>} />
 
-        <p className="text-gray-500 text-sm leading-relaxed">
-          Môi trường CSS khởi tạo toàn cục (Reset CSS, Poppins Font, Custom BoxShadow) đã hoạt động hoàn hảo trên Tailwind v4!
-        </p>
+          {/* Các trang bắt buộc Đăng nhập */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
+            <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
+            <Route path="/order-success" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
+            <Route path="/orders" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
+            <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
+            <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
+            <Route path="/register-store" element={<PageTransition><RegisterStorePage /></PageTransition>} />
 
-        <div className="pt-2">
-          {/* Áp dụng màu nền chính cho button */}
-          <button className="px-5 py-2.5 bg-brand-primary text-white font-medium rounded-xl hover:opacity-90 transition-all duration-200 cursor-pointer">
-            Xem Sản Phẩm
-          </button>
-        </div>
+          </Route>
 
-      </div>
+        </Route>
 
+        {/* KHU VỰC CỦA NGƯỜI BÁN*/}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/vendor" element={<VendorLayout />}>
+            {/* Dashboard */}
+            <Route path="dashboard" element={<VendorDashboardPage />} />
+
+            {/* Profile */}
+            <Route path="profile-account" element={<VendorProfileAccount />} />
+            <Route path="profile-store" element={<VendorProfileStore />} />
+
+            {/* Promotion */}
+            <Route path="products" element={<VendorProductsPage />} />
+            <Route path="products/add" element={<ProductFormPage />} />
+            <Route path="products/edit/:id" element={<ProductFormPage />} />
+            <Route path="products/detail/:id" element={<VendorProductDetailPage />} />
+
+            {/* Favorite */}
+            <Route path="favorites" element={<VendorFavoritesPage />} />
+
+            {/* Order */}
+            <Route path="orders" element={<VendorOrdersPage />} />
+            <Route path="orders/detail/:id" element={<VendorOrderDetailPage />} />
+
+            {/* Promotion */}
+            <Route path="promotions" element={<VendorPromotionsPage />} />
+            <Route path="promotions/add" element={<PromotionFormPage />} />
+            <Route path="promotions/edit/:id" element={<PromotionFormPage />} />
+            <Route path="promotions/detail/:id" element={<PromotionDetailPage />} />
+
+            {/* Review */}
+            <Route path="reviews" element={<VendorReviewsPage />} />
+            <Route path="reviews/detail/:id" element={<ReviewDetailPage />} />
+
+            {/* Payout */}
+            <Route path="payouts" element={<VendorPayoutPage />} />
+
+            {/* Chat */}
+            <Route path="chat" element={<VendorChatPage />}
+            />
+            {/* Notification */}
+            <Route path="notifications" element={<AllNotificationsPage />} />
+          </Route>
+        </Route>
+
+        {/* MANAGER*/}
+        <Route path="/manager" element={<ManagerLayout />}>
+          {/* Quản lý Cửa hàng */}
+          <Route path="stores" element={<ManagerStoresPage />} />
+          <Route path="stores/:id" element={<ManagerStoreDetailPage />} />
+
+          {/* Thông báo */}
+          <Route path="notifications" element={<AllNotificationsPage />} />
+        </Route>
+
+        {/* KHU VỰC XÁC THỰC (CHẶN KHI ĐÃ ĐĂNG NHẬP) */}
+        <Route element={<RejectedRoute />}>
+          <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
+          <Route path="/verify-otp" element={<PageTransition><VerifyOtpPage /></PageTransition>} />
+          <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
+          <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
+          <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
+        </Route>
+
+      </Routes>
+
+      {/* Widget chat độc lập nổi trên cùng */}
+      <ChatWidget />
     </div>
   )
 }
