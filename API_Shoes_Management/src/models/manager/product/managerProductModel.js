@@ -139,7 +139,21 @@ const getProductsAndOwnersInfoBulk = async (productIds) => {
 // H. Xem chi tiết thông tin sâu của một sản phẩm phục vụ Modal popup xem trước của Manager
 const getProductDetailForManager = async (productSlug) => {
   const query = `
-    SELECT p.*, s.name AS store_name, c.name AS category_name, u.fullname AS owner_name
+    SELECT 
+      p.*,
+      s.id AS store_id,
+      s.name AS store_name,
+      s.address AS store_address,
+      s.bio AS store_bio,
+      s.logo AS store_logo,
+      s.banner AS store_banner,
+      s.rating_average AS store_rating,
+      u.id AS owner_id,
+      u.fullname AS owner_name,
+      u.email AS owner_email,
+      u.phone AS owner_phone,
+      u.created_at AS owner_joined_at,
+      c.name AS category_name
     FROM products p
     JOIN stores s ON p.store_id = s.id
     JOIN categories c ON p.category_id = c.id
@@ -150,6 +164,17 @@ const getProductDetailForManager = async (productSlug) => {
   return rows[0] || null
 }
 
+const getProductVariants = async (productId) => {
+  const query = `
+    SELECT id, size, color, stock
+    FROM product_variants
+    WHERE product_id = ?
+    ORDER BY size, color
+  `
+  const [rows] = await pool.execute(query, [productId])
+  return rows
+}
+
 export const managerProductModel = {
   getProductsForManager,
   countProductsForManager,
@@ -158,5 +183,6 @@ export const managerProductModel = {
   updateProductModerationStatus,
   updateProductsStatusBulk,
   getProductsAndOwnersInfoBulk,
-  getProductDetailForManager
+  getProductDetailForManager,
+  getProductVariants
 }
