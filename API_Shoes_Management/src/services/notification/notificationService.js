@@ -32,8 +32,14 @@ const markAllAsRead = async (userId) => {
   return { message: 'Đã đánh dấu xem toàn bộ thông báo hệ thống thành công.', affectedRows }
 }
 
+const getUnreadCount = async (userId) => {
+  const count = await notificationModel.getUnreadCount(userId)
+  return { count }
+}
+
 export const notificationService = {
   createAndPushNotification,
   getNotifications,
-  markAllAsRead
+  markAllAsRead,
+  getUnreadCount
 }
