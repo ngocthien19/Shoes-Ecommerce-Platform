@@ -7,6 +7,8 @@ const router = express.Router()
 router.use(authGuard.isAuthorized)
 
 router.get('/', notificationController.getNotifications)
-router.put('/mark-as-read', notificationController.markAllAsRead)
+router.put('/mark-all-read', notificationController.markAllAsRead)
+router.put('/:id/read', notificationController.markAsRead)
+router.get('/unread-count', notificationController.getUnreadCount)
 
 export const notificationRouter = router

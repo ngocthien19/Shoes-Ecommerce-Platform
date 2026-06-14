@@ -10,9 +10,11 @@ const getStoreByOwnerId = async (ownerId) => {
 const getMostFavoritedProducts = async (storeId, { search, categoryId, isActive, minFavorites, maxFavorites, limit, offset }) => {
   let query = `
     SELECT p.id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images, p.is_active, p.category_id,
+           c.name AS category_name,
            COUNT(f.product_id) AS total_favorites
     FROM products p
     LEFT JOIN favorites f ON p.id = f.product_id
+    LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.store_id = ?
   `
   const queryParams = [storeId]
@@ -30,7 +32,7 @@ const getMostFavoritedProducts = async (storeId, { search, categoryId, isActive,
     queryParams.push(Number(isActive))
   }
 
-  query += ' GROUP BY p.id'
+  query += ' GROUP BY p.id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images, p.is_active, p.category_id, c.name'
 
   // Lọc theo số lượng tim sau khi đã GROUP BY (Dùng HAVING)
   if (minFavorites) {
@@ -38,7 +40,6 @@ const getMostFavoritedProducts = async (storeId, { search, categoryId, isActive,
     queryParams.push(Number(minFavorites))
   }
   if (maxFavorites) {
-    // Nếu đã có HAVING ở trên thì nối AND, chưa có thì dùng HAVING
     query += minFavorites ? ' AND total_favorites <= ?' : ' HAVING total_favorites <= ?'
     queryParams.push(Number(maxFavorites))
   }
@@ -74,7 +75,6 @@ const countFavoritedProductsUnique = async (storeId, { search, categoryId, isAct
 
 // 3. Thống kê siêu Widget (Tìm đôi giày nhiều tim nhất + Tổng số lượt tim)
 const getFavoritesOverviewStats = async (storeId) => {
-  // Lấy tổng số lượt tim và số lượng sản phẩm có tim
   const queryStats = `
     SELECT 
       COUNT(f.product_id) AS totalStoreFavorites,
@@ -83,7 +83,6 @@ const getFavoritesOverviewStats = async (storeId) => {
     JOIN products p ON f.product_id = p.id
     WHERE p.store_id = ?
   `
-  // Lấy tên đôi giày được thích nhiều nhất
   const queryTopProduct = `
     SELECT p.name, COUNT(f.product_id) AS total_favorites
     FROM products p
@@ -102,7 +101,7 @@ const getFavoritesOverviewStats = async (storeId) => {
   return {
     totalFavoritesAllTime: Number(rowsStats[0].totalStoreFavorites) || 0,
     uniqueProductsFavorited: Number(rowsStats[0].uniqueProductsFavorited) || 0,
-    mostFavoritedProduct: rowsTop[0] ? `${rowsTop[0].name} (${rowsTop[0].total_favorites} ❤)` : 'Chưa có'
+    mostFavoritedProduct: rowsTop[0] ? `${rowsTop[0].name} (${rowsTop[0].total_favorites})` : 'Chưa có'
   }
 }
 

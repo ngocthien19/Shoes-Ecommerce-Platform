@@ -44,7 +44,8 @@ const getCartByUserId = async (userId) => {
       p.price AS base_price,
       p.images,
       s.id AS store_id,
-      s.name AS store_name
+      s.name AS store_name,
+      s.logo AS store_logo
     FROM cart c
     INNER JOIN product_variants pv ON c.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
@@ -57,9 +58,12 @@ const getCartByUserId = async (userId) => {
 }
 
 // 6. Xóa một item khỏi giỏ hàng
-const removeFromCart = async (userId, variantId) => {
-  const query = 'DELETE FROM cart WHERE user_id = ? AND variant_id = ?'
-  const [result] = await pool.execute(query, [userId, variantId])
+const removeMultipleFromCart = async (userId, variantIds) => {
+  if (!variantIds || variantIds.length === 0) return { affectedRows: 0 }
+
+  const query = 'DELETE FROM cart WHERE user_id = ? AND variant_id IN (?)'
+
+  const [result] = await pool.query(query, [userId, variantIds])
   return result
 }
 
@@ -69,5 +73,5 @@ export const cartModel = {
   addToCart,
   updateCartQuantity,
   getCartByUserId,
-  removeFromCart
+  removeFromCart: removeMultipleFromCart
 }

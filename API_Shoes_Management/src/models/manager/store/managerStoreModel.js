@@ -6,7 +6,8 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
   let query = `
     SELECT s.id, s.owner_id, u.fullname AS owner_name, u.email AS owner_email,
            s.name AS store_name, s.bio, s.logo, s.banner, s.address, s.balance, 
-           s.is_active, s.rating_average, s.created_at
+           s.is_active, s.rating_average, s.created_at, s.reject_reason,
+           (SELECT name FROM roles WHERE id = u.role_id) AS owner_role
     FROM stores s
     JOIN users u ON s.owner_id = u.id
     WHERE 1=1
@@ -18,14 +19,10 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
     queryParams.push(`%${search}%`, `%${search}%`)
   }
 
+  // Sửa: isActive (đã được truyền từ service)
   if (isActive !== undefined && isActive !== null) {
     query += ' AND s.is_active = ?'
     queryParams.push(Number(isActive))
-
-    if (Number(isActive) === 0) {
-      query += ' AND u.role_id = ?'
-      queryParams.push(ROLE_ID.USER)
-    }
   }
 
   if (startDate) {
@@ -44,7 +41,7 @@ const getStoresForManager = async ({ search, isActive, startDate, endDate, limit
   return rows
 }
 
-// 2. Đếm tổng số cửa hàng thỏa mãn bộ lọc (Đồng bộ logic cô lập)
+// 2. Đếm tổng số cửa hàng thỏa mãn bộ lọc
 const countStoresForManager = async ({ search, isActive, startDate, endDate }) => {
   let query = `
     SELECT COUNT(*) as total 
@@ -62,11 +59,6 @@ const countStoresForManager = async ({ search, isActive, startDate, endDate }) =
   if (isActive !== undefined && isActive !== null) {
     query += ' AND s.is_active = ?'
     queryParams.push(Number(isActive))
-
-    if (Number(isActive) === 0) {
-      query += ' AND u.role_id = ?'
-      queryParams.push(ROLE_ID.USER)
-    }
   }
 
   if (startDate) {
@@ -84,15 +76,23 @@ const countStoresForManager = async ({ search, isActive, startDate, endDate }) =
 
 // 3. Xử lý cập nhật trạng thái hoạt động hàng loạt (Checkbox phê duyệt hoặc Khóa loạt)
 const updateStoresStatusBulk = async (storeIds, isActive) => {
-  // Tránh lỗi chạy câu lệnh SQL rỗng nếu FE truyền mảng trống
   if (!storeIds || storeIds.length === 0) return 0
 
-  const query = `UPDATE stores SET is_active = ? WHERE id IN (${storeIds.map(() => '?').join(',')})`
+  const query = `UPDATE stores SET is_active = ?, reject_reason = NULL WHERE id IN (${storeIds.map(() => '?').join(',')})`
   const [result] = await pool.execute(query, [isActive, ...storeIds])
   return result.affectedRows
 }
 
-// 4. Tìm các user_id là chủ của danh sách các store này để sau này nâng quyền lên VENDOR
+// 3b. Từ chối cửa hàng - cập nhật is_active = 0 và lưu lý do từ chối
+const rejectStoresBulk = async (storeIds, rejectReason) => {
+  if (!storeIds || storeIds.length === 0) return 0
+
+  const query = `UPDATE stores SET is_active = 0, reject_reason = ? WHERE id IN (${storeIds.map(() => '?').join(',')})`
+  const [result] = await pool.execute(query, [rejectReason, ...storeIds])
+  return result.affectedRows
+}
+
+// 4. Tìm các user_id là chủ của danh sách các store này
 const getOwnerIdsByStoreIds = async (storeIds) => {
   if (!storeIds || storeIds.length === 0) return []
   const query = `SELECT owner_id FROM stores WHERE id IN (${storeIds.map(() => '?').join(',')})`
@@ -108,7 +108,7 @@ const updateUserRolesBulk = async (userIds, roleId) => {
   return result.affectedRows
 }
 
-// 6. Lấy id của Role dựa vào tên (Ví dụ: truyền 'VENDOR' lấy ra id tương ứng)
+// 6. Lấy id của Role dựa vào tên
 const getRoleIdByName = async (roleName) => {
   const query = 'SELECT id FROM roles WHERE name = ?'
   const [rows] = await pool.execute(query, [roleName])
@@ -119,7 +119,7 @@ const getStoresAndOwnersInfo = async (storeIds) => {
   if (!storeIds || storeIds.length === 0) return []
 
   const query = `
-    SELECT s.id AS store_id, s.name AS store_name, s.logo, s.owner_id, u.fullname, u.email 
+    SELECT s.id AS store_id, s.name AS store_name, s.logo, s.owner_id, u.fullname, u.email, u.role_id
     FROM stores s
     JOIN users u ON s.owner_id = u.id
     WHERE s.id IN (${storeIds.map(() => '?').join(',')})
@@ -128,7 +128,7 @@ const getStoresAndOwnersInfo = async (storeIds) => {
   return rows
 }
 
-// Ẩn toàn bộ sản phẩm thuộc danh sách các cửa hàng bị khóa (is_active = false)
+// Ẩn toàn bộ sản phẩm thuộc danh sách các cửa hàng bị khóa
 const disableProductsByStoreIds = async (storeIds) => {
   if (!storeIds || storeIds.length === 0) return 0
 
@@ -137,7 +137,7 @@ const disableProductsByStoreIds = async (storeIds) => {
   return result.affectedRows
 }
 
-// Xóa hoàn toàn các bản ghi store bị từ chối khỏi hệ thống để giải phóng cờ UNIQUE cho owner_id
+// Xóa hoàn toàn các bản ghi store bị từ chối khỏi hệ thống
 const deleteStoresBulk = async (storeIds) => {
   if (!storeIds || storeIds.length === 0) return 0
   const query = `DELETE FROM stores WHERE id IN (${storeIds.map(() => '?').join(',')})`
@@ -145,7 +145,7 @@ const deleteStoresBulk = async (storeIds) => {
   return result.affectedRows
 }
 
-// Thống kê số liệu cửa hàng chuẩn xác 100% phục vụ các thẻ Widget của Manager
+// Thống kê số liệu cửa hàng
 const getStoresOverviewStats = async () => {
   const query = `
     SELECT 
@@ -165,7 +165,7 @@ const getStoresOverviewStats = async () => {
   }
 }
 
-// Lấy thông tin chi tiết của 1 cửa hàng cụ thể kèm thông tin chủ shop và tổng số sản phẩm
+// Lấy thông tin chi tiết của 1 cửa hàng
 const getStoreDetailForManager = async (storeId) => {
   const query = `
     SELECT 
@@ -174,6 +174,8 @@ const getStoreDetailForManager = async (storeId) => {
       u.email AS owner_email,
       u.phone AS owner_phone,
       u.created_at AS owner_joined_at,
+      u.role_id AS owner_role_id,
+      (SELECT name FROM roles WHERE id = u.role_id) AS owner_role,
       (SELECT COUNT(*) FROM products WHERE store_id = s.id) AS total_products
     FROM stores s
     JOIN users u ON s.owner_id = u.id
@@ -184,8 +186,15 @@ const getStoreDetailForManager = async (storeId) => {
 }
 
 const updateStoreStatusSingle = async (storeId, isActive) => {
-  const query = 'UPDATE stores SET is_active = ? WHERE id = ?'
+  const query = 'UPDATE stores SET is_active = ?, reject_reason = NULL WHERE id = ?'
   const [result] = await pool.execute(query, [isActive, storeId])
+  return result.affectedRows
+}
+
+// Cập nhật lý do từ chối cho 1 cửa hàng
+const updateRejectReasonSingle = async (storeId, reason) => {
+  const query = 'UPDATE stores SET reject_reason = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [reason, storeId])
   return result.affectedRows
 }
 
@@ -193,6 +202,7 @@ export const managerStoreModel = {
   getStoresForManager,
   countStoresForManager,
   updateStoresStatusBulk,
+  rejectStoresBulk,
   getOwnerIdsByStoreIds,
   updateUserRolesBulk,
   getRoleIdByName,
@@ -201,5 +211,6 @@ export const managerStoreModel = {
   deleteStoresBulk,
   getStoresOverviewStats,
   getStoreDetailForManager,
-  updateStoreStatusSingle
+  updateStoreStatusSingle,
+  updateRejectReasonSingle
 }

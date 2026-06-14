@@ -44,7 +44,6 @@ const getFavoriteAnalytics = async (userId, filters) => {
 const getProductFavoriteDetail = async (userId, productId, paginationFilters) => {
   const storeId = await getVerifiedStoreId(userId)
 
-  // 🌟 ĐÃ SỬA: Gọi hàm từ Model thay vì viết câu lệnh SQL trực tiếp tại đây
   const isOwner = await vendorFavoriteModel.checkProductBelongsToStore(productId, storeId)
   if (!isOwner) {
     throw new Error('Sản phẩm không tồn tại hoặc không thuộc quyền sở hữu của cửa hàng bạn.')

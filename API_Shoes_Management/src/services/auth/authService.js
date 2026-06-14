@@ -126,7 +126,7 @@ const login = async (reqBody) => {
   if (user.role_id === ROLE_ID.ADMIN) {
     redirectUrl = '/admin/dashboard'
   } else if (user.role_id === ROLE_ID.MANAGER) {
-    redirectUrl = '/manager/dashboard'
+    redirectUrl = '/manager/stores'
   } else if (user.role_id === ROLE_ID.VENDOR) {
     redirectUrl = '/vendor/dashboard'
   }
@@ -139,7 +139,10 @@ const login = async (reqBody) => {
       email: user.email,
       phone: user.phone,
       address: user.address,
-      roleId: user.role_id
+      roleId: user.role_id,
+      avatar: user.avatar,
+      isActive: user.is_active,
+      isVerified: user.is_verified
     },
     accessToken,
     refreshToken,

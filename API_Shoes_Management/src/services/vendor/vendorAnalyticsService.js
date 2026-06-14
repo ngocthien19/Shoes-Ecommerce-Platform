@@ -11,6 +11,10 @@ const getVerifiedStoreId = async (userId) => {
 const getRevenueAnalytics = async (userId, { type, startDate, endDate }) => {
   const storeId = await getVerifiedStoreId(userId)
 
+  // Lấy commission_rate của store
+  const store = await vendorAnalyticsModel.getStoreByOwnerId(userId)
+  const commissionRate = store?.commission_rate || 10
+
   const now = new Date()
   const todayStr = now.toISOString().split('T')[0] // 'YYYY-MM-DD'
 
@@ -76,7 +80,8 @@ const getRevenueAnalytics = async (userId, { type, startDate, endDate }) => {
     widgets: {
       totalRevenue: Number(overview.totalRevenue),
       totalOrdersSuccess: Number(overview.totalOrdersSuccess),
-      totalProductsSold: totalProductsSold
+      totalProductsSold: totalProductsSold,
+      commissionRate: Number(commissionRate)
     },
     chartData: chartData.map(item => ({
       date: item.date.toISOString().split('T')[0],

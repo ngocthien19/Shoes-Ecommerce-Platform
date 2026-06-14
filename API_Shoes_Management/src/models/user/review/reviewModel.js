@@ -58,12 +58,12 @@ const updateProductRatingAvg = async (connection, productId) => {
   await connection.execute(query, [productId, productId])
 }
 
-const createStoreReview = async (connection, { userId, storeId, rating, comment }) => {
+const createStoreReview = async (connection, { userId, storeId, orderId, rating, comment }) => {
   const query = `
-    INSERT INTO store_reviews (user_id, store_id, rating, comment) 
-    VALUES (?, ?, ?, ?)
+    INSERT INTO store_reviews (user_id, store_id, order_id, rating, comment) 
+    VALUES (?, ?, ?, ?, ?)
   `
-  await connection.execute(query, [userId, storeId, rating, comment])
+  await connection.execute(query, [userId, storeId, orderId, rating, comment])
 }
 
 const updateStoreRatingAvg = async (connection, storeId) => {

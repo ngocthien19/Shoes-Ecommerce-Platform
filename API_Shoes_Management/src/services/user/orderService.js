@@ -31,22 +31,29 @@ const coreCreateOrderTransaction = async (userId, data) => {
     for (const storeId in itemsByStore) {
       const storeItems = itemsByStore[storeId]
       const subTotal = storeItems.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0)
-      const totalAmount = Math.max(0, subTotal - (Number(data.discountAmount) / Object.keys(itemsByStore).length))
+
+      const specificStoreDiscount = data.storeDiscounts ? data.storeDiscounts[storeId] : { amount: 0, code: null }
+      const discountAmount = Number(specificStoreDiscount?.amount) || 0
+      const appliedVoucher = specificStoreDiscount?.code || null
+
+      // Trừ đi số tiền giảm giá chính xác của shop đó
+      const totalAmount = Math.max(0, subTotal - discountAmount)
 
       totalAllShops += totalAmount
       const commissionRateSnapshot = storeItems[0].commission_rate || 10.00
 
-      // Khởi tạo đơn hàng luôn ở trạng thái UNPAID
+      // Tạo đơn hàng riêng biệt với thông tin chuẩn xác 100%
       const orderId = await orderModel.createOrder(connection, {
         userId,
         recipientName: data.recipientName,
         recipientPhone: data.recipientPhone,
         storeId: Number(storeId),
         totalAmount,
-        discount_amount: data.discountAmount,
+        discount_amount: discountAmount,
         commission_rate_snapshot: commissionRateSnapshot,
         shippingAddress: data.shippingAddress,
-        paymentMethod: data.paymentMethod
+        paymentMethod: data.paymentMethod,
+        appliedVoucher: appliedVoucher
       })
 
       createdOrderIds.push(orderId)

@@ -37,12 +37,12 @@ const updateQuantity = async (req, res) => {
 const removeFromCart = async (req, res) => {
   try {
     const userId = req.jwtDecoded.id
-    const { variantId } = req.params
+    const variantIds = req.body?.variantIds || req.query?.variantIds
 
-    const result = await cartService.removeFromCart(userId, Number(variantId))
+    const result = await cartService.removeFromCart(userId, variantIds)
     return res.status(200).json(result)
   } catch (error) {
-    return res.status(500).json({ message: `Lỗi xóa item khỏi giỏ hàng: ${error.message}` })
+    return res.status(500).json({ message: `Lỗi xóa sản phẩm khỏi giỏ hàng: ${error.message}` })
   }
 }
 

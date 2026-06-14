@@ -1,12 +1,17 @@
 import { orderService } from '~/services/user/orderService'
+import { env } from '~/config/environment'
 
 const createOrderCOD = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { recipientName, recipientPhone, shippingAddress, discountAmount } = req.body
-
+    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, storeDiscounts } = req.body
     const result = await orderService.createOrderCOD(userId, {
-      recipientName, recipientPhone, shippingAddress, discountAmount: Number(discountAmount) || 0
+      recipientName,
+      recipientPhone,
+      shippingAddress,
+      discountAmount: Number(discountAmount) || 0,
+      paymentMethod,
+      storeDiscounts
     })
 
     return res.status(201).json(result)
@@ -18,9 +23,7 @@ const createOrderCOD = async (req, res) => {
 const createOrderOnline = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod } = req.body
-
-    // Lấy IP thật của khách hàng
+    const { recipientName, recipientPhone, shippingAddress, discountAmount, paymentMethod, storeDiscounts } = req.body
     const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress
 
     const result = await orderService.createOrderOnline(userId, {
@@ -28,7 +31,8 @@ const createOrderOnline = async (req, res) => {
       recipientPhone,
       shippingAddress,
       discountAmount: Number(discountAmount) || 0,
-      paymentMethod
+      paymentMethod,
+      storeDiscounts
     }, ipAddr)
 
     return res.status(201).json(result)
@@ -37,33 +41,33 @@ const createOrderOnline = async (req, res) => {
   }
 }
 
-const vnpayReturnIPN = async (req, res) => {
+const vnpayReturn = async (req, res) => {
   try {
     const result = await orderService.vnpayIPN(req.query)
-    return res.status(200).json({ RspCode: result.code, Message: result.message })
+    if (result.code === '00') {
+      const txnRef = req.query.vnp_TxnRef
+      const orderIds = txnRef.split('_').slice(0, -1).join(',')
+
+      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=VNPAY`)
+    }
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed`)
   } catch (error) {
-    return res.status(200).json({ RspCode: '99', Message: 'Unknown error' })
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }
 }
 
 const momoReturn = async (req, res) => {
   try {
-    // Đẩy toàn bộ cục query xuống Service xử lý
     const result = await orderService.processMoMoReturn(req.query)
-
     if (result.isSuccess) {
-      return res.status(200).json({
-        message: result.message,
-        momoMessage: result.momoMessage
-      })
-    }
+      const orderIdQuery = req.query.orderId
+      const orderIds = orderIdQuery.split('_').slice(0, -1).join(',')
 
-    return res.status(400).json({
-      message: result.message,
-      momoMessage: result.momoMessage
-    })
+      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=MOMO`)
+    }
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed`)
   } catch (error) {
-    return res.status(500).json({ message: 'Lỗi xử lý redirect MoMo.' })
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }
 }
 
@@ -77,4 +81,4 @@ const momoReturnIPN = async (req, res) => {
 }
 
 export const orderController = { createOrderCOD, createOrderOnline,
-  vnpayReturnIPN, momoReturn, momoReturnIPN }
+  vnpayReturn, momoReturn, momoReturnIPN }
