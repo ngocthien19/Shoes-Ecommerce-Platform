@@ -2,7 +2,7 @@ import { vendorProductModel } from '~/models/vendor/product/vendorProductModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 import { userModel } from '~/models/user/userModel'
 import { notificationService } from '~/services/notification/notificationService'
-import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
+import { PRODUCT_MODERATION_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import slugify from 'slugify'
 
 // Trả về Object Store
@@ -42,7 +42,7 @@ const createProduct = async (userId, productData) => {
         message: `Gian hàng "${store.store_name}" vừa thêm sản phẩm: ${productData.name}`,
         image: thumbnail
       }),
-      type: PRODUCT_MODERATION_STATUS.PENDING,
+      type: NOTIFICATION_TYPES.PENDING,
       referenceId: result.insertId
     }).catch(err => console.error(err))
   }
@@ -59,6 +59,11 @@ const updateProduct = async (userId, productId, updateData) => {
   const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
   if (!isOwner) throw new Error('Bạn không có quyền chỉnh sửa sản phẩm này.')
 
+  // Lấy thông tin sản phẩm hiện tại để kiểm tra trạng thái
+  const currentProduct = await vendorProductModel.getProductDetailWithVariants(productId, store.id)
+  const wasApproved = currentProduct?.status === PRODUCT_MODERATION_STATUS.APPROVED
+
+  // Cập nhật thông tin sản phẩm
   await vendorProductModel.updateProduct(productId, {
     categoryId: updateData.categoryId,
     name: updateData.name,
@@ -66,6 +71,40 @@ const updateProduct = async (userId, productId, updateData) => {
     price: updateData.price,
     images: JSON.stringify(updateData.images)
   })
+
+  // Nếu sản phẩm đang ở trạng thái APPROVED, chuyển về PENDING_REAPPROVAL và gửi thông báo
+  if (wasApproved) {
+    // Cập nhật trạng thái thành PENDING_REAPPROVAL
+    await vendorProductModel.updateProductStatus(productId, PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL)
+
+    // Lấy ảnh đại diện để gửi kèm thông báo
+    let thumbnail = ''
+    try {
+      const images = JSON.parse(currentProduct.images || '[]')
+      if (images.length > 0 && images[0].secure_url) {
+        thumbnail = images[0].secure_url
+      }
+    } catch (e) {
+      thumbnail = ''
+    }
+
+    // Gửi thông báo cho tất cả MANAGER
+    const managerIds = await userModel.getAllManagerIds()
+    for (const managerId of managerIds) {
+      await notificationService.createAndPushNotification({
+        userId: managerId,
+        title: 'Yêu cầu kiểm duyệt lại sản phẩm',
+        content: JSON.stringify({
+          message: `Gian hàng "${store.store_name}" vừa chỉnh sửa sản phẩm: ${currentProduct.name}. Vui lòng kiểm duyệt lại.`,
+          image: thumbnail,
+          productId: productId,
+          productName: currentProduct.name
+        }),
+        type: NOTIFICATION_TYPES.PRODUCT_REAPPROVAL,
+        referenceId: productId
+      }).catch(err => console.error('Lỗi gửi thông báo kiểm duyệt lại:', err))
+    }
+  }
 
   return { message: 'Cập nhật sản phẩm thành công! Mặt hàng đã được chuyển về hàng chờ kiểm duyệt lại.' }
 }
@@ -245,7 +284,7 @@ const requestProductsReapprovalBulk = async (userId, productIds) => {
         message: `Gian hàng "${store.store_name}" vừa gửi yêu cầu duyệt lại cho ${affectedRows} sản phẩm bị vi phạm.`,
         image: ''
       }),
-      type: PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL,
+      type: NOTIFICATION_TYPES.PENDING_REAPPROVAL,
       referenceId: store.id
     }).catch(err => console.error(err))
   }
