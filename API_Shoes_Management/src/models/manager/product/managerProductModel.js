@@ -5,7 +5,7 @@ import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 const getProductsForManager = async ({ search, categoryId, storeId, status, sortBy, sortOrder, limit, offset }) => {
   let query = `
     SELECT p.id, p.name AS product_name, p.slug, p.price, p.sold, p.is_active, p.status, p.created_at,
-           p.rating_avg, p.images,
+           p.rating_avg, p.images, p.reject_reason,
            s.name AS store_name, c.name AS category_name
     FROM products p
     JOIN stores s ON p.store_id = s.id
@@ -107,22 +107,51 @@ const getProductAndOwnerInfo = async (productId) => {
 }
 
 // E. Hàm cập nhật trạng thái đơn lẻ (Tự động tính toán hạ/bật cờ hiển thị thương mại)
-const updateProductModerationStatus = async (productId, status) => {
+// E. Hàm cập nhật trạng thái đơn lẻ (có lưu reject_reason)
+const updateProductModerationStatus = async (productId, status, rejectReason = null) => {
   const isActiveTarget = (status === PRODUCT_MODERATION_STATUS.APPROVED) ? 1 : 0
-  const query = 'UPDATE products SET status = ?, is_active = ? WHERE id = ?'
-  const [result] = await pool.execute(query, [status, isActiveTarget, productId])
+
+  let query = 'UPDATE products SET status = ?, is_active = ?'
+  const queryParams = [status, isActiveTarget]
+
+  // Nếu có reject_reason và status là REJECTED hoặc BANNED, lưu lại
+  if (rejectReason && (status === PRODUCT_MODERATION_STATUS.REJECTED || status === PRODUCT_MODERATION_STATUS.BANNED)) {
+    query += ', reject_reason = ?'
+    queryParams.push(rejectReason)
+  } else if (status === PRODUCT_MODERATION_STATUS.APPROVED) {
+    // Khi approve, xóa reject_reason cũ
+    query += ', reject_reason = NULL'
+  }
+
+  query += ' WHERE id = ?'
+  queryParams.push(productId)
+
+  const [result] = await pool.execute(query, queryParams)
   return result.affectedRows
 }
 
-// F. Hàm cập nhật trạng thái hàng loạt an toàn tuyệt đối qua điều kiện IN
-const updateProductsStatusBulk = async (productIds, status) => {
+// F. Hàm cập nhật trạng thái hàng loạt (có lưu reject_reason)
+const updateProductsStatusBulk = async (productIds, status, rejectReason = null) => {
   const placeholders = productIds.map(() => '?').join(', ')
   const isActiveTarget = (status === PRODUCT_MODERATION_STATUS.APPROVED) ? 1 : 0
-  const query = `UPDATE products SET status = ?, is_active = ? WHERE id IN (${placeholders})`
-  const [result] = await pool.execute(query, [status, isActiveTarget, ...productIds])
+
+  let query = 'UPDATE products SET status = ?, is_active = ?'
+  const queryParams = [status, isActiveTarget]
+
+  // Nếu có reject_reason và status là REJECTED hoặc BANNED
+  if (rejectReason && (status === PRODUCT_MODERATION_STATUS.REJECTED || status === PRODUCT_MODERATION_STATUS.BANNED)) {
+    query += ', reject_reason = ?'
+    queryParams.push(rejectReason)
+  } else if (status === PRODUCT_MODERATION_STATUS.APPROVED) {
+    query += ', reject_reason = NULL'
+  }
+
+  query += ` WHERE id IN (${placeholders})`
+  queryParams.push(...productIds)
+
+  const [result] = await pool.execute(query, queryParams)
   return result.affectedRows
 }
-
 // G. Lấy thông tin chủ các shop phục vụ việc gom nhóm gửi Mail hàng loạt
 const getProductsAndOwnersInfoBulk = async (productIds) => {
   const placeholders = productIds.map(() => '?').join(', ')
