@@ -15,7 +15,7 @@ const getVerifiedStore = async (userId) => {
 
 // Thêm sản phẩm mới
 const createProduct = async (userId, productData) => {
-  const store = await getVerifiedStore(userId) // Lấy object store
+  const store = await getVerifiedStore(userId)
 
   const baseSlug = slugify(productData.name, { replacement: '-', remove: /[*+~.()'"!:@]/g, lower: true, locale: 'vi', trim: true })
   const slug = `${baseSlug}-${Date.now()}`
@@ -30,21 +30,23 @@ const createProduct = async (userId, productData) => {
     images: JSON.stringify(productData.images)
   })
 
-  // BẮN THÔNG BÁO CHO TẤT CẢ MANAGER
   const thumbnail = (productData.images && productData.images.length > 0) ? productData.images[0].secure_url : ''
   const managerIds = await userModel.getAllManagerIds()
 
+  // THÔNG BÁO MANAGER
   for (const managerId of managerIds) {
     await notificationService.createAndPushNotification({
       userId: managerId,
       title: 'Yêu cầu kiểm duyệt sản phẩm mới',
       content: JSON.stringify({
         message: `Gian hàng "${store.store_name}" vừa thêm sản phẩm: ${productData.name}`,
-        image: thumbnail
+        image: thumbnail,
+        storeName: store.store_name,
+        productName: productData.name
       }),
-      type: NOTIFICATION_TYPES.PENDING,
+      type: NOTIFICATION_TYPES.PRODUCT_PENDING,
       referenceId: result.insertId
-    }).catch(err => console.error(err))
+    }).catch(err => console.error('Lỗi gửi thông báo:', err))
   }
 
   return {
@@ -272,21 +274,32 @@ const requestProductsReapprovalBulk = async (userId, productIds) => {
   if (!isAllOwner) throw new Error('Danh sách chứa sản phẩm không thuộc quyền quản lý của shop.')
 
   const affectedRows = await vendorProductModel.requestProductsReapprovalBulk(productIds, store.id)
-  if (affectedRows === 0) throw new Error('Gửi yêu cầu thất bại.')
+  if (affectedRows === 0) throw new Error('Gửi yêu cầu thất bại. Chỉ có sản phẩm đang bị khóa (BANNED) mới có thể gửi yêu cầu giải trình.')
 
-  // BẮN THÔNG BÁO XIN CỨU XÉT CHO MANAGER
+  // Lấy thông tin sản phẩm để gửi kèm
+  let productNames = []
+  for (const productId of productIds) {
+    const product = await vendorProductModel.getProductDetailWithVariants(productId, store.id)
+    if (product) productNames.push(product.name)
+  }
+
   const managerIds = await userModel.getAllManagerIds()
+
+  // THÔNG BÁO MANAGER
   for (const managerId of managerIds) {
     await notificationService.createAndPushNotification({
       userId: managerId,
       title: 'Yêu cầu giải trình cứu xét sản phẩm',
       content: JSON.stringify({
-        message: `Gian hàng "${store.store_name}" vừa gửi yêu cầu duyệt lại cho ${affectedRows} sản phẩm bị vi phạm.`,
-        image: ''
+        message: `Gian hàng "${store.store_name}" vừa gửi yêu cầu duyệt lại ${affectedRows} sản phẩm bị vi phạm: ${productNames.join(', ')}`,
+        image: '',
+        storeName: store.store_name,
+        productCount: affectedRows,
+        productNames: productNames
       }),
-      type: NOTIFICATION_TYPES.PENDING_REAPPROVAL,
-      referenceId: store.id
-    }).catch(err => console.error(err))
+      type: NOTIFICATION_TYPES.PRODUCT_REAPPROVAL,
+      referenceId: productIds[0]
+    }).catch(err => console.error('Lỗi gửi thông báo:', err))
   }
 
   return { message: `Đã gửi yêu cầu phê duyệt lại thành công cho ${affectedRows} sản phẩm.` }
