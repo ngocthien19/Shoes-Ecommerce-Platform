@@ -18,9 +18,9 @@ export const managerProductApiService = {
     return response.data
   },
 
-  // Lấy chi tiết sản phẩm theo slug (DÀNH CHO MANAGER)
-  getProductDetail: async (slug) => {
-    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/manager/products/${slug}`)
+  // Lấy chi tiết sản phẩm theo id (DÀNH CHO MANAGER)
+  getProductDetail: async (id) => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/manager/products/${id}`)
     return response.data
   },
 

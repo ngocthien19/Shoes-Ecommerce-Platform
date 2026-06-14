@@ -14,7 +14,7 @@ import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 
 export const ManagerProductDetailPage = () => {
-  const { slug } = useParams()
+  const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,7 +31,7 @@ export const ManagerProductDetailPage = () => {
   const fetchProductDetail = async () => {
     try {
       setLoading(true)
-      const res = await managerProductApiService.getProductDetail(slug)
+      const res = await managerProductApiService.getProductDetail(id)
       setProduct(res)
     } catch (error) {
       toast.error(error.message || 'Không thể tải thông tin sản phẩm')
@@ -42,8 +42,8 @@ export const ManagerProductDetailPage = () => {
   }
 
   useEffect(() => {
-    if (slug) fetchProductDetail()
-  }, [slug])
+    if (id) fetchProductDetail()
+  }, [id])
 
   const handleUpdateStatus = async (targetStatus, reason = null) => {
     setIsLoading(true)
