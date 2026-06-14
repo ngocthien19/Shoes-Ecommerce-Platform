@@ -206,6 +206,20 @@ export const ManagerProductDetailPage = () => {
               <InfoRow label="Đã bán" value={product.sold || 0} />
               <InfoRow label="Lượt xem" value={product.view_count || 0} />
               <InfoRow label="Đánh giá" value={<div className="flex items-center gap-1"><FiStar className="text-yellow-500 fill-yellow-500" size={16} /><span className="font-bold">{Number(product.rating_avg || 0).toFixed(1)}</span><span className="text-xs text-gray-400">/5</span></div>} />
+              {(product.status === PRODUCT_MODERATION_STATUS.REJECTED || product.status === PRODUCT_MODERATION_STATUS.BANNED) && (
+                <InfoRow
+                  label="Lý do từ chối/khóa"
+                  value={
+                    product.reject_reason ? (
+                      <div className="text-right">
+                        <span className="text-red-600 text-sm font-medium block">{product.reject_reason}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Chưa có lý do</span>
+                    )
+                  }
+                />
+              )}
             </div>
           </div>
 
