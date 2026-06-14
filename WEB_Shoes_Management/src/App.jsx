@@ -38,6 +38,7 @@ import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 import { ManagerLayout } from '~/layouts/manager/ManagerLayout'
 import { ManagerStoresPage } from '~/pages/manager/Store/ManagerStoresPage'
 import { ManagerStoreDetailPage } from '~/pages/manager/Store/StoreDetail/ManagerStoreDetailPage'
+import { ManagerProductDetailPage } from '~/pages/manager/Store/StoreDetail/ProductDetail/ManagerProductDetailPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -130,6 +131,7 @@ const App = () => {
           {/* Quản lý Cửa hàng */}
           <Route path="stores" element={<ManagerStoresPage />} />
           <Route path="stores/:id" element={<ManagerStoreDetailPage />} />
+          <Route path="products/detail/:slug" element={<ManagerProductDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />

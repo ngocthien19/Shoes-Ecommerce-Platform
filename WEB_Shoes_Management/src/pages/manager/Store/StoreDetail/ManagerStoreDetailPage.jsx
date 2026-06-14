@@ -11,6 +11,7 @@ import { FaBan } from 'react-icons/fa'
 import { formatDateTime, formatRelativeTime, getImageUrl, formatPrice } from '~/utils/formatters'
 import { managerStoreApiService } from '~/services/manager/managerStoreApiService'
 import { ConfirmReasonModal } from '../ConfirmReasonModal'
+import { StoreProductsList } from './StoreProductsList' // Thêm import
 
 export const ManagerStoreDetailPage = () => {
   const { id } = useParams()
@@ -128,7 +129,7 @@ export const ManagerStoreDetailPage = () => {
       animate={{ opacity: 1 }}
       className="space-y-6 pb-10"
     >
-      {/* Header với nút quay lại */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <motion.div
           initial={{ x: -20, opacity: 0 }}
@@ -144,8 +145,8 @@ export const ManagerStoreDetailPage = () => {
             <FiArrowLeft size={20} className="text-gray-600" />
           </motion.button>
           <div>
-            <h1 className="text-2xl font-black text-brand-secondary tracking-tight">{store.owner_name}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Mã cửa hàng: #{store.owner_id}</p>
+            <h1 className="text-2xl font-black text-brand-secondary tracking-tight">{store.store_name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Mã cửa hàng: #{store.id}</p>
           </div>
         </motion.div>
 
@@ -206,7 +207,7 @@ export const ManagerStoreDetailPage = () => {
 
       {/* Thông tin cửa hàng */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cột trái - Logo và thông tin cơ bản */}
+        {/* Cột trái */}
         <div className="lg:col-span-1">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -259,7 +260,7 @@ export const ManagerStoreDetailPage = () => {
           </motion.div>
         </div>
 
-        {/* Cột phải - Chi tiết */}
+        {/* Cột phải */}
         <div className="lg:col-span-2 space-y-6">
           {/* Thông tin liên hệ */}
           <motion.div
@@ -331,27 +332,11 @@ export const ManagerStoreDetailPage = () => {
               <p className="text-gray-600 leading-relaxed">{store.bio || 'Chưa có giới thiệu'}</p>
             </div>
           </motion.div>
-
-          {/* Nút xem thêm sản phẩm */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex justify-center"
-          >
-            <motion.button
-              whileHover={{ scale: 1.02, x: 3 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(`/manager/products?storeId=${store.id}`)}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer"
-            >
-              <FiPackage size={16} />
-              Xem tất cả sản phẩm của cửa hàng
-              <FiExternalLink size={14} />
-            </motion.button>
-          </motion.div>
         </div>
       </div>
+
+      {/* Danh sách sản phẩm của cửa hàng */}
+      <StoreProductsList storeId={store.id} storeName={store.store_name} />
 
       <ConfirmReasonModal
         isOpen={modalConfig.isOpen}
