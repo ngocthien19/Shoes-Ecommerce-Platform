@@ -10,7 +10,7 @@ import { StoreFilters } from './StoreFilters'
 import { StoreTable } from './StoreTable'
 import { StoreBulkActionPanel } from './StoreBulkActionPanel'
 import { StoreSearchResultsInfo } from './StoreSearchResultsInfo'
-import { ConfirmReasonModal } from './ConfirmReasonModal'
+import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { Pagination } from '~/components/common/Pagination'
 
 export const ManagerStoresPage = () => {

@@ -10,8 +10,8 @@ import {
 import { FaBan } from 'react-icons/fa'
 import { formatDateTime, formatRelativeTime, getImageUrl, formatPrice } from '~/utils/formatters'
 import { managerStoreApiService } from '~/services/manager/managerStoreApiService'
-import { ConfirmReasonModal } from '../ConfirmReasonModal'
-import { StoreProductsList } from './StoreProductsList' // Thêm import
+import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
+import { StoreProductsList } from './StoreProductsList'
 
 export const ManagerStoreDetailPage = () => {
   const { id } = useParams()
@@ -145,7 +145,7 @@ export const ManagerStoreDetailPage = () => {
             <FiArrowLeft size={20} className="text-gray-600" />
           </motion.button>
           <div>
-            <h1 className="text-2xl font-black text-brand-secondary tracking-tight">{store.store_name}</h1>
+            <h1 className="text-2xl font-black text-brand-secondary tracking-tight">{store.owner_name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">Mã cửa hàng: #{store.id}</p>
           </div>
         </motion.div>
@@ -222,11 +222,11 @@ export const ManagerStoreDetailPage = () => {
               >
                 <img
                   src={logoUrl}
-                  alt={store.store_name}
+                  alt={store.owner_name}
                   className="w-32 h-32 rounded-2xl object-cover border-4 border-white shadow-lg -mt-20 bg-white"
                 />
               </motion.div>
-              <h2 className="text-xl font-black text-gray-900 mt-4">{store.store_name}</h2>
+              <h2 className="text-xl font-black text-gray-900 mt-4">{store.owner_name}</h2>
               <div className="flex items-center gap-1 mt-2">
                 <FiStar className="text-yellow-500 fill-yellow-500" size={16} />
                 <span className="font-bold text-gray-800">{rating.toFixed(1)}</span>
@@ -336,7 +336,7 @@ export const ManagerStoreDetailPage = () => {
       </div>
 
       {/* Danh sách sản phẩm của cửa hàng */}
-      <StoreProductsList storeId={store.id} storeName={store.store_name} />
+      <StoreProductsList storeId={store.id} storeName={store.owner_name} />
 
       <ConfirmReasonModal
         isOpen={modalConfig.isOpen}
