@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiBell, FiX, FiCheckCircle, FiAlertCircle, FiClock, FiPackage, FiShoppingBag, FiTag, FiStar, FiFlag, FiMessageSquare, FiDollarSign, FiHome, FiUser } from 'react-icons/fi'
-import { formatRelativeTime } from '~/utils/formatters'
+import { FiBell, FiX, FiCheckCircle, FiPackage, FiShoppingBag, FiFlag, FiDollarSign, FiHome, FiAlertCircle, FiUser, FiClock, FiMapPin, FiMail, FiPhone } from 'react-icons/fi'
+import { formatRelativeTime, getImageUrl } from '~/utils/formatters'
 import { notificationApiService } from '~/services/notification/notificationApiService'
 import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constant'
 import { Link } from 'react-router-dom'
@@ -79,31 +79,24 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
 
   const getIconByType = (type) => {
     switch (type) {
-    // Sản phẩm
     case NOTIFICATION_TYPES.PRODUCT_PENDING:
     case NOTIFICATION_TYPES.PRODUCT_APPROVED:
     case NOTIFICATION_TYPES.PRODUCT_REJECTED:
     case NOTIFICATION_TYPES.PRODUCT_BANNED:
     case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
       return { icon: FiPackage, color: 'text-blue-500', bg: 'bg-blue-50' }
-      // Cửa hàng
     case NOTIFICATION_TYPES.STORE_PENDING:
     case NOTIFICATION_TYPES.STORE_APPROVED:
     case NOTIFICATION_TYPES.STORE_REJECTED:
     case NOTIFICATION_TYPES.STORE_BANNED:
       return { icon: FiHome, color: 'text-purple-500', bg: 'bg-purple-50' }
-      // Đánh giá
     case NOTIFICATION_TYPES.REVIEW_REPORTED:
     case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-    case NOTIFICATION_TYPES.REVIEW_RESOLVED_APPROVED:
-    case NOTIFICATION_TYPES.REVIEW_RESOLVED_BANNED:
       return { icon: FiFlag, color: 'text-amber-500', bg: 'bg-amber-50' }
-      // Rút tiền
     case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
     case NOTIFICATION_TYPES.PAYOUT_APPROVED:
     case NOTIFICATION_TYPES.PAYOUT_REJECTED:
       return { icon: FiDollarSign, color: 'text-green-500', bg: 'bg-green-50' }
-      // Khiếu nại cửa hàng
     case NOTIFICATION_TYPES.APPEAL_REQUESTED:
     case NOTIFICATION_TYPES.APPEAL_APPROVED:
     case NOTIFICATION_TYPES.APPEAL_REJECTED:
@@ -113,38 +106,11 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     }
   }
 
-  const getTitleByType = (type) => {
-    switch (type) {
-    case NOTIFICATION_TYPES.PRODUCT_PENDING:
-      return 'Sản phẩm chờ duyệt'
-    case NOTIFICATION_TYPES.PRODUCT_APPROVED:
-      return 'Sản phẩm đã được duyệt'
-    case NOTIFICATION_TYPES.PRODUCT_REJECTED:
-      return 'Sản phẩm bị từ chối'
-    case NOTIFICATION_TYPES.PRODUCT_BANNED:
-      return 'Sản phẩm bị khóa'
-    case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
-      return 'Yêu cầu duyệt lại sản phẩm'
-    case NOTIFICATION_TYPES.STORE_PENDING:
-      return 'Cửa hàng chờ duyệt'
-    case NOTIFICATION_TYPES.STORE_APPROVED:
-      return 'Cửa hàng đã được duyệt'
-    case NOTIFICATION_TYPES.STORE_REJECTED:
-      return 'Cửa hàng bị từ chối'
-    case NOTIFICATION_TYPES.STORE_BANNED:
-      return 'Cửa hàng bị khóa'
-    case NOTIFICATION_TYPES.REVIEW_REPORTED:
-      return 'Đánh giá bị báo cáo'
-    case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-      return 'Yêu cầu mở lại đánh giá'
-    case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-      return 'Yêu cầu rút tiền mới'
-    case NOTIFICATION_TYPES.PAYOUT_APPROVED:
-      return 'Yêu cầu rút tiền được duyệt'
-    case NOTIFICATION_TYPES.PAYOUT_REJECTED:
-      return 'Yêu cầu rút tiền bị từ chối'
-    default:
-      return 'Thông báo'
+  const parseContent = (content) => {
+    try {
+      return JSON.parse(content)
+    } catch {
+      return { message: content }
     }
   }
 
@@ -172,13 +138,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
         return null
       }
     } else if (userRole === ROLE_ID.USER) {
-      switch (type) {
-      case NOTIFICATION_TYPES.PAYOUT_APPROVED:
-      case NOTIFICATION_TYPES.PAYOUT_REJECTED:
-        return '/orders'
-      default:
-        return null
-      }
+      return null
     } else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
       switch (type) {
       case NOTIFICATION_TYPES.PRODUCT_PENDING:
@@ -191,8 +151,6 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
         return reference_id ? `/manager/reviews/detail/${reference_id}` : null
       case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
         return reference_id ? `/admin/financial/payouts/${reference_id}` : null
-      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
-        return reference_id ? `/manager/appeals/detail/${reference_id}` : null
       default:
         return null
       }
@@ -200,12 +158,94 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     return null
   }
 
-  const parseContent = (content) => {
-    try {
-      return JSON.parse(content)
-    } catch {
-      return { message: content }
+  // Render thông tin chi tiết dựa trên nội dung JSON
+  const renderDetailInfo = (contentData) => {
+    const detailItems = []
+
+    // Người đăng ký / Chủ cửa hàng
+    if (contentData.ownerName) {
+      detailItems.push({
+        icon: FiUser,
+        label: 'Người đăng ký',
+        value: contentData.ownerName
+      })
     }
+    if (contentData.ownerEmail) {
+      detailItems.push({
+        icon: FiMail,
+        label: 'Email',
+        value: contentData.ownerEmail
+      })
+    }
+
+    // Sản phẩm
+    if (contentData.productName) {
+      detailItems.push({
+        icon: FiPackage,
+        label: 'Sản phẩm',
+        value: contentData.productName
+      })
+    }
+
+    // Số tiền
+    if (contentData.amount) {
+      detailItems.push({
+        icon: FiDollarSign,
+        label: 'Số tiền',
+        value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(contentData.amount)
+      })
+    }
+
+    // Số lượng sản phẩm / đánh giá
+    if (contentData.count) {
+      detailItems.push({
+        icon: FiPackage,
+        label: 'Số lượng',
+        value: contentData.count
+      })
+    }
+
+    // Thời gian
+    if (contentData.date) {
+      detailItems.push({
+        icon: FiClock,
+        label: 'Thời gian',
+        value: contentData.date
+      })
+    }
+
+    // Địa chỉ
+    if (contentData.address) {
+      detailItems.push({
+        icon: FiMapPin,
+        label: 'Địa chỉ',
+        value: contentData.address
+      })
+    }
+
+    // Số điện thoại
+    if (contentData.phone) {
+      detailItems.push({
+        icon: FiPhone,
+        label: 'SĐT',
+        value: contentData.phone
+      })
+    }
+
+    if (detailItems.length === 0) return null
+
+    return (
+      <div className="mt-2 space-y-1.5">
+        {detailItems.map((item, idx) => (
+          <div key={idx} className="flex items-center gap-1.5">
+            <item.icon size={10} className="text-gray-400" />
+            <span className="text-[10px] text-gray-500">
+              <span className="font-medium text-gray-600">{item.label}:</span> {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const modalVariants = {
@@ -295,10 +335,10 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                 <>
                   {notifications.map((notif) => {
                     const { icon: Icon, color, bg } = getIconByType(notif.type)
-                    const displayTitle = getTitleByType(notif.type)
                     const contentData = parseContent(notif.content)
                     const isUnread = !notif.is_read
                     const link = getLinkByType(notif)
+                    const imageUrl = getImageUrl(contentData.image, null)
 
                     return (
                       <div
@@ -312,15 +352,33 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <h4 className={`text-sm font-bold ${isUnread ? 'text-gray-900' : 'text-gray-700'}`}>
-                                {displayTitle}
+                                {notif.title}
                               </h4>
                               <span className="text-[10px] text-gray-400 whitespace-nowrap">
                                 {formatRelativeTime(notif.created_at)}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+
+                            {/* Nội dung chính */}
+                            <p className="text-xs text-gray-600 mt-1">
                               {contentData.message}
                             </p>
+
+                            {/* Hình ảnh đính kèm (nếu có) */}
+                            {imageUrl && (
+                              <div className="mt-2">
+                                <img
+                                  src={imageUrl}
+                                  alt="Thumbnail"
+                                  className="w-12 h-12 rounded-lg object-cover border border-gray-200 shadow-sm"
+                                />
+                              </div>
+                            )}
+
+                            {/* Thông tin chi tiết động từ JSON */}
+                            {renderDetailInfo(contentData)}
+
+                            {/* Link xem chi tiết */}
                             {link && (
                               <Link
                                 to={link}
@@ -330,8 +388,10 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                                 Xem chi tiết
                               </Link>
                             )}
+
+                            {/* Trạng thái đã đọc */}
                             {!isUnread && (
-                              <div className="flex items-center gap-1 mt-1">
+                              <div className="flex items-center gap-1 mt-2">
                                 <FiCheckCircle size={10} className="text-gray-400" />
                                 <span className="text-[9px] text-gray-400">Đã đọc</span>
                               </div>
