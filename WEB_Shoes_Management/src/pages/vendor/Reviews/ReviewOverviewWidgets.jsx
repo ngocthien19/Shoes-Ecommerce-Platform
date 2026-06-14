@@ -26,16 +26,16 @@ export const ReviewOverviewWidgets = ({ overview, reviewType }) => {
       suffix: '/5'
     },
     {
-      title: 'Đã ẩn',
-      value: overview.inactiveReviews,
+      title: 'Đã ẩn (SP)',
+      value: overview.inactiveProductReviews || 0,
       icon: FiEyeOff,
       color: 'border-l-gray-500 text-gray-500',
       bg: 'from-gray-50/60 to-white',
       blob: 'bg-gray-100/50'
     },
     {
-      title: 'Đã báo cáo',
-      value: overview.reportedReviews,
+      title: 'Đã báo cáo (SP)',
+      value: overview.reportedProductReviews || 0,
       icon: FiFlag,
       color: 'border-l-red-500 text-red-600',
       bg: 'from-red-50/60 to-white',
@@ -63,16 +63,16 @@ export const ReviewOverviewWidgets = ({ overview, reviewType }) => {
       suffix: '/5'
     },
     {
-      title: 'Đã ẩn',
-      value: overview.inactiveReviews,
+      title: 'Đã ẩn (CH)',
+      value: overview.inactiveStoreReviews || 0,
       icon: FiEyeOff,
       color: 'border-l-gray-500 text-gray-500',
       bg: 'from-gray-50/60 to-white',
       blob: 'bg-gray-100/50'
     },
     {
-      title: 'Đã báo cáo',
-      value: overview.reportedReviews,
+      title: 'Đã báo cáo (CH)',
+      value: overview.reportedStoreReviews || 0,
       icon: FiFlag,
       color: 'border-l-red-500 text-red-600',
       bg: 'from-red-50/60 to-white',

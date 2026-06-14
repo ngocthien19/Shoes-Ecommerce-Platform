@@ -13,6 +13,7 @@ import { ReviewBulkActionPanel } from './ReviewBulkActionPanel'
 import { ReportModal } from './ReportModal'
 import { RequestReopenModal } from './RequestReopenModal'
 import { Pagination } from '~/components/common/Pagination'
+import { SearchResultsInfo } from './SearchResultsInfo'
 
 export const VendorReviewsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -135,6 +136,18 @@ export const VendorReviewsPage = () => {
   const hasUnreportedItems = data?.reviews?.some(r => selectedIds.includes(r.id) && r.is_reported === 0) || false
   const hasInactiveItems = data?.reviews?.some(r => selectedIds.includes(r.id) && r.is_active === 0 && r.is_reported === 0) || false
 
+  // Lấy số lượng bộ lọc đang active
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (search) count++
+    if (rating) count++
+    if (isActive !== null) count++
+    if (isReported !== null) count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
@@ -162,6 +175,15 @@ export const VendorReviewsPage = () => {
         reviewType={reviewType}
         onReviewTypeChange={setReviewType}
       />
+
+      {!loading && data && (
+        <SearchResultsInfo
+          totalItems={data.pagination.totalItems}
+          currentPage={data.pagination.currentPage}
+          limit={data.pagination.limit}
+          activeFiltersCount={activeFiltersCount}
+        />
+      )}
 
       <AnimatePresence mode="wait">
         {selectedIds.length > 0 && (
