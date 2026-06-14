@@ -5,7 +5,7 @@ import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 const getProductsForManager = async ({ search, categoryId, storeId, status, sortBy, sortOrder, limit, offset }) => {
   let query = `
     SELECT p.id, p.name AS product_name, p.slug, p.price, p.sold, p.is_active, p.status, p.created_at,
-           p.rating_avg,
+           p.rating_avg, p.images,
            s.name AS store_name, c.name AS category_name
     FROM products p
     JOIN stores s ON p.store_id = s.id
