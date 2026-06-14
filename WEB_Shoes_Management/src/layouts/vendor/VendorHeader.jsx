@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { io } from 'socket.io-client'
+import { motion } from 'framer-motion'
 import { getImageUrl } from '~/utils/formatters'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { NotificationModal } from '~/components/common/notification/NotificationModal'
@@ -18,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
 export const VendorHeader = () => {
   const location = useLocation()
@@ -26,6 +28,7 @@ export const VendorHeader = () => {
   const user = useSelector((state) => state.user.userInfo)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const [isShaking, setIsShaking] = useState(false)
   const socketRef = useRef(null)
 
   // Kết nối Socket để nhận thông báo real-time
@@ -48,9 +51,12 @@ export const VendorHeader = () => {
 
     // Lắng nghe thông báo mới
     socket.on('new_notification', (notification) => {
-
       // Cập nhật số lượng chưa đọc
       setUnreadNotificationCount(prev => prev + 1)
+
+      // Kích hoạt hiệu ứng rung
+      setIsShaking(true)
+      setTimeout(() => setIsShaking(false), 1000)
 
       // Hiển thị toast thông báo
       toast.info(notification.title, {
@@ -97,6 +103,7 @@ export const VendorHeader = () => {
     if (location.pathname.includes('/vendor/profile-account')) return 'Tài khoản cá nhân'
     if (location.pathname.includes('/vendor/profile-store')) return 'Thông tin cửa hàng'
     if (location.pathname.includes('/vendor/chat')) return 'Tin nhắn hỗ trợ'
+    if (location.pathname.includes('/vendor/notifications')) return 'Tất cả thông báo'
     return 'Kênh Người Bán'
   }
 
@@ -120,18 +127,35 @@ export const VendorHeader = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Nút thông báo */}
-          <button
-            onClick={handleOpenNotification}
-            className="relative p-2 text-white/80 hover:text-brand-primary transition-all duration-300 hover:bg-white/10 rounded-full cursor-pointer hover:scale-110 hover:rotate-12"
-          >
-            <FiBell size={22} />
-            {unreadNotificationCount > 0 && (
-              <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-              </span>
-            )}
-          </button>
+          {/* Nút thông báo với Tooltip và hiệu ứng rung */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                onClick={handleOpenNotification}
+                animate={isShaking ? {
+                  rotate: [0, -10, 10, -10, 10, 0],
+                  transition: { duration: 0.5, ease: 'easeInOut' }
+                } : {}}
+                className="relative p-2 text-white/80 hover:text-brand-primary transition-all duration-300 hover:bg-white/10 rounded-full cursor-pointer hover:scale-110 hover:rotate-12"
+              >
+                <FiBell size={22} />
+                {unreadNotificationCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center"
+                  >
+                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                  </motion.span>
+                )}
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-gray-800 text-white text-xs">
+              {unreadNotificationCount > 0
+                ? `Bạn có ${unreadNotificationCount} thông báo chưa đọc`
+                : 'Không có thông báo mới'}
+            </TooltipContent>
+          </Tooltip>
 
           <div className="w-px h-8 bg-white/20"></div>
 
@@ -181,6 +205,13 @@ export const VendorHeader = () => {
                 <Link to="/vendor/profile-store" className="flex items-center gap-2">
                   <FiShoppingBag size={16} className="text-slate-500 transition-all duration-300 group-hover:text-brand-primary" />
                   <span className="font-semibold text-slate-700">Thông tin cửa hàng</span>
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem asChild className="cursor-pointer rounded-xl hover:bg-slate-50 py-2.5 transition-all duration-300 hover:translate-x-1">
+                <Link to="/vendor/notifications" className="flex items-center gap-2">
+                  <FiBell size={16} className="text-slate-500 transition-all duration-300 group-hover:text-brand-primary" />
+                  <span className="font-semibold text-slate-700">Tất cả thông báo</span>
                 </Link>
               </DropdownMenuItem>
 
