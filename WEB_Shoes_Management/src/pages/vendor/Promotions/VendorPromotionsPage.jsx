@@ -10,6 +10,7 @@ import { PromotionOverviewWidgets } from './PromotionOverviewWidgets'
 import { PromotionFilters } from './PromotionFilters'
 import { PromotionTable } from './PromotionTable'
 import { PromotionBulkActionPanel } from './PromotionBulkActionPanel'
+import { PromotionSearchResultsInfo } from './PromotionSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ConfirmDeleteModalPromotion } from '~/components/common/ConfirmDeleteModalPromotion'
 
@@ -137,6 +138,19 @@ export const VendorPromotionsPage = () => {
     }
   }
 
+  // Lấy số lượng bộ lọc đang active
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (search) count++
+    if (is_active !== null) count++
+    if (start_date) count++
+    if (end_date) count++
+    if (sortBy && sortBy !== 'created_at') count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
@@ -160,6 +174,16 @@ export const VendorPromotionsPage = () => {
       {data?.overview && <PromotionOverviewWidgets overview={data.overview} />}
 
       <PromotionFilters filters={activeFilters} onFilterChange={handleFilterChange} onReset={handleResetFilters} />
+
+      {/* Kết quả tìm kiếm và lọc */}
+      {!loading && data && (
+        <PromotionSearchResultsInfo
+          totalItems={data.pagination.totalItems}
+          currentPage={data.pagination.currentPage}
+          limit={data.pagination.limit}
+          activeFiltersCount={activeFiltersCount}
+        />
+      )}
 
       <AnimatePresence mode="wait">
         {selectedIds.length > 0 && (

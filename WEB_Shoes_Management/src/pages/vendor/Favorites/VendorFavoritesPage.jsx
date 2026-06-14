@@ -9,6 +9,7 @@ import { FavoriteOverviewWidgets } from './FavoriteOverviewWidgets'
 import { FavoriteTable } from './FavoriteTable'
 import { FavoriteUsersModal } from './FavoriteUsersModal'
 import { FavoriteFilters } from './FavoriteFilters'
+import { FavoriteSearchResultsInfo } from './FavoriteSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 
 export const VendorFavoritesPage = () => {
@@ -58,7 +59,6 @@ export const VendorFavoritesPage = () => {
     setSearchParams(newParams)
   }
 
-  // Gộp min + max vào một lần setSearchParams duy nhất — tránh race condition
   const handleApplyFavoritesRange = (min, max) => {
     const newParams = new URLSearchParams(searchParams)
     if (min) newParams.set('minFavorites', String(min))
@@ -75,6 +75,19 @@ export const VendorFavoritesPage = () => {
     setSelectedProduct({ id: productId, name: productName })
     setModalOpen(true)
   }
+
+  // Lấy số lượng bộ lọc đang active
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (search) count++
+    if (categoryId) count++
+    if (isActive !== null) count++
+    if (minFavorites !== null) count++
+    if (maxFavorites !== null) count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
 
   return (
     <div className="space-y-6 pb-10 max-w-7xl mx-auto">
@@ -97,6 +110,16 @@ export const VendorFavoritesPage = () => {
         onApplyFavoritesRange={handleApplyFavoritesRange}
         onReset={handleResetFilters}
       />
+
+      {/* Kết quả tìm kiếm và lọc */}
+      {!loading && data && (
+        <FavoriteSearchResultsInfo
+          totalItems={data.pagination.totalItems}
+          currentPage={data.pagination.currentPage}
+          limit={data.pagination.limit}
+          activeFiltersCount={activeFiltersCount}
+        />
+      )}
 
       {loading ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-20 flex flex-col items-center justify-center gap-3">

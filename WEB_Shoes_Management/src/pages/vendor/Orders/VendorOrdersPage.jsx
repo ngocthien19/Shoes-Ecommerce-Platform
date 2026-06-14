@@ -9,6 +9,7 @@ import { OrderOverviewWidgets } from './OrderOverviewWidgets'
 import { OrderFilters } from './OrderFilters'
 import { OrderTable } from './OrderTable'
 import { OrderBulkActionPanel } from './OrderBulkActionPanel'
+import { OrderSearchResultsInfo } from './OrderSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 
 export const VendorOrdersPage = () => {
@@ -65,7 +66,6 @@ export const VendorOrdersPage = () => {
     setSelectedIds(isChecked && data?.orders ? data.orders.map(o => o.id) : [])
   }
 
-  // Cập nhật trạng thái đơn hàng thông thường
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       const res = await vendorOrderApiService.updateOrderStatus(id, newStatus)
@@ -77,7 +77,6 @@ export const VendorOrdersPage = () => {
     }
   }
 
-  // Xử lý yêu cầu hủy đơn (accept/reject)
   const handleCancelRequest = async (id, decision, reason) => {
     try {
       const res = await vendorOrderApiService.handleCancelRequest(id, decision, reason)
@@ -104,6 +103,19 @@ export const VendorOrdersPage = () => {
     }
   }
 
+  // Lấy số lượng bộ lọc đang active
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (searchOrderId) count++
+    if (status) count++
+    if (paymentMethod) count++
+    if (startDate) count++
+    if (endDate) count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center gap-4">
@@ -123,6 +135,16 @@ export const VendorOrdersPage = () => {
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
       />
+
+      {/* Kết quả tìm kiếm và lọc */}
+      {!loading && data && (
+        <OrderSearchResultsInfo
+          totalItems={data.pagination.totalItems}
+          currentPage={data.pagination.currentPage}
+          limit={data.pagination.limit}
+          activeFiltersCount={activeFiltersCount}
+        />
+      )}
 
       <AnimatePresence mode="wait">
         {selectedIds.length > 0 && (

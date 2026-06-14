@@ -9,6 +9,7 @@ import { ProductOverviewWidgets } from './ProductOverviewWidgets'
 import { ProductFilters } from './ProductFilters'
 import { ProductTable } from './ProductTable'
 import { BulkActionPanel } from './BulkActionPanel'
+import { ProductSearchResultsInfo } from './ProductSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { Link } from 'react-router-dom'
@@ -82,7 +83,6 @@ export const VendorProductsPage = () => {
   }
 
   const handleDeleteSingleClick = (product) => {
-    // Parse JSON mảng ảnh để modal nhận diện được
     let parsedImages = []
     try { parsedImages = typeof product.images === 'string' ? JSON.parse(product.images) : product.images } catch (e) { parsedImages = [] }
 
@@ -139,6 +139,18 @@ export const VendorProductsPage = () => {
     }
   }
 
+  // Lấy số lượng bộ lọc đang active
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (search) count++
+    if (categoryId) count++
+    if (isActive !== null) count++
+    if (sortBy && sortBy !== 'ctime') count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
+
   return (
     <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
@@ -162,6 +174,16 @@ export const VendorProductsPage = () => {
       {data?.overview && <ProductOverviewWidgets overview={data.overview} />}
 
       <ProductFilters filters={activeFilters} onFilterChange={handleFilterChange} onReset={handleResetFilters} />
+
+      {/* Kết quả tìm kiếm và lọc */}
+      {!loading && data && (
+        <ProductSearchResultsInfo
+          totalItems={data.pagination.totalItems}
+          currentPage={data.pagination.currentPage}
+          limit={data.pagination.limit}
+          activeFiltersCount={activeFiltersCount}
+        />
+      )}
 
       <AnimatePresence mode="wait">
         {selectedIds.length > 0 && (
