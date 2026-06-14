@@ -18,6 +18,6 @@ router.put('/:id/status', managerProductValidation.validateToggleProductActiveBo
 router.patch('/status-bulk', managerProductValidation.validateToggleProductsActiveBulkBody, managerProductController.toggleProductsActiveBulk)
 
 // 4. GET /api/manager/products/:slug -> Xem chi tiết thông tin sâu của sản phẩm phục vụ Modal popup xem trước
-router.get('/:slug', managerProductValidation.validateSlugParam, managerProductController.getProductDetail)
+router.get('/:id', managerProductValidation.validateProductIdParam, managerProductController.getProductDetail)
 
 export const managerProductRouter = router

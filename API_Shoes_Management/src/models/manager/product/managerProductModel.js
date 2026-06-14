@@ -167,7 +167,7 @@ const getProductsAndOwnersInfoBulk = async (productIds) => {
 }
 
 // H. Xem chi tiết thông tin sâu của một sản phẩm phục vụ Modal popup xem trước của Manager
-const getProductDetailForManager = async (productSlug) => {
+const getProductDetailForManager = async (productId) => {
   const query = `
     SELECT 
       p.*,
@@ -188,9 +188,9 @@ const getProductDetailForManager = async (productSlug) => {
     JOIN stores s ON p.store_id = s.id
     JOIN categories c ON p.category_id = c.id
     JOIN users u ON s.owner_id = u.id
-    WHERE p.slug = ?
+    WHERE p.id = ?
   `
-  const [rows] = await pool.execute(query, [productSlug])
+  const [rows] = await pool.execute(query, [productId])
   return rows[0] || null
 }
 
