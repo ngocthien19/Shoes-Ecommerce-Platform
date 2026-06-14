@@ -195,7 +195,7 @@ export const VendorHeader = () => {
               <DropdownMenuSeparator className="bg-slate-100 my-2" />
 
               <DropdownMenuItem asChild className="cursor-pointer rounded-xl hover:bg-slate-50 py-2.5 transition-all duration-300 hover:translate-x-1">
-                <Link to="/profile" className="flex items-center gap-2">
+                <Link to="/vendor/profile-account" className="flex items-center gap-2">
                   <FiUser size={16} className="text-slate-500 transition-all duration-300 group-hover:text-brand-primary" />
                   <span className="font-semibold text-slate-700">Tài khoản cá nhân</span>
                 </Link>
