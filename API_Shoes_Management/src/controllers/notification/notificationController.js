@@ -20,6 +20,17 @@ const markAllAsRead = async (req, res) => {
   }
 }
 
+const markAsRead = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const notificationId = req.params.id
+    const result = await notificationService.markAsRead(userId, notificationId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi đánh dấu đã đọc: ${error.message}` })
+  }
+}
+
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
@@ -33,5 +44,6 @@ const getUnreadCount = async (req, res) => {
 export const notificationController = {
   getNotifications,
   markAllAsRead,
-  getUnreadCount
+  getUnreadCount,
+  markAsRead
 }
