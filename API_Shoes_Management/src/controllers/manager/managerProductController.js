@@ -23,8 +23,8 @@ const toggleProductActive = async (req, res) => {
 
 const getProductDetail = async (req, res) => {
   try {
-    const { slug } = req.params
-    const result = await managerProductService.getProductDetail(slug)
+    const { id } = req.params
+    const result = await managerProductService.getProductDetail(Number(id))
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi lấy chi tiết sản phẩm: ${error.message}` })
