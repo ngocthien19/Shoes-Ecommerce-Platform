@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiBell, FiUser, FiLogOut, FiShoppingBag, FiChevronDown } from 'react-icons/fi'
 import { useSelector, useDispatch } from 'react-redux'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
+import { io } from 'socket.io-client'
 import { getImageUrl } from '~/utils/formatters'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { NotificationModal } from '~/components/common/notification/NotificationModal'
 import { notificationApiService } from '~/services/notification/notificationApiService'
-import { ROLE_ID } from '~/utils/constant'
+import { ROLE_ID, DEV_API_URL } from '~/utils/constant'
 
 import {
   DropdownMenu,
@@ -24,8 +26,53 @@ export const VendorHeader = () => {
   const user = useSelector((state) => state.user.userInfo)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const socketRef = useRef(null)
 
-  // Lấy số lượng thông báo chưa đọc
+  // Kết nối Socket để nhận thông báo real-time
+  useEffect(() => {
+    const socket = io(DEV_API_URL, {
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
+
+    socket.on('connect', () => {
+      console.log('Socket connected for notifications')
+    })
+
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error.message)
+    })
+
+    // Lắng nghe thông báo mới
+    socket.on('new_notification', (notification) => {
+
+      // Cập nhật số lượng chưa đọc
+      setUnreadNotificationCount(prev => prev + 1)
+
+      // Hiển thị toast thông báo
+      toast.info(notification.title, {
+        position: 'top-right',
+        autoClose: 5000,
+        onClick: () => {
+          setIsNotificationOpen(true)
+        }
+      })
+
+      // Phát sự kiện để component khác cập nhật
+      window.dispatchEvent(new CustomEvent('newNotification', { detail: notification }))
+    })
+
+    socketRef.current = socket
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
+
+  // Lấy số lượng thông báo chưa đọc ban đầu
   const fetchUnreadCount = async () => {
     try {
       const res = await notificationApiService.getUnreadCount()
@@ -37,17 +84,6 @@ export const VendorHeader = () => {
 
   useEffect(() => {
     fetchUnreadCount()
-
-    // Lắng nghe sự kiện có thông báo mới
-    const handleNewNotification = () => {
-      fetchUnreadCount()
-    }
-
-    window.addEventListener('newNotification', handleNewNotification)
-
-    return () => {
-      window.removeEventListener('newNotification', handleNewNotification)
-    }
   }, [])
 
   const getPageTitle = () => {
@@ -71,7 +107,6 @@ export const VendorHeader = () => {
 
   const handleOpenNotification = () => {
     setIsNotificationOpen(true)
-    // Đánh dấu đã đọc khi mở modal? Không, để user tự đánh dấu
   }
 
   return (
