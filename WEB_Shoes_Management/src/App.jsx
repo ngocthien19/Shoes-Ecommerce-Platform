@@ -34,6 +34,10 @@ import { VendorChatPage } from '~/pages/vendor/Chat/VendorChatPage'
 import { AllNotificationsPage } from '~/pages/common/AllNotificationsPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
+// MANAGER PAGES
+import { ManagerLayout } from '~/layouts/manager/ManagerLayout'
+import { ManagerStoresPage } from '~/pages/manager/Store/ManagerStoresPage'
+
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
 import { VerifyOtpPage } from '~/pages/auth/VerifyOtpPage/VerifyOtpPage'
@@ -76,7 +80,7 @@ const App = () => {
 
         </Route>
 
-        {/* KHU VỰC CỦA NGƯỜI BÁN (DÙNG VENDOR LAYOUT)*/}
+        {/* KHU VỰC CỦA NGƯỜI BÁN*/}
         <Route element={<ProtectedRoute />}>
           <Route path="/vendor" element={<VendorLayout />}>
             {/* Dashboard */}
@@ -118,6 +122,15 @@ const App = () => {
             {/* Notification */}
             <Route path="notifications" element={<AllNotificationsPage />} />
           </Route>
+        </Route>
+
+        {/* MANAGER*/}
+        <Route path="/manager" element={<ManagerLayout />}>
+          {/* Quản lý Cửa hàng */}
+          <Route path="stores" element={<ManagerStoresPage />} />
+
+          {/* Thông báo */}
+          <Route path="notifications" element={<AllNotificationsPage />} />
         </Route>
 
         {/* KHU VỰC XÁC THỰC (CHẶN KHI ĐÃ ĐĂNG NHẬP) */}
