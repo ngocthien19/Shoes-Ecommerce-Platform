@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
-import { FiHome, FiFilter, FiTrendingUp } from 'react-icons/fi'
+import { FiPackage, FiFilter, FiTrendingUp } from 'react-icons/fi'
 
-export const StoreSearchResultsInfo = ({ totalItems, currentPage, limit, activeFiltersCount }) => {
+export const ProductSearchResultsInfo = ({ totalItems, currentPage, limit, activeFiltersCount }) => {
   const startItem = (currentPage - 1) * limit + 1
   const endItem = Math.min(currentPage * limit, totalItems)
 
@@ -16,10 +16,10 @@ export const StoreSearchResultsInfo = ({ totalItems, currentPage, limit, activeF
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center">
-                <FiHome className="text-brand-primary" size={16} />
+                <FiPackage className="text-brand-primary" size={16} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số cửa hàng</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tổng số</p>
                 <p className="text-xl font-extrabold text-gray-900 leading-tight">
                   {totalItems.toLocaleString('vi-VN')}
                 </p>

@@ -11,7 +11,7 @@ import { FaBan } from 'react-icons/fa'
 import { formatPrice, formatDateTime, getImageUrl } from '~/utils/formatters'
 import { managerProductApiService } from '~/services/manager/managerProductApiService'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
-import { ConfirmReasonModal } from '../../ConfirmReasonModal'
+import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 
 export const ManagerProductDetailPage = () => {
   const { slug } = useParams()
