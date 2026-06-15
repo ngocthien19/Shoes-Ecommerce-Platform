@@ -349,6 +349,60 @@ const requestStoreReviewReopenBulk = async (reviewIds, storeId, reason) => {
   return result.affectedRows
 }
 
+// 14. Lấy thông tin chi tiết nhiều đánh giá sản phẩm cùng lúc
+const getMultipleProductReviewsInfo = async (reviewIds, storeId) => {
+  if (!reviewIds || reviewIds.length === 0) return []
+  const placeholders = reviewIds.map(() => '?').join(',')
+  const query = `
+    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images
+    FROM product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    WHERE pr.id IN (${placeholders}) AND p.store_id = ?
+  `
+  const [rows] = await pool.execute(query, [...reviewIds, storeId])
+  return rows
+}
+
+// 15. Lấy thông tin chi tiết nhiều đánh giá cửa hàng cùng lúc
+const getMultipleStoreReviewsInfo = async (reviewIds, storeId) => {
+  if (!reviewIds || reviewIds.length === 0) return []
+  const placeholders = reviewIds.map(() => '?').join(',')
+  const query = `
+    SELECT id, comment, rating, store_id
+    FROM store_reviews
+    WHERE id IN (${placeholders}) AND store_id = ?
+  `
+  const [rows] = await pool.execute(query, [...reviewIds, storeId])
+  return rows
+}
+
+// 16. Lấy thông tin chi tiết nhiều đánh giá sản phẩm đang bị ẩn (để gửi yêu cầu mở lại)
+const getMultipleInactiveProductReviewsInfo = async (reviewIds, storeId) => {
+  if (!reviewIds || reviewIds.length === 0) return []
+  const placeholders = reviewIds.map(() => '?').join(',')
+  const query = `
+    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images, pr.is_active
+    FROM product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    WHERE pr.id IN (${placeholders}) AND p.store_id = ? AND pr.is_active = FALSE
+  `
+  const [rows] = await pool.execute(query, [...reviewIds, storeId])
+  return rows
+}
+
+// 17. Lấy thông tin chi tiết nhiều đánh giá cửa hàng đang bị ẩn (để gửi yêu cầu mở lại)
+const getMultipleInactiveStoreReviewsInfo = async (reviewIds, storeId) => {
+  if (!reviewIds || reviewIds.length === 0) return []
+  const placeholders = reviewIds.map(() => '?').join(',')
+  const query = `
+    SELECT id, comment, rating, store_id, is_active
+    FROM store_reviews
+    WHERE id IN (${placeholders}) AND store_id = ? AND is_active = FALSE
+  `
+  const [rows] = await pool.execute(query, [...reviewIds, storeId])
+  return rows
+}
+
 export const vendorReviewModel = {
   getStoreByOwnerId,
   getProductReviews,
@@ -365,5 +419,9 @@ export const vendorReviewModel = {
   checkMultipleStoreReviewsOwnership,
   reportStoreReviewsBulk,
   requestProductReviewReopenBulk,
-  requestStoreReviewReopenBulk
+  requestStoreReviewReopenBulk,
+  getMultipleProductReviewsInfo,
+  getMultipleStoreReviewsInfo,
+  getMultipleInactiveProductReviewsInfo,
+  getMultipleInactiveStoreReviewsInfo
 }

@@ -20,7 +20,6 @@ const getVendorReviews = async (userId, filters) => {
   const offset = (page - 1) * limit
   const reviewType = filters.type || REVIEW_TYPES.PRODUCT
 
-  // Gom các tham số bộ lọc bổ sung trường mới
   const filterParams = {
     search: filters.search || null,
     rating: filters.rating || null,
@@ -37,7 +36,6 @@ const getVendorReviews = async (userId, filters) => {
     vendorReviewModel.getReviewsOverviewStats(storeId)
   ])
 
-  // Rẽ nhánh xử lý dựa vào phân loại Tab
   if (reviewType === REVIEW_TYPES.PRODUCT) {
     [reviews, totalItems] = await Promise.all([
       vendorReviewModel.getProductReviews(storeId, filterParams),
@@ -82,7 +80,7 @@ const getReviewDetail = async (userId, reviewId, reviewType) => {
   return review
 }
 
-// Đệ trình đơn tố cáo, báo cáo vi phạm bình luận lên sàn quản trị
+// Đệ trình đơn tố cáo, báo cáo vi phạm bình luận lên sàn quản trị (HÀNG LOẠT)
 const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) => {
   const store = await getVerifiedStore(userId)
   const storeId = store.id
@@ -96,15 +94,18 @@ const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) =>
   }
 
   let affectedRows = 0
+  let reviewsInfo = []
 
   if (reviewType === REVIEW_TYPES.PRODUCT) {
     const isAllOwner = await vendorReviewModel.checkMultipleProductReviewsOwnership(reviewIds, storeId)
     if (!isAllOwner) throw new Error('Danh sách chứa đánh giá sản phẩm không thuộc quyền quản lý của shop bạn.')
     affectedRows = await vendorReviewModel.reportProductReviewsBulk(reviewIds, storeId, reportReason)
+    reviewsInfo = await vendorReviewModel.getMultipleProductReviewsInfo(reviewIds, storeId)
   } else if (reviewType === REVIEW_TYPES.STORE) {
     const isAllOwner = await vendorReviewModel.checkMultipleStoreReviewsOwnership(reviewIds, storeId)
     if (!isAllOwner) throw new Error('Danh sách chứa đánh giá cửa hàng không thuộc về shop bạn.')
     affectedRows = await vendorReviewModel.reportStoreReviewsBulk(reviewIds, storeId, reportReason)
+    reviewsInfo = await vendorReviewModel.getMultipleStoreReviewsInfo(reviewIds, storeId)
   } else {
     throw new Error('Loại đánh giá không hợp lệ để thực hiện gửi khiếu nại hàng loạt.')
   }
@@ -121,28 +122,36 @@ const reportReviewsBulk = async (userId, reviewIds, reviewType, reportReason) =>
   } catch (e) { console.log('Không parse được logo shop') }
 
   const managerIds = await userModel.getAllManagerIds()
+
+  // Gửi thông báo riêng cho từng review
   for (const managerId of managerIds) {
-    await notificationService.createAndPushNotification({
-      userId: managerId,
-      title: 'Có đơn tố cáo đánh giá mới',
-      content: JSON.stringify({
-        message: `Gian hàng "${store.store_name}" vừa báo cáo vi phạm đối với ${affectedRows} đánh giá.`,
-        image: logoUrl
-      }),
-      type: NOTIFICATION_TYPES.REVIEW_REPORTED,
-      referenceId: store.id
-    }).catch(err => console.error(err))
+    for (const review of reviewsInfo) {
+      await notificationService.createAndPushNotification({
+        userId: managerId,
+        title: 'Có đơn tố cáo đánh giá mới',
+        content: JSON.stringify({
+          message: `Gian hàng "${store.store_name}" báo cáo vi phạm đánh giá: "${review.comment?.substring(0, 100)}..."`,
+          image: logoUrl,
+          reviewId: review.id,
+          reviewType: reviewType,
+          rating: review.rating,
+          productName: review.product_name || null
+        }),
+        type: NOTIFICATION_TYPES.REVIEW_REPORTED,
+        referenceId: review.id
+      }).catch(err => console.error(err))
+    }
   }
 
   return { message: `Đã gửi báo cáo vi phạm thành công cho ${affectedRows} đánh giá lên ban quản trị hệ thống.` }
 }
 
-// 4. Đệ trình đơn tố cáo đơn lẻ (Tối ưu bằng cách tái sử dụng hàm Bulk)
+// Đệ trình đơn tố cáo đơn lẻ (Tái sử dụng hàm bulk)
 const reportReview = async (userId, reviewId, reviewType, reportReason) => {
   return await reportReviewsBulk(userId, [Number(reviewId)], reviewType, reportReason)
 }
 
-// 5. Gửi yêu cầu xin mở lại đánh giá bị khóa
+// Gửi yêu cầu xin mở lại đánh giá bị khóa (HÀNG LOẠT)
 const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
   const store = await getVerifiedStore(userId)
   const storeId = store.id
@@ -153,11 +162,14 @@ const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
 
   const finalReason = reason?.trim() ? reason : 'Giải trình: Gian hàng đã xử lý xong khiếu nại với khách, mong Ban quản trị kiểm tra và hiển thị lại đánh giá này.'
   let affectedRows = 0
+  let reviewsInfo = []
 
   if (type === REVIEW_TYPES.PRODUCT) {
     affectedRows = await vendorReviewModel.requestProductReviewReopenBulk(reviewIds, storeId, finalReason)
+    reviewsInfo = await vendorReviewModel.getMultipleInactiveProductReviewsInfo(reviewIds, storeId)
   } else if (type === REVIEW_TYPES.STORE) {
     affectedRows = await vendorReviewModel.requestStoreReviewReopenBulk(reviewIds, storeId, finalReason)
+    reviewsInfo = await vendorReviewModel.getMultipleInactiveStoreReviewsInfo(reviewIds, storeId)
   } else {
     throw new Error('Phân loại đánh giá không hợp lệ. Chỉ chấp nhận \'product\' hoặc \'store\'.')
   }
@@ -174,17 +186,25 @@ const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
   } catch (e) { console.log('Không parse được logo shop') }
 
   const managerIds = await userModel.getAllManagerIds()
+
   for (const managerId of managerIds) {
-    await notificationService.createAndPushNotification({
-      userId: managerId,
-      title: 'Yêu cầu mở lại đánh giá bị ẩn',
-      content: JSON.stringify({
-        message: `Gian hàng "${store.store_name}" vừa xin mở lại ${affectedRows} đánh giá.`,
-        image: logoUrl
-      }),
-      type: NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED,
-      referenceId: store.id
-    }).catch(err => console.error(err))
+    for (const review of reviewsInfo) {
+      await notificationService.createAndPushNotification({
+        userId: managerId,
+        title: 'Yêu cầu mở lại đánh giá bị ẩn',
+        content: JSON.stringify({
+          message: `Gian hàng "${store.store_name}" xin mở lại đánh giá: "${review.comment?.substring(0, 100)}..."`,
+          image: logoUrl,
+          reviewId: review.id,
+          reviewType: type,
+          rating: review.rating,
+          productName: review.product_name || null,
+          reason: finalReason
+        }),
+        type: NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED,
+        referenceId: review.id
+      }).catch(err => console.error(err))
+    }
   }
 
   return {
@@ -192,10 +212,16 @@ const requestReviewsReopenBulk = async (userId, reviewIds, type, reason) => {
   }
 }
 
+// Gửi yêu cầu mở lại đơn lẻ (Tái sử dụng hàm bulk)
+const requestReviewReopen = async (userId, reviewId, type, reason) => {
+  return await requestReviewsReopenBulk(userId, [Number(reviewId)], type, reason)
+}
+
 export const vendorReviewService = {
   getVendorReviews,
   getReviewDetail,
   reportReview,
   reportReviewsBulk,
+  requestReviewReopen,
   requestReviewsReopenBulk
 }
