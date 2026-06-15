@@ -173,7 +173,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
       case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
         return reference_id ? `/manager/products/detail/${reference_id}` : null
       case NOTIFICATION_TYPES.STORE_PENDING:
-        return reference_id ? `/manager/stores/detail/${reference_id}` : null
+        return reference_id ? `/manager/stores/${reference_id}` : null
       case NOTIFICATION_TYPES.REVIEW_REPORTED:
       case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
         return reference_id ? `/manager/reviews/detail/${reference_id}` : null
@@ -380,7 +380,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                     const contentData = parseContent(notif.content)
                     const isUnread = !notif.is_read
                     const link = getLinkByType(notif)
-                    const imageUrl = getImageUrl(contentData.image, null)
+                    const imageUrl = contentData.image
 
                     return (
                       <div
@@ -436,7 +436,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                             </p>
 
                             {/* Hình ảnh đính kèm (nếu có) */}
-                            {imageUrl && (
+                            {imageUrl && imageUrl !== '' && (
                               <div className="mt-2">
                                 <img
                                   src={imageUrl}
