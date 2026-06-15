@@ -294,7 +294,6 @@ export const ManagerProductsPage = () => {
               onApprove={handleApprove}
               onReject={handleReject}
               onBan={handleBan}
-              onViewDetail={handleViewDetail}
             />
 
             <Pagination
