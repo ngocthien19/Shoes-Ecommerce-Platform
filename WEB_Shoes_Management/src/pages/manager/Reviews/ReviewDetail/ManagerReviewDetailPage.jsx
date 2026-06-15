@@ -7,7 +7,7 @@ import {
   FiClock, FiMail, FiAlertCircle, FiCheckCircle, FiXCircle,
   FiImage, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi'
-import { formatDateTime, formatRelativeTime, getImageUrl } from '~/utils/formatters'
+import { formatDateTime, formatRelativeTime } from '~/utils/formatters'
 import { managerReviewApiService } from '~/services/manager/managerReviewApiService'
 import { REVIEW_TYPES } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
@@ -84,7 +84,7 @@ export const ManagerReviewDetailPage = () => {
         {[1, 2, 3, 4, 5].map((star) => (
           <FiStar
             key={star}
-            size={20}
+            size={18}
             className={star <= rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
           />
         ))}
@@ -93,8 +93,12 @@ export const ManagerReviewDetailPage = () => {
   }
 
   // Lấy danh sách ảnh từ review
-  const reviewImages = review?.images && Array.isArray(review.images) && review.images.length > 0
-    ? review.images
+  const reviewImages = review?.review_images && Array.isArray(review.review_images) && review.review_images.length > 0
+    ? review.review_images
+    : []
+
+  const productImages = review?.product_images && Array.isArray(review.product_images) && review.product_images.length > 0
+    ? review.product_images
     : []
 
   const nextImage = () => {
@@ -109,29 +113,6 @@ export const ManagerReviewDetailPage = () => {
     }
   }
 
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-  }
-
-  const fadeInLeft = {
-    hidden: { opacity: 0, x: -50 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-  }
-
-  const fadeInRight = {
-    hidden: { opacity: 0, x: 50 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' } }
-  }
-
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
@@ -140,7 +121,13 @@ export const ManagerReviewDetailPage = () => {
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           className="w-10 h-10 border-3 border-brand-primary border-t-transparent rounded-full"
         />
-        <span className="text-sm font-semibold text-gray-400 animate-pulse">Đang tải thông tin đánh giá...</span>
+        <motion.span
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="text-sm font-semibold text-gray-400"
+        >
+          Đang tải thông tin đánh giá...
+        </motion.span>
       </div>
     )
   }
@@ -148,88 +135,85 @@ export const ManagerReviewDetailPage = () => {
   if (!review) return null
 
   const isProductReview = type === REVIEW_TYPES.PRODUCT
-  const userAvatar = review.user_avatar || 'https://ui-avatars.com/api/?background=6366f1&color=fff&name=' + encodeURIComponent(review.user_name || 'User')
-  const storeLogo = review.store_logo || 'https://placehold.co/100x100?text=Store'
+  const userAvatar = review.user_avatar?.secure_url || `https://ui-avatars.com/api/?background=6366f1&color=fff&name=${encodeURIComponent(review.user_name || 'User')}`
+  const storeLogo = review.store_logo?.secure_url || 'https://placehold.co/200x200?text=Store'
+  const productImage = productImages.length > 0 ? productImages[0]?.secure_url : 'https://placehold.co/200x200?text=Product'
 
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={staggerContainer}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-6 pb-10"
     >
       {/* Header */}
-      <motion.div
-        variants={fadeInUp}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <motion.div
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex items-center gap-4"
+        >
           <motion.button
-            whileHover={{ scale: 1.05, backgroundColor: '#e5e7eb' }}
+            whileHover={{ scale: 1.05, x: -2 }}
             whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             onClick={() => navigate('/manager/reviews')}
-            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center cursor-pointer shadow-sm"
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm"
           >
             <FiArrowLeft size={20} className="text-gray-600" />
           </motion.button>
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+            <h1 className="text-2xl font-black text-brand-secondary tracking-tight">
               Chi tiết đánh giá {isProductReview ? 'sản phẩm' : 'cửa hàng'}
             </h1>
             <div className="flex items-center gap-3 mt-1">
-              <span className="text-sm text-gray-500">ID: #{review.review_id || review.id}</span>
+              <span className="text-sm text-gray-500">ID: #{review.review_id}</span>
               {review.is_active === 1 ? (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, delay: 0.2 }}
-                  className="bg-green-50 text-green-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
-                >
+                <span className="bg-green-50 text-green-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
                   ĐANG HIỂN THỊ
-                </motion.span>
+                </span>
               ) : (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, delay: 0.2 }}
-                  className="bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
-                >
+                <span className="bg-gray-100 text-gray-500 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
                   ĐÃ ẨN
-                </motion.span>
+                </span>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center gap-3">
+        <motion.div
+          initial={{ x: 20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex items-center gap-3"
+        >
           <motion.button
-            whileHover={{ scale: 1.02, y: -2 }}
+            whileHover={{ scale: 1.02, y: -1 }}
             whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             onClick={handleApprove}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold text-sm shadow-md shadow-green-500/20 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold text-sm transition-all duration-200 shadow-md shadow-green-500/20 cursor-pointer"
           >
             <FiCheckCircle size={16} /> Bác đơn - Mở lại đánh giá
           </motion.button>
           <motion.button
-            whileHover={{ scale: 1.02, y: -2 }}
+            whileHover={{ scale: 1.02, y: -1 }}
             whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             onClick={handleBan}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white rounded-xl font-bold text-sm shadow-md shadow-rose-500/20 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white rounded-xl font-bold text-sm transition-all duration-200 shadow-md shadow-rose-500/20 cursor-pointer"
           >
             <FiXCircle size={16} /> Đồng ý - Ẩn đánh giá
           </motion.button>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Review Info */}
-        <motion.div variants={fadeInLeft} className="lg:col-span-2 space-y-6">
+        {/* Cột trái - Thông tin đánh giá */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Nội dung đánh giá */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-300">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-300"
+          >
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
               <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
                 <FiStar className="text-amber-500" size={16} />
@@ -239,13 +223,16 @@ export const ManagerReviewDetailPage = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <motion.img
+                  <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                    src={userAvatar}
-                    alt={review.user_name}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-brand-primary/20"
-                  />
+                    className="relative"
+                  >
+                    <img
+                      src={userAvatar}
+                      alt={review.user_name}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-brand-primary/20"
+                    />
+                  </motion.div>
                   <div>
                     <p className="font-extrabold text-gray-900">{review.user_name}</p>
                     <p className="text-[10px] text-gray-400">ID: #{review.user_id}</p>
@@ -279,25 +266,29 @@ export const ManagerReviewDetailPage = () => {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
-                        src={getImageUrl(reviewImages[currentImageIndex], 'https://placehold.co/600x400?text=No+Image')}
+                        src={reviewImages[currentImageIndex]?.secure_url || reviewImages[currentImageIndex]}
                         alt={`Review image ${currentImageIndex + 1}`}
                         className="max-w-full max-h-[300px] object-contain"
                       />
                     </div>
                     {reviewImages.length > 1 && (
                       <>
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={prevImage}
                           className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100"
                         >
                           <FiChevronLeft size={20} />
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
                           onClick={nextImage}
                           className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100"
                         >
                           <FiChevronRight size={20} />
-                        </button>
+                        </motion.button>
                         <div className="flex justify-center gap-1.5 mt-2">
                           {reviewImages.map((_, idx) => (
                             <button
@@ -313,13 +304,14 @@ export const ManagerReviewDetailPage = () => {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Lý do tố cáo */}
           <motion.div
-            variants={fadeInUp}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
             whileHover={{ y: -2 }}
-            transition={{ type: 'spring', stiffness: 400 }}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all duration-300"
           >
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
@@ -332,12 +324,17 @@ export const ManagerReviewDetailPage = () => {
               <p className="text-red-700 font-medium">{review.report_reason || 'Không có lý do cụ thể'}</p>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
 
-        {/* Right Column - Target Info */}
-        <motion.div variants={fadeInRight} className="space-y-6">
+        {/* Cột phải - Thông tin đối tượng */}
+        <div className="space-y-6">
           {/* Thông tin sản phẩm / cửa hàng */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all duration-300">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-300"
+          >
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
               <div className="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center">
                 {isProductReview ? <FiPackage className="text-brand-primary" size={16} /> : <FiHome className="text-brand-primary" size={16} />}
@@ -347,49 +344,66 @@ export const ManagerReviewDetailPage = () => {
             <div className="space-y-3">
               {isProductReview ? (
                 <>
-                  <InfoRow label="Tên sản phẩm" value={review.product_name} />
-                  <InfoRow label="Mã sản phẩm" value={`#${review.product_id}`} />
-                  <InfoRow
-                    label="Đường dẫn"
-                    value={
-                      <Link to={`/manager/products/detail/${review.product_id}`} className="text-brand-primary hover:underline inline-flex items-center gap-1 group">
-                        Xem chi tiết sản phẩm
-                        <FiArrowLeft className="rotate-180 group-hover:translate-x-1 transition-transform duration-300" size={12} />
-                      </Link>
-                    }
-                  />
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="relative"
+                    >
+                      <img
+                        src={productImage}
+                        alt={review.product_name}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-200"
+                      />
+                    </motion.div>
+                    <div>
+                      <p className="font-extrabold text-gray-900">{review.product_name}</p>
+                      <p className="text-[10px] text-gray-400">Mã SP: #{review.product_id}</p>
+                      <p className="text-[10px] text-gray-400">Slug: {review.product_slug}</p>
+                    </div>
+                  </div>
+                  <InfoRow label="Đường dẫn" value={
+                    <Link to={`/manager/products/detail/${review.product_id}`} className="text-brand-primary hover:underline inline-flex items-center gap-1 group">
+                      Xem chi tiết sản phẩm
+                      <FiArrowLeft className="rotate-180 group-hover:translate-x-1 transition-transform duration-300" size={12} />
+                    </Link>
+                  } />
                 </>
               ) : (
                 <>
                   <div className="flex items-center gap-3">
-                    <motion.img
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ type: 'spring', stiffness: 400 }}
-                      src={getImageUrl(storeLogo, 'https://placehold.co/80x80?text=Store')}
-                      alt={review.store_name}
-                      className="w-12 h-12 rounded-xl object-cover border border-gray-200"
-                    />
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="relative"
+                    >
+                      <img
+                        src={storeLogo}
+                        alt={review.store_name}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-200"
+                      />
+                    </motion.div>
                     <div>
                       <p className="font-extrabold text-gray-900">{review.store_name}</p>
-                      <p className="text-[10px] text-gray-400">ID: #{review.store_id}</p>
+                      <p className="text-[10px] text-gray-400">Mã cửa hàng: #{review.store_id}</p>
                     </div>
                   </div>
-                  <InfoRow
-                    label="Đường dẫn"
-                    value={
-                      <Link to={`/manager/stores/detail/${review.store_id}`} className="text-brand-primary hover:underline inline-flex items-center gap-1 group">
-                        Xem chi tiết cửa hàng
-                        <FiArrowLeft className="rotate-180 group-hover:translate-x-1 transition-transform duration-300" size={12} />
-                      </Link>
-                    }
-                  />
+                  <InfoRow label="Đường dẫn" value={
+                    <Link to={`/manager/stores/${review.store_id}`} className="text-brand-primary hover:underline inline-flex items-center gap-1 group">
+                      Xem chi tiết cửa hàng
+                      <FiArrowLeft className="rotate-180 group-hover:translate-x-1 transition-transform duration-300" size={12} />
+                    </Link>
+                  } />
                 </>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Thông tin người dùng */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all duration-300">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-300"
+          >
             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
               <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
                 <FiUser className="text-blue-500" size={16} />
@@ -399,10 +413,34 @@ export const ManagerReviewDetailPage = () => {
             <div className="space-y-3">
               <InfoRow label="Họ tên" value={review.user_name} />
               <InfoRow label="Email" value={review.user_email} />
-              <InfoRow label="Thời gian tạo" value={formatDateTime(review.created_at)} />
+              <InfoRow label="ID người dùng" value={`#${review.user_id}`} />
+              <InfoRow label="Thời gian đánh giá" value={formatDateTime(review.created_at)} />
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          {/* Thông tin bổ sung */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-300"
+          >
+            <h3 className="text-lg font-black text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
+              <div className="w-8 h-8 rounded-xl bg-gray-500/10 flex items-center justify-center">
+                <FiInfo className="text-gray-500" size={16} />
+              </div>
+              Thông tin bổ sung
+            </h3>
+            <div className="space-y-3">
+              <InfoRow
+                label="Trạng thái tố cáo"
+                value={review.is_reported === 1 ? 'Đang bị tố cáo' : 'Đã xử lý'}
+                valueClassName={review.is_reported === 1 ? 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full inline-block' : 'text-green-600 bg-green-50 px-2 py-0.5 rounded-full inline-block'}
+              />
+              <InfoRow label="ID đơn hàng" value={review.order_id ? `#${review.order_id}` : 'Không có'} />
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       <ConfirmReasonModal
@@ -418,13 +456,13 @@ export const ManagerReviewDetailPage = () => {
   )
 }
 
-const InfoRow = ({ label, value }) => (
+const InfoRow = ({ label, value, valueClassName = '' }) => (
   <motion.div
-    whileHover={{ x: 4 }}
+    whileHover={{ x: 3 }}
     transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0"
   >
     <span className="text-gray-500 text-sm">{label}</span>
-    <span className="font-semibold text-gray-800 text-right">{value}</span>
+    <span className={`font-semibold text-right break-words max-w-[200px] ${valueClassName}`}>{value}</span>
   </motion.div>
 )
