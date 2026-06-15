@@ -1,4 +1,4 @@
-import { formatRelativeTime, formatDateTime } from '~/utils/formatters'
+import { formatRelativeTime, formatDateTime, getImageUrl } from '~/utils/formatters'
 import { FiStar, FiInfo, FiPackage, FiHome, FiEye, FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { Link } from 'react-router-dom'
@@ -34,6 +34,33 @@ export const ReviewTable = ({
     )
   }
 
+  // Lấy URL ảnh đại diện cho sản phẩm hoặc cửa hàng
+  const getTargetImage = (review) => {
+    if (reviewType === REVIEW_TYPES.PRODUCT) {
+      // Lấy ảnh sản phẩm
+      if (review.product_images) {
+        return getImageUrl(review.product_images, 'https://placehold.co/80x80?text=Product')
+      }
+      return 'https://placehold.co/80x80?text=Product'
+    } else {
+      // Lấy logo cửa hàng
+      if (review.store_logo) {
+        return getImageUrl(review.store_logo, 'https://placehold.co/80x80?text=Store')
+      }
+      return 'https://placehold.co/80x80?text=Store'
+    }
+  }
+
+  // Lấy tên hiển thị
+  const getTargetName = (review) => {
+    return reviewType === REVIEW_TYPES.PRODUCT ? review.product_name : review.store_name
+  }
+
+  // Lấy ID hiển thị
+  const getTargetId = (review) => {
+    return reviewType === REVIEW_TYPES.PRODUCT ? review.product_id : review.store_id
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
       <div className="overflow-x-auto min-h-[300px]">
@@ -49,7 +76,7 @@ export const ReviewTable = ({
                 />
               </th>
               <th className="py-4 px-4 min-w-[150px]">Người dùng</th>
-              <th className="py-4 px-4 min-w-[200px]">
+              <th className="py-4 px-4 min-w-[220px]">
                 {reviewType === REVIEW_TYPES.PRODUCT ? 'Sản phẩm' : 'Cửa hàng'}
               </th>
               <th className="py-4 px-4 text-center min-w-[100px]">Đánh giá</th>
@@ -70,6 +97,15 @@ export const ReviewTable = ({
             ) : (
               reviews.map((review) => {
                 const isChecked = selectedIds.includes(review.id)
+                const targetImage = getTargetImage(review)
+                const targetName = getTargetName(review)
+                const targetId = getTargetId(review)
+
+                // Lấy avatar người dùng
+                const userAvatar = getImageUrl(
+                  review.user_avatar,
+                  `https://ui-avatars.com/api/?background=6366f1&color=fff&name=${encodeURIComponent(review.user_name || 'User')}`
+                )
 
                 return (
                   <tr key={review.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
@@ -82,24 +118,31 @@ export const ReviewTable = ({
                       />
                     </td>
                     <td className="py-4 px-4">
-                      <div>
-                        <p className="font-extrabold text-gray-900">{review.user_name}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">ID: #{review.user_id}</p>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={userAvatar}
+                          alt={review.user_name}
+                          className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                        />
+                        <div>
+                          <p className="font-extrabold text-gray-900">{review.user_name}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">ID: #{review.user_id}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        {reviewType === REVIEW_TYPES.PRODUCT ? (
-                          <FiPackage size={14} className="text-indigo-500 shrink-0" />
-                        ) : (
-                          <FiHome size={14} className="text-purple-500 shrink-0" />
-                        )}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={targetImage}
+                          alt={targetName}
+                          className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0"
+                        />
                         <div>
-                          <p className="font-semibold text-gray-800 line-clamp-1 max-w-[200px]">
-                            {reviewType === REVIEW_TYPES.PRODUCT ? review.product_name : review.store_name}
+                          <p className="font-semibold text-gray-800 line-clamp-2 max-w-[200px]">
+                            {targetName}
                           </p>
-                          <p className="text-[10px] text-gray-400">
-                            ID: #{reviewType === REVIEW_TYPES.PRODUCT ? review.product_id : review.store_id}
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            ID: #{targetId}
                           </p>
                         </div>
                       </div>

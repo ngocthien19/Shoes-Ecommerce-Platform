@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiFlag, FiStar } from 'react-icons/fi'
+import { FiFlag, FiPackage, FiHome } from 'react-icons/fi'
 
 import { managerReviewApiService } from '~/services/manager/managerReviewApiService'
 import { managerStoreApiService } from '~/services/manager/managerStoreApiService'
@@ -12,6 +12,7 @@ import { ReviewTable } from './ReviewTable'
 import { ReviewBulkActionPanel } from './ReviewBulkActionPanel'
 import { ReviewSearchResultsInfo } from './ReviewSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
+import { REVIEW_TYPES } from '~/utils/constant'
 
 export const ManagerReviewsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -21,9 +22,11 @@ export const ManagerReviewsPage = () => {
   const [selectedReviews, setSelectedReviews] = useState([])
   const [stores, setStores] = useState([])
 
+  // Lấy active tab từ URL hoặc mặc định là 'product'
+  const activeTab = searchParams.get('type') || REVIEW_TYPES.PRODUCT
+
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10
-  const type = searchParams.get('type') || 'product'
   const search = searchParams.get('search') || null
   const rating = searchParams.get('rating') || null
   const storeId = searchParams.get('storeId') || null
@@ -32,7 +35,7 @@ export const ManagerReviewsPage = () => {
   const sortBy = searchParams.get('sortBy') || 'created_at'
   const sortOrder = searchParams.get('sortOrder') || 'DESC'
 
-  const activeFilters = { page, limit, type, search, rating, storeId, startDate, endDate, sortBy, sortOrder }
+  const activeFilters = { page, limit, type: activeTab, search, rating, storeId, startDate, endDate, sortBy, sortOrder }
 
   const fetchReviews = async () => {
     try {
@@ -58,12 +61,32 @@ export const ManagerReviewsPage = () => {
     }
   }
 
+  // Fetch overview stats (widgets) - không phụ thuộc vào tab
+  const [overview, setOverview] = useState(null)
+  const fetchOverview = async () => {
+    try {
+      const res = await managerReviewApiService.getReportedReviews({ type: REVIEW_TYPES.PRODUCT, limit: 1 })
+      setOverview(res?.overview)
+    } catch (error) {
+      console.error('Lỗi tải widgets:', error)
+    }
+  }
+
   useEffect(() => {
     fetchReviews()
     fetchStores()
+    fetchOverview()
     setSelectedIds([])
     setSelectedReviews([])
   }, [searchParams])
+
+  // Xử lý chuyển tab
+  const handleTabChange = (tabType) => {
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('type', tabType)
+    newParams.delete('page') // Reset về trang 1 khi đổi tab
+    setSearchParams(newParams)
+  }
 
   const handleFilterChange = (key, value) => {
     const newParams = new URLSearchParams(searchParams)
@@ -76,7 +99,11 @@ export const ManagerReviewsPage = () => {
     setSearchParams(newParams)
   }
 
-  const handleResetFilters = () => setSearchParams({})
+  const handleResetFilters = () => {
+    const newParams = new URLSearchParams()
+    newParams.set('type', activeTab) // Giữ lại tab hiện tại
+    setSearchParams(newParams)
+  }
 
   const handleSelectRow = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id])
@@ -96,6 +123,19 @@ export const ManagerReviewsPage = () => {
     }
   }
 
+  const handleResolveSingle = async (reviewId, action) => {
+    try {
+      const res = await managerReviewApiService.resolveReviewsBulk([reviewId], activeTab, action)
+      toast.success(res.message)
+      fetchReviews()
+      fetchOverview()
+      setSelectedIds([])
+      setSelectedReviews([])
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   const handleResolveBulk = async (action) => {
     if (selectedIds.length === 0) {
       toast.error('Vui lòng chọn đánh giá cần xử lý')
@@ -103,23 +143,12 @@ export const ManagerReviewsPage = () => {
     }
 
     try {
-      const res = await managerReviewApiService.resolveReviewsBulk(selectedIds, type, action)
+      const res = await managerReviewApiService.resolveReviewsBulk(selectedIds, activeTab, action)
       toast.success(res.message)
       setSelectedIds([])
       setSelectedReviews([])
       fetchReviews()
-    } catch (error) {
-      toast.error(error.message)
-    }
-  }
-
-  const handleResolveSingle = async (reviewId, action) => {
-    try {
-      const res = await managerReviewApiService.resolveReviewsBulk([reviewId], type, action)
-      toast.success(res.message)
-      fetchReviews()
-      setSelectedIds([])
-      setSelectedReviews([])
+      fetchOverview()
     } catch (error) {
       toast.error(error.message)
     }
@@ -132,11 +161,16 @@ export const ManagerReviewsPage = () => {
     if (storeId) count++
     if (startDate) count++
     if (endDate) count++
-    if (type !== 'product') count++
     return count
   }
 
   const activeFiltersCount = getActiveFiltersCount()
+
+  // Tab configuration
+  const tabs = [
+    { key: REVIEW_TYPES.PRODUCT, label: 'Đánh giá sản phẩm', icon: FiPackage, color: 'indigo' },
+    { key: REVIEW_TYPES.STORE, label: 'Đánh giá cửa hàng', icon: FiHome, color: 'purple' }
+  ]
 
   return (
     <div className="space-y-6 pb-10">
@@ -150,10 +184,46 @@ export const ManagerReviewsPage = () => {
         </div>
       </div>
 
-      {data?.overview && <ReviewOverviewWidgets overview={data.overview} />}
+      {/* Widgets - hiển thị luôn không phụ thuộc tab */}
+      {overview && <ReviewOverviewWidgets overview={overview} />}
+
+      {/* Tabs - chiếm hết chiều dài */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="grid grid-cols-2">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.key
+            const Icon = tab.icon
+            return (
+              <motion.button
+                key={tab.key}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleTabChange(tab.key)}
+                className={`cursor-pointer flex items-center justify-center gap-3 py-4 text-base font-bold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-brand-primary/5 to-transparent text-brand-primary border-b-2 border-brand-primary shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/50 border-b-2 border-transparent'
+                }`}
+              >
+                <Icon size={20} />
+                {tab.label}
+                {isActive && data?.pagination && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="ml-1 px-2 py-0.5 text-xs font-black rounded-full bg-brand-primary/10 text-brand-primary"
+                  >
+                    {data.pagination.totalItems || 0}
+                  </motion.span>
+                )}
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
 
       <ReviewFilters
-        filters={activeFilters}
+        filters={{ ...activeFilters, type: activeTab }}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
         stores={stores}
@@ -188,10 +258,16 @@ export const ManagerReviewsPage = () => {
         </div>
       ) : (
         data && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
             <ReviewTable
               reviews={data.reviews}
-              reviewType={type}
+              reviewType={activeTab}
               selectedIds={selectedIds}
               onSelectRow={handleSelectRow}
               onSelectAll={handleSelectAll}

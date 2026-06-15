@@ -176,7 +176,7 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
         return reference_id ? `/manager/stores/${reference_id}` : null
       case NOTIFICATION_TYPES.REVIEW_REPORTED:
       case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-        return reference_id ? `/manager/reviews/detail/${reference_id}` : null
+        return reference_id ? `/manager/reviews/${reference_id}` : null
       case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
         return reference_id ? `/admin/financial/payouts/${reference_id}` : null
       default:

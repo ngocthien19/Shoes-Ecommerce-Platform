@@ -9,7 +9,6 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { motion, AnimatePresence } from 'framer-motion'
-import { REVIEW_TYPES } from '~/utils/constant'
 
 export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] }) => {
   const [searchTxt, setSearchTxt] = useState(filters.search || '')
@@ -41,11 +40,6 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
     return () => clearTimeout(timer)
   }, [endDate])
 
-  const typeOptions = [
-    { value: REVIEW_TYPES.PRODUCT, label: 'Đánh giá sản phẩm' },
-    { value: REVIEW_TYPES.STORE, label: 'Đánh giá cửa hàng' }
-  ]
-
   const ratingOptions = [
     { value: '', label: 'Tất cả số sao' },
     { value: 5, label: '★★★★★ (5 sao)' },
@@ -55,18 +49,12 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
     { value: 1, label: '★☆☆☆☆ (1 sao)' }
   ]
 
-  const currentTypeLabel = typeOptions.find(t => t.value === filters.type)?.label || 'Đánh giá sản phẩm'
   const currentRatingLabel = ratingOptions.find(r => r.value === Number(filters.rating))?.label || 'Tất cả số sao'
   const currentStoreLabel = stores.find(s => s.id === Number(filters.storeId))?.store_name || 'Tất cả cửa hàng'
 
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
-  if (filters.type && filters.type !== REVIEW_TYPES.PRODUCT) {
-    activeBadges.push({ key: 'type', label: `Loại: ${currentTypeLabel}` })
-  }
-  if (filters.rating) {
-    activeBadges.push({ key: 'rating', label: `Số sao: ${filters.rating}` })
-  }
+  if (filters.rating) activeBadges.push({ key: 'rating', label: `Số sao: ${filters.rating}` })
   if (filters.storeId) activeBadges.push({ key: 'storeId', label: `Cửa hàng: ${currentStoreLabel}` })
   if (filters.startDate) activeBadges.push({ key: 'startDate', label: `Từ: ${filters.startDate}` })
   if (filters.endDate) activeBadges.push({ key: 'endDate', label: `Đến: ${filters.endDate}` })
@@ -97,27 +85,6 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Bộ lọc loại đánh giá */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[160px]">
-                <span className="truncate">{currentTypeLabel}</span>
-                <FiChevronDown size={14} className="text-gray-400 shrink-0" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[180px]">
-              {typeOptions.map(option => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => onFilterChange('type', option.value)}
-                  className="text-xs font-semibold cursor-pointer rounded-lg"
-                >
-                  {option.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* Bộ lọc số sao */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

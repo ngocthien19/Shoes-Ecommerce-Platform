@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { FiPackage, FiEye, FiStar, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiRefreshCw } from 'react-icons/fi'
+import { FiPackage, FiEye, FiStar, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiRefreshCw, FiInfo } from 'react-icons/fi'
 import { FaBan } from 'react-icons/fa'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { formatPrice, formatDateTime, getImageUrl } from '~/utils/formatters'
@@ -69,7 +69,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
     }
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, rejectReason) => {
     const config = {
       [PRODUCT_MODERATION_STATUS.APPROVED]: { label: 'ĐÃ DUYỆT', color: 'bg-green-100 text-green-700', icon: FiCheckCircle },
       [PRODUCT_MODERATION_STATUS.PENDING]: { label: 'CHỜ DUYỆT', color: 'bg-amber-100 text-amber-700', icon: FiClock },
@@ -79,8 +79,28 @@ export const StoreProductsList = ({ storeId, storeName }) => {
     }
     const c = config[status] || { label: 'KHÔNG XÁC ĐỊNH', color: 'bg-gray-100 text-gray-500', icon: FiAlertCircle }
     const Icon = c.icon
+
+    // Nếu là REJECTED hoặc BANNED và có reject_reason, hiển thị badge có tooltip
+    if ((status === PRODUCT_MODERATION_STATUS.REJECTED || status === PRODUCT_MODERATION_STATUS.BANNED) && rejectReason) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold cursor-help ${c.color}`}>
+              <Icon size={10} />
+              {c.label}
+              <FiInfo size={10} className="opacity-70" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
+            <p className="font-semibold mb-1">📝 Lý do:</p>
+            <p className="break-words">{rejectReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      )
+    }
+
     return (
-      <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${c.color}`}>
+      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${c.color}`}>
         <Icon size={10} />
         {c.label}
       </span>
@@ -172,7 +192,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
                 <th className="py-3 px-4">Giá</th>
                 <th className="py-3 px-4 text-center">Đã bán</th>
                 <th className="py-3 px-4 text-center">Đánh giá</th>
-                <th className="py-3 px-4 text-center">Trạng thái</th>
+                <th className="py-3 px-4 text-center min-w-[110px]">Trạng thái</th>
                 <th className="py-3 px-4 text-center">Ngày tạo</th>
                 <th className="py-3 px-4 text-center">Hành động</th>
               </tr>
@@ -215,7 +235,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
                       <span className="font-semibold text-gray-700">{Number(product.rating_avg || 0).toFixed(1)}</span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-center">{getStatusBadge(product.status)}</td>
+                  <td className="py-3 px-4 text-center">{getStatusBadge(product.status, product.reject_reason)}</td>
                   <td className="py-3 px-4 text-center text-xs text-gray-500">{formatDateTime(product.created_at)}</td>
                   <td className="py-3 px-4 text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -228,7 +248,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
                             transition={{ type: 'spring', stiffness: 400 }}
                           >
                             <Link
-                              to={`/manager/products/detail/${product.slug}`}
+                              to={`/manager/products/detail/${product.id}`}
                               className="p-2 bg-gray-100 text-gray-600 hover:bg-gray-600 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center"
                             >
                               <FiEye size={14} />
@@ -308,7 +328,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
         </div>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
+        {(pagination.totalPages > 1) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
