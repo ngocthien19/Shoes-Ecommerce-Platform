@@ -1,6 +1,10 @@
-import { FiPackage, FiHome, FiFlag, FiDollarSign, FiAlertCircle, FiShoppingCart, FiMessageCircle, FiTag, FiBell, FiUser, FiMail, FiClock, FiMapPin, FiPhone } from 'react-icons/fi'
-import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constant'
+import {
+  FiBell, FiPackage, FiHome, FiFlag, FiDollarSign, FiAlertCircle,
+  FiUser, FiMail, FiMapPin, FiClock, FiPhone, FiStar, FiTag, FiHash
+} from 'react-icons/fi'
+import { NOTIFICATION_TYPES, ROLE_ID, REVIEW_TYPES } from '~/utils/constant'
 
+// Lấy icon theo loại thông báo
 export const getIconByType = (type) => {
   switch (type) {
   case NOTIFICATION_TYPES.PRODUCT_PENDING:
@@ -16,9 +20,10 @@ export const getIconByType = (type) => {
     return { icon: FiHome, color: 'text-purple-500', bg: 'bg-purple-50' }
   case NOTIFICATION_TYPES.REVIEW_REPORTED:
   case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
+    return { icon: FiFlag, color: 'text-amber-500', bg: 'bg-amber-50' }
   case NOTIFICATION_TYPES.REVIEW_RESOLVED_APPROVED:
   case NOTIFICATION_TYPES.REVIEW_RESOLVED_BANNED:
-    return { icon: FiFlag, color: 'text-amber-500', bg: 'bg-amber-50' }
+    return { icon: FiFlag, color: 'text-green-500', bg: 'bg-green-50' }
   case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
   case NOTIFICATION_TYPES.PAYOUT_APPROVED:
   case NOTIFICATION_TYPES.PAYOUT_REJECTED:
@@ -27,19 +32,12 @@ export const getIconByType = (type) => {
   case NOTIFICATION_TYPES.APPEAL_APPROVED:
   case NOTIFICATION_TYPES.APPEAL_REJECTED:
     return { icon: FiAlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
-  case 'ORDER_NEW':
-  case 'ORDER_CANCELLED':
-  case 'ORDER_DELIVERED':
-    return { icon: FiShoppingCart, color: 'text-indigo-500', bg: 'bg-indigo-50' }
-  case 'CHAT_MESSAGE':
-    return { icon: FiMessageCircle, color: 'text-teal-500', bg: 'bg-teal-50' }
-  case 'PROMOTION_EXPIRED':
-    return { icon: FiTag, color: 'text-pink-500', bg: 'bg-pink-50' }
   default:
     return { icon: FiBell, color: 'text-gray-500', bg: 'bg-gray-50' }
   }
 }
 
+// Parse nội dung JSON
 export const parseContent = (content) => {
   try {
     return JSON.parse(content)
@@ -48,8 +46,21 @@ export const parseContent = (content) => {
   }
 }
 
+// Lấy text role
+export const getRoleText = (roleId) => {
+  switch (roleId) {
+  case ROLE_ID.VENDOR: return 'Người bán'
+  case ROLE_ID.MANAGER: return 'Quản trị sàn'
+  case ROLE_ID.ADMIN: return 'Admin'
+  default: return 'Người dùng'
+  }
+}
+
+// Lấy link theo loại thông báo
 export const getLinkByType = (notification, userRole) => {
   const { type, reference_id } = notification
+  const contentData = parseContent(notification.content)
+  const reviewType = contentData.reviewType
 
   if (userRole === ROLE_ID.VENDOR) {
     switch (type) {
@@ -68,70 +79,80 @@ export const getLinkByType = (notification, userRole) => {
     case NOTIFICATION_TYPES.PAYOUT_APPROVED:
     case NOTIFICATION_TYPES.PAYOUT_REJECTED:
       return '/vendor/payouts'
-    case NOTIFICATION_TYPES.REVIEW_REPORTED:
-    case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-      return '/vendor/reviews'
     default:
       return null
     }
-  }
-
-  if (userRole === ROLE_ID.USER) {
-    switch (type) {
-    case 'ORDER_NEW':
-    case 'ORDER_DELIVERED':
-    case 'ORDER_CANCELLED':
-      return reference_id ? `/orders/${reference_id}` : '/orders'
-    case 'CHAT_MESSAGE':
-      return '/chat'
-    default:
-      return null
-    }
-  }
-
-  if (userRole === ROLE_ID.MANAGER) {
+  } else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
     switch (type) {
     case NOTIFICATION_TYPES.PRODUCT_PENDING:
     case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
       return reference_id ? `/manager/products/detail/${reference_id}` : null
     case NOTIFICATION_TYPES.STORE_PENDING:
-      return reference_id ? `/manager/stores/detail/${reference_id}` : null
+      return reference_id ? `/manager/stores/${reference_id}` : null
     case NOTIFICATION_TYPES.REVIEW_REPORTED:
     case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-      return reference_id ? `/manager/reviews/detail/${reference_id}` : null
-    default:
-      return null
-    }
-  }
-
-  if (userRole === ROLE_ID.ADMIN) {
-    switch (type) {
+      return reference_id ? `/manager/reviews/${reference_id}?type=${reviewType || 'product'}` : null
     case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-      return reference_id ? `/admin/financial/payouts/${reference_id}` : '/admin/financial/payouts'
-    case NOTIFICATION_TYPES.STORE_PENDING:
-      return reference_id ? `/admin/stores/detail/${reference_id}` : null
-    case NOTIFICATION_TYPES.APPEAL_REQUESTED:
-      return reference_id ? `/admin/appeals/detail/${reference_id}` : null
+      return reference_id ? `/admin/financial/payouts/${reference_id}` : null
     default:
       return null
     }
   }
-
   return null
 }
 
+// Lấy danh sách chi tiết từ content
 export const getDetailItems = (contentData) => {
   const detailItems = []
 
+  // Thông tin người dùng / chủ sở hữu
   if (contentData.ownerName) {
     detailItems.push({ icon: FiUser, label: 'Người đăng ký', value: contentData.ownerName })
   }
   if (contentData.ownerEmail) {
     detailItems.push({ icon: FiMail, label: 'Email', value: contentData.ownerEmail })
   }
+  if (contentData.reviewerName) {
+    detailItems.push({ icon: FiUser, label: 'Người đánh giá', value: contentData.reviewerName })
+  }
+
+  // Thông tin sản phẩm
   if (contentData.productName) {
     detailItems.push({ icon: FiPackage, label: 'Sản phẩm', value: contentData.productName })
   }
+  if (contentData.productId) {
+    detailItems.push({ icon: FiHash, label: 'ID sản phẩm', value: `#${contentData.productId}` })
+  }
+  if (contentData.productCount) {
+    detailItems.push({ icon: FiPackage, label: 'Số lượng sản phẩm', value: contentData.productCount })
+  }
+  if (contentData.productNames) {
+    detailItems.push({ icon: FiTag, label: 'Danh sách sản phẩm', value: contentData.productNames })
+  }
+
+  // Thông tin cửa hàng
+  if (contentData.storeName) {
+    detailItems.push({ icon: FiHome, label: 'Cửa hàng', value: contentData.storeName })
+  }
+  if (contentData.storeId) {
+    detailItems.push({ icon: FiHash, label: 'ID cửa hàng', value: `#${contentData.storeId}` })
+  }
+
+  // Thông tin đánh giá
+  if (contentData.reviewId) {
+    detailItems.push({ icon: FiFlag, label: 'ID đánh giá', value: `#${contentData.reviewId}` })
+  }
+  if (contentData.reviewType) {
+    detailItems.push({ icon: FiFlag, label: 'Loại đánh giá', value: contentData.reviewType === 'product' ? 'Đánh giá sản phẩm' : 'Đánh giá cửa hàng' })
+  }
+  if (contentData.rating !== undefined && contentData.rating !== null) {
+    detailItems.push({ icon: FiStar, label: 'Số sao', value: `${contentData.rating}/5` })
+  }
+  if (contentData.reason) {
+    detailItems.push({ icon: FiAlertCircle, label: 'Lý do giải trình', value: contentData.reason })
+  }
+
+  // Thông tin tài chính
   if (contentData.amount) {
     detailItems.push({
       icon: FiDollarSign,
@@ -139,6 +160,8 @@ export const getDetailItems = (contentData) => {
       value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(contentData.amount)
     })
   }
+
+  // Thông tin bổ sung
   if (contentData.count) {
     detailItems.push({ icon: FiPackage, label: 'Số lượng', value: contentData.count })
   }
@@ -151,19 +174,9 @@ export const getDetailItems = (contentData) => {
   if (contentData.phone) {
     detailItems.push({ icon: FiPhone, label: 'SĐT', value: contentData.phone })
   }
-  if (contentData.orderId) {
-    detailItems.push({ icon: FiShoppingCart, label: 'Mã đơn hàng', value: `#${contentData.orderId}` })
+  if (contentData.reportReason) {
+    detailItems.push({ icon: FiAlertCircle, label: 'Lý do tố cáo', value: contentData.reportReason })
   }
 
   return detailItems
-}
-
-export const getRoleText = (userRole) => {
-  switch (userRole) {
-  case ROLE_ID.ADMIN: return 'Quản trị viên'
-  case ROLE_ID.MANAGER: return 'Điều hành viên'
-  case ROLE_ID.VENDOR: return 'Người bán'
-  case ROLE_ID.USER: return 'Khách hàng'
-  default: return ''
-  }
 }

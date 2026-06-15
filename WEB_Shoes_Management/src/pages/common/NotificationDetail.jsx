@@ -1,29 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { FiBell, FiClock, FiCheckCircle } from 'react-icons/fi'
-import { formatRelativeTime, getImageUrl } from '~/utils/formatters'
+import { FiBell, FiClock, FiCheckCircle, FiStar, FiAlertCircle, FiPackage, FiHome, FiFlag, FiUser, FiMail, FiMapPin, FiPhone } from 'react-icons/fi'
+import { formatDateTime, getImageUrl } from '~/utils/formatters'
 import { getIconByType, parseContent, getLinkByType, getDetailItems } from '~/utils/notificationHelpers'
-
-// Component render detail info
-const RenderDetailInfo = ({ detailItems }) => {
-  if (detailItems.length === 0) return null
-
-  return (
-    <div className="mt-4 space-y-2">
-      <h4 className="text-sm font-semibold text-gray-700">Thông tin chi tiết:</h4>
-      <div className="space-y-1.5">
-        {detailItems.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <item.icon size={14} className="text-gray-400" />
-            <span className="text-sm text-gray-600">
-              <span className="font-medium text-gray-700">{item.label}:</span> {item.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export const NotificationDetail = ({ notification, userRole }) => {
   if (!notification) {
@@ -46,9 +25,12 @@ export const NotificationDetail = ({ notification, userRole }) => {
 
   const { icon: Icon, color, bg } = getIconByType(notification.type)
   const contentData = parseContent(notification.content)
-  const imageUrl = getImageUrl(contentData.image, null)
+  const imageUrl = contentData.image
   const link = getLinkByType(notification, userRole)
   const detailItems = getDetailItems(contentData)
+
+  // Format thời gian chi tiết
+  const formattedDate = notification.created_at ? formatDateTime(notification.created_at) : ''
 
   return (
     <motion.div
@@ -78,7 +60,7 @@ export const NotificationDetail = ({ notification, userRole }) => {
                   <div className="flex items-center gap-1.5">
                     <FiClock size={12} className="text-gray-400" />
                     <span className="text-xs text-gray-500 font-medium">
-                      {formatRelativeTime(notification.created_at)}
+                      {formattedDate}
                     </span>
                   </div>
                   {!notification.is_read && (
@@ -105,12 +87,14 @@ export const NotificationDetail = ({ notification, userRole }) => {
 
         {/* Body */}
         <div className="p-8">
+          {/* Nội dung chính */}
           <div className="prose prose-sm max-w-none">
-            <p className="text-gray-700 leading-relaxed text-base">
-              {contentData.message}
+            <p className="text-gray-700 leading-relaxed text-base whitespace-pre-wrap">
+              {contentData.message || 'Không có nội dung chi tiết'}
             </p>
           </div>
 
+          {/* Hình ảnh đính kèm */}
           {imageUrl && (
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -125,13 +109,52 @@ export const NotificationDetail = ({ notification, userRole }) => {
             </motion.div>
           )}
 
-          <RenderDetailInfo detailItems={detailItems} />
+          {/* Thông tin chi tiết */}
+          {detailItems.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <FiAlertCircle size={14} className="text-brand-primary" />
+                Thông tin chi tiết:
+              </h4>
+              <div className="space-y-2 bg-gray-50 rounded-xl p-4">
+                {detailItems.map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <item.icon size={14} className="text-gray-400 mt-0.5 shrink-0" />
+                    <span className="text-sm text-gray-600">
+                      <span className="font-semibold text-gray-700">{item.label}:</span>{' '}
+                      <span className="break-words">{item.value}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Thông tin bổ sung từ notification */}
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-gray-50 rounded-lg p-2">
+                <span className="text-gray-400 block mb-0.5">ID thông báo</span>
+                <span className="font-mono text-gray-600">#{notification.id}</span>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-2">
+                <span className="text-gray-400 block mb-0.5">Loại</span>
+                <span className="font-medium text-gray-600">{notification.type}</span>
+              </div>
+              {notification.reference_id && (
+                <div className="bg-gray-50 rounded-lg p-2 col-span-2">
+                  <span className="text-gray-400 block mb-0.5">ID tham chiếu</span>
+                  <span className="font-mono text-gray-600">#{notification.reference_id}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-100 bg-gray-50/50">
           <p className="text-[11px] text-gray-400 text-center font-medium">
-            Thông báo này được gửi tự động từ hệ thống
+            Thông báo này được gửi tự động từ hệ thống Shoes Store
           </p>
         </div>
       </div>

@@ -5,11 +5,12 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedNotification, setSelectedNotification] = useState(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
-  const fetchNotifications = useCallback(async (pageNum = 1, append = false) => {
+  const fetchNotifications = async (pageNum = 1, append = false) => {
     try {
       if (append) {
         setLoadingMore(true)
@@ -18,12 +19,15 @@ export const useNotifications = () => {
       }
       const res = await notificationApiService.getNotifications(pageNum, 20)
 
+      const unread = res.filter(n => !n.is_read).length
+      setUnreadCount(unread)
+
       if (append) {
         setNotifications(prev => [...prev, ...res])
       } else {
         setNotifications(res)
-        if (res.length > 0) {
-          setSelectedNotification(prev => prev || res[0])
+        if (res.length > 0 && !selectedNotification) {
+          setSelectedNotification(res[0])
         }
       }
 
@@ -34,63 +38,58 @@ export const useNotifications = () => {
       setLoading(false)
       setLoadingMore(false)
     }
+  }
+
+  useEffect(() => {
+    fetchNotifications(1, false)
   }, [])
 
   const loadMore = useCallback(() => {
-    if (hasMore && !loadingMore) {
+    if (!loadingMore && hasMore) {
       const nextPage = page + 1
       setPage(nextPage)
       fetchNotifications(nextPage, true)
     }
-  }, [hasMore, loadingMore, page, fetchNotifications])
+  }, [loadingMore, hasMore, page])
 
-  const markAllAsRead = useCallback(async () => {
+  const markAllAsRead = async () => {
     try {
       await notificationApiService.markAllAsRead()
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-      setSelectedNotification(prev => prev ? { ...prev, is_read: true } : null)
+      setUnreadCount(0)
     } catch (error) {
       console.error('Lỗi đánh dấu đã đọc:', error)
     }
-  }, [])
+  }
 
-  const markAsRead = useCallback(async (notificationId) => {
+  const markAsRead = async (notificationId) => {
     try {
       await notificationApiService.markAsRead(notificationId)
       setNotifications(prev => prev.map(n =>
         n.id === notificationId ? { ...n, is_read: true } : n
       ))
-      setSelectedNotification(prev =>
-        prev?.id === notificationId ? { ...prev, is_read: true } : prev
-      )
+      setUnreadCount(prev => Math.max(0, prev - 1))
     } catch (error) {
       console.error('Lỗi đánh dấu đã đọc:', error)
     }
-  }, [])
+  }
 
-  const selectNotification = useCallback((notification) => {
+  const selectNotification = (notification) => {
     setSelectedNotification(notification)
     if (!notification.is_read) {
       markAsRead(notification.id)
     }
-  }, [markAsRead])
-
-  useEffect(() => {
-    fetchNotifications(1, false)
-  }, [fetchNotifications])
-
-  const unreadCount = notifications.filter(n => !n.is_read).length
+  }
 
   return {
     notifications,
     loading,
     selectedNotification,
+    unreadCount,
     hasMore,
     loadingMore,
-    unreadCount,
     loadMore,
     markAllAsRead,
-    markAsRead,
     selectNotification
   }
 }
