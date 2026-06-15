@@ -27,7 +27,7 @@ const getProductDetail = async (req, res) => {
     const result = await managerProductService.getProductDetail(slug)
     return res.status(200).json(result)
   } catch (error) {
-    return res.status(500).json({ message: `Lỗi lấy chi tiết sản phẩm theo slug: ${error.message}` })
+    return res.status(500).json({ message: `Lỗi lấy chi tiết sản phẩm: ${error.message}` })
   }
 }
 

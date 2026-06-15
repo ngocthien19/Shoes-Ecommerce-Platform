@@ -41,10 +41,17 @@ const activateUser = async (email) => {
   return result
 }
 
-// Tìm user đầy đủ thông tin để kiểm tra mật khẩu và quyền
+// Tìm user đầy đủ thông tin để kiểm tra mật khẩu và quyền (dùng cho login)
 const getLoginUser = async (email) => {
-  const query = 'SELECT id, fullname, email, password, phone, address, role_id, is_active FROM users WHERE email = ?'
+  const query = 'SELECT id, fullname, email, password, phone, address, role_id, avatar, is_active, is_verified FROM users WHERE email = ?'
   const [rows] = await pool.execute(query, [email])
+  return rows[0]
+}
+
+// Lấy thông tin user theo ID (bao gồm password hash để so sánh mật khẩu cũ)
+const getLoginUserById = async (userId) => {
+  const query = 'SELECT id, fullname, email, password, phone, address, role_id, avatar, is_active, is_verified FROM users WHERE id = ?'
+  const [rows] = await pool.execute(query, [userId])
   return rows[0]
 }
 
@@ -77,28 +84,22 @@ const updateNewPassword = async (email, hashedPassword) => {
 const updateProfile = async (userId, cleanData) => {
   const { fullname, phone, address, hashedPassword, avatarData } = cleanData
 
-  // Khởi tạo câu lệnh SQL gốc với các trường văn bản luôn luôn có
   let query = 'UPDATE users SET fullname = ?, phone = ?, address = ?'
   let params = [fullname, phone, address]
 
-  // Kiểm tra nếu có mật khẩu mới đã mã hóa thì nối thêm vào SQL
   if (hashedPassword) {
     query += ', password = ?'
     params.push(hashedPassword)
   }
 
-  // Kiểm tra nếu có đường link ảnh mới từ Cloudinary thì nối thêm vào SQL
   if (avatarData) {
     query += ', avatar = ?'
-    // BẮT BUỘC dùng JSON.stringify để MySQL nhận diện đúng định dạng JSON
     params.push(JSON.stringify(avatarData))
   }
 
-  // Cuối cùng găm điều kiện WHERE theo id của user
   query += ' WHERE id = ?'
   params.push(userId)
 
-  // Thực thi câu lệnh query động xuống Database MySQL
   const [result] = await pool.execute(query, params)
   return result
 }
@@ -111,18 +112,18 @@ const getUpdatedUserFields = async (userId) => {
 
 const removeRefreshToken = async (refreshToken) => {
   const query = 'UPDATE users SET refresh_token = NULL WHERE refresh_token = ?'
-
   await pool.execute(query, [refreshToken])
 }
 
+// Sửa lại hàm này để lấy thêm address
 const getUserProfileById = async (userId) => {
   const query = `
-    SELECT id, role_id, fullname, email, phone, avatar, is_active, is_verified, created_at 
+    SELECT id, role_id, fullname, email, phone, address, avatar, is_active, is_verified, created_at 
     FROM users 
     WHERE id = ?
   `
   const [rows] = await pool.execute(query, [userId])
-  return rows[0] // Trả về object thông tin của user đó
+  return rows[0]
 }
 
 // Cập nhật trạng thái đang online
@@ -173,6 +174,7 @@ export const userModel = {
   getOtpInfo,
   activateUser,
   getLoginUser,
+  getLoginUserById,
   updateRefreshToken,
   updateForgotPasswordOtp,
   updateNewPassword,

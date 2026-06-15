@@ -23,15 +23,30 @@ const getNotificationsByUserId = async (userId, limit, offset) => {
   return rows
 }
 
-// Đánh dấu đã đọc toàn bộ thông báo (Tắt biểu tượng quả chuông đỏ)
+// Đánh dấu đã đọc toàn bộ thông báo
 const markAllAsRead = async (userId) => {
   const query = 'UPDATE notifications SET is_read = TRUE WHERE user_id = ?'
   const [result] = await pool.execute(query, [userId])
   return result.affectedRows
 }
 
+const markAsRead = async (userId, notificationId) => {
+  const query = 'UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND id = ?'
+  const [result] = await pool.execute(query, [userId, notificationId])
+  return result.affectedRows
+}
+
+// Lấy số lượng thông báo chưa đọc
+const getUnreadCount = async (userId) => {
+  const query = 'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE'
+  const [rows] = await pool.execute(query, [userId])
+  return rows[0].count
+}
+
 export const notificationModel = {
   createNotification,
   getNotificationsByUserId,
-  markAllAsRead
+  markAllAsRead,
+  getUnreadCount,
+  markAsRead
 }

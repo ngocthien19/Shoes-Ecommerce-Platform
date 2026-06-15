@@ -76,6 +76,7 @@ const createStoreReview = async (userId, orderId, { rating, comment }) => {
     await reviewModel.createStoreReview(connection, {
       userId,
       storeId: order.store_id,
+      orderId,
       rating,
       comment
     })

@@ -50,7 +50,7 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
   const oldStatus = info.status
 
   // Cập nhật trạng thái mới xuống Database
-  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus)
+  const affectedRows = await managerProductModel.updateProductModerationStatus(productId, targetStatus, reason)
   if (affectedRows === 0) throw new Error('Cập nhật trạng thái sản phẩm thất bại.')
 
   let thumbnail = ''
@@ -173,9 +173,17 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
 // 3. GET: Chi tiết cấu trúc một sản phẩm theo đường dẫn Slug (Giữ nguyên)
 const getProductDetail = async (productSlug) => {
   if (!productSlug) throw new Error('Đường dẫn cấu trúc sản phẩm (Slug) không hợp lệ.')
+
   const product = await managerProductModel.getProductDetailForManager(productSlug)
   if (!product) throw new Error('Không tồn tại sản phẩm này trên hệ thống dữ liệu.')
-  return product
+
+  // Lấy thêm biến thể của sản phẩm
+  const variants = await managerProductModel.getProductVariants(product.id)
+
+  return {
+    ...product,
+    variants: variants || []
+  }
 }
 
 // 4. Xử lý mảng Checkbox hàng loạt (APPROVED, REJECTED, BANNED)
@@ -188,7 +196,7 @@ const toggleProductsActiveBulk = async (productIds, targetStatus, reason) => {
   }
 
   // Thực thi cập nhật đồng bộ hàng loạt dưới Database qua câu lệnh IN
-  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus)
+  const affectedRows = await managerProductModel.updateProductsStatusBulk(productIds, targetStatus, reason)
   if (affectedRows === 0) throw new Error('Không có sản phẩm nào được thay đổi trạng thái.')
 
   // Gọi Model bốc thông tin lên để gom nhóm chống spam hòm thư Vendor

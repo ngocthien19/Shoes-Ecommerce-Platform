@@ -11,6 +11,8 @@ const router = express.Router()
 
 // product
 router.get('/homepage-products', productController.getHomepageProducts)
+router.get('/recommendations/empty-cart', productController.getEmptyCartRecommendations)
+router.get('/recommendations/post-checkout', productController.getPostCheckoutRecommendations)
 router.get('/search-filter', productValidation.searchAndFilterProducts, productController.searchAndFilterProducts)
 router.get('/detail/:slug', productValidation.getProductDetail, productController.getProductDetail)
 

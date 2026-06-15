@@ -11,8 +11,9 @@ const getStoreByOwnerId = async (ownerId) => {
 // 1. Lấy danh sách đơn hàng thuộc về Shop (Phân trang + Lọc trạng thái + Nạp thông tin khuyến mãi)
 const getVendorOrders = async (storeId, { status, searchOrderId, paymentMethod, startDate, endDate, limit, offset }) => {
   let query = `
-    SELECT id, user_id, total_amount, discount_amount, commission_rate_snapshot, status, 
-           payment_status, payment_method, shipping_address, cancel_reason, created_at
+    SELECT id, user_id, recipient_name, recipient_phone, total_amount, discount_amount, 
+           commission_rate_snapshot, status, payment_status, payment_method, 
+           shipping_address, cancel_reason, created_at
     FROM orders
     WHERE store_id = ?
   `
@@ -84,20 +85,36 @@ const countVendorOrders = async (storeId, { status, searchOrderId, paymentMethod
   return rows[0].total
 }
 
-// Lấy chi tiết các mặt hàng giày trong đơn hàng từ bảng order_items và product_variants
+// Lấy chi tiết các mặt hàng giày trong đơn hàng từ bảng order_items và product_variants (kèm ảnh)
 const getOrderItemsByStore = async (orderId) => {
   const query = `
-    SELECT oi.id, oi.variant_id, p.name, p.images, oi.quantity, oi.price, v.size, v.color
+    SELECT oi.id, oi.variant_id, p.name AS product_name, 
+           p.images, p.slug,
+           oi.quantity, oi.price, v.size, v.color
     FROM order_items oi
     JOIN product_variants v ON oi.variant_id = v.id
     JOIN products p ON v.product_id = p.id
     WHERE oi.order_id = ?
   `
   const [rows] = await pool.execute(query, [orderId])
-  return rows
+  
+  // Parse images JSON cho từng sản phẩm
+  const itemsWithParsedImages = rows.map(item => {
+    let parsedImages = []
+    try {
+      parsedImages = typeof item.images === 'string' 
+        ? JSON.parse(item.images) 
+        : (Array.isArray(item.images) ? item.images : [])
+    } catch (e) {
+      parsedImages = []
+    }
+    return { ...item, images: parsedImages }
+  })
+  
+  return itemsWithParsedImages
 }
 
-// 2. Cập nhật trạng thái vận đơn và ghi nhận lý do hủy nếu có
+// 3. Cập nhật trạng thái vận đơn và ghi nhận lý do hủy nếu có
 const updateOrderStatus = async (orderId, status, cancelReason = null) => {
   let query = 'UPDATE orders SET status = ?'
   const queryParams = [status]
@@ -178,6 +195,28 @@ const updateOrderStatusBulk = async (orderIds, status, storeId) => {
   return result.affectedRows
 }
 
+// Lấy chi tiết đơn hàng theo ID (kèm thông tin người nhận và ảnh sản phẩm)
+const getVendorOrderDetail = async (orderId, storeId) => {
+  // Lấy thông tin đơn hàng
+  const orderQuery = `
+    SELECT id, user_id, recipient_name, recipient_phone, total_amount, discount_amount,
+           commission_rate_snapshot, status, payment_status, payment_method,
+           shipping_address, cancel_reason, created_at, updated_at
+    FROM orders
+    WHERE id = ? AND store_id = ?
+  `
+  const [orderRows] = await pool.execute(orderQuery, [orderId, storeId])
+  
+  if (orderRows.length === 0) return null
+  
+  const order = orderRows[0]
+  
+  // Lấy danh sách sản phẩm trong đơn
+  order.items = await getOrderItemsByStore(orderId)
+  
+  return order
+}
+
 // Bẻ sang đọc trực tiếp Snapshot tài chính của Đơn hàng
 const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
   const connection = await pool.getConnection()
@@ -199,9 +238,9 @@ const completeOrderAndCreditStore = async (orderId, storeId, totalAmount) => {
     // 3. Cập nhật đơn hàng sang hoàn thành và lật thanh toán sang PAID
     await connection.execute(
       `UPDATE orders 
-       SET status = 'delivered', payment_status = 'paid' 
+       SET status = ?, payment_status = 'paid' 
        WHERE id = ?`,
-      [orderId]
+      [ORDER_STATUS.DELIVERED, orderId]
     )
 
     // 4. Bơm khoản doanh thu thực nhận (Net Profit) vào ví tài khoản cho Store
@@ -233,5 +272,6 @@ export const vendorOrderModel = {
   getOrdersOverviewStats,
   checkMultipleOrdersOwnership,
   updateOrderStatusBulk,
+  getVendorOrderDetail,
   completeOrderAndCreditStore
 }
