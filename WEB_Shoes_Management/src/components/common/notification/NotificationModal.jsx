@@ -164,6 +164,10 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
       case NOTIFICATION_TYPES.PAYOUT_APPROVED:
       case NOTIFICATION_TYPES.PAYOUT_REJECTED:
         return '/vendor/payouts'
+      case NOTIFICATION_TYPES.APPEAL_APPROVED:
+      case NOTIFICATION_TYPES.APPEAL_REJECTED:
+      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
+        return reference_id ? `/vendor/appeals/${reference_id}` : null
       default:
         return null
       }
@@ -181,6 +185,10 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
         return reference_id ? `/manager/reviews/${reference_id}?type=${reviewType || 'product'}` : null
       case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
         return reference_id ? `/admin/financial/payouts/${reference_id}` : null
+      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
+      case NOTIFICATION_TYPES.APPEAL_APPROVED:
+      case NOTIFICATION_TYPES.APPEAL_REJECTED:
+        return reference_id ? `/manager/appeals/${reference_id}` : null
       default:
         return null
       }

@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiPieChart, FiBox, FiHeart, FiShoppingCart,
   FiTag, FiStar, FiCreditCard, FiLogOut, FiChevronDown, FiList,
-  FiMessageCircle
+  FiMessageCircle, FiAlertCircle
 } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { chatApiService } from '~/services/chat/chatApiService'
 
-export const VendorSidebar = () => {
+export const VendorSidebar = ({ isBanned = false }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -31,7 +31,6 @@ export const VendorSidebar = () => {
         return total + (conv.unread_count || 0)
       }, 0)
 
-      // Chỉ cập nhật nếu số lượng thay đổi
       setUnreadCount(prev => {
         if (prev !== totalUnread) {
           console.log(`Cập nhật badge: ${prev} -> ${totalUnread}`)
@@ -56,17 +55,12 @@ export const VendorSidebar = () => {
       fetchUnreadCount()
     }
 
-    // Lắng nghe sự kiện custom từ component chat
     window.addEventListener('newChatMessage', handleNewChatMessage)
 
     return () => {
       window.removeEventListener('newChatMessage', handleNewChatMessage)
     }
   }, [fetchUnreadCount])
-
-  // Khi vào trang chat hoặc chuyển tab, vẫn giữ nguyên khả năng cập nhật
-  // Không reset unreadCount ngay khi vào chat vì có thể chưa đọc hết
-  // Thay vào đó, sẽ reset khi người dùng thực sự đọc tin nhắn (component chat sẽ dispatch event)
 
   // Lắng nghe sự kiện đã đọc tin nhắn
   useEffect(() => {
@@ -81,7 +75,7 @@ export const VendorSidebar = () => {
     }
   }, [fetchUnreadCount])
 
-  // Cập nhật badge khi focus lại tab (phòng trường hợp bỏ lỡ sự kiện)
+  // Cập nhật badge khi focus lại tab
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -127,6 +121,16 @@ export const VendorSidebar = () => {
     }
   ]
 
+  // Nếu bị khóa
+  if (isBanned) {
+    menuItems.push({
+      name: 'Cứu xét cửa hàng',
+      path: '/vendor/appeals',
+      icon: <FiAlertCircle size={20} />,
+      exact: false
+    })
+  }
+
   const checkIsActive = (path, exact = false) => {
     if (exact) return location.pathname === path
     return location.pathname.startsWith(path)
@@ -134,7 +138,6 @@ export const VendorSidebar = () => {
 
   return (
     <aside className="w-74 bg-gradient-to-br from-sidebar-bg-start to-sidebar-bg-end border-r border-sidebar-border flex flex-col h-screen sticky top-0 shadow-lg z-40">
-
       {/* Logo Kênh Người Bán */}
       <div className="h-20 flex items-center px-5 border-b border-sidebar-border shrink-0">
         <Link to="/vendor/dashboard" className="flex items-center gap-2.5 group">
