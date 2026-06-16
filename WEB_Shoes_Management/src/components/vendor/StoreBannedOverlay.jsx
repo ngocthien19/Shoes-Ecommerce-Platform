@@ -67,12 +67,8 @@ export const StoreBannedOverlay = ({ store, onAppealSubmit, isSubmitting }) => {
       formData.append('evidenceImages', file)
     })
 
-    await onAppealSubmit(formData)
-    // Reset form
-    setAppealReason('')
-    setEvidenceFiles([])
-    setPreviewUrls([])
-    setShowForm(false)
+    const result = await onAppealSubmit(formData)
+
   }
 
   return (
