@@ -32,7 +32,6 @@ import { VendorProfileAccount } from '~/pages/vendor/Profile/Account/VendorProfi
 import { VendorProfileStore } from '~/pages/vendor/Profile/Store/VendorProfileStore'
 import { VendorChatPage } from '~/pages/vendor/Chat/VendorChatPage'
 import { AllNotificationsPage } from '~/pages/common/AllNotificationsPage'
-import { VendorAppealsPage } from '~/pages/vendor/Appeals/VendorAppealsPage'
 import { VendorAppealDetailPage } from '~/pages/vendor/Appeals/VendorAppealDetailPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
@@ -133,7 +132,6 @@ const App = () => {
             <Route path="notifications" element={<AllNotificationsPage />} />
 
             {/* Appeal */}
-            <Route path="appeals" element={<VendorAppealsPage />} />
             <Route path="appeals/:id" element={<VendorAppealDetailPage />} />
           </Route>
         </Route>

@@ -13,6 +13,7 @@ export const VendorLayout = () => {
   const [storeData, setStoreData] = useState(null)
   const [checking, setChecking] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [lastAppealId, setLastAppealId] = useState(null)
   const user = useSelector((state) => state.user.userInfo)
   const navigate = useNavigate()
 
@@ -28,7 +29,6 @@ export const VendorLayout = () => {
           setIsBanned(false)
         }
       } catch (error) {
-        // Nếu chưa có cửa hàng hoặc lỗi thì không sao
         setIsBanned(false)
       } finally {
         setChecking(false)
@@ -40,14 +40,26 @@ export const VendorLayout = () => {
     }
   }, [user])
 
+  // Khi navigate quay lại từ trang detail, kiểm tra lại trạng thái
+  useEffect(() => {
+    if (!isBanned && !checking && lastAppealId) {
+      // Nếu đã được mở khóa, không cần làm gì
+      setLastAppealId(null)
+    }
+  }, [isBanned, checking, lastAppealId])
+
   const handleAppealSubmit = async (formData) => {
     setIsSubmitting(true)
     try {
       const response = await vendorAppealApiService.submitAppeal(formData)
       toast.success(response.message || 'Đã gửi đơn giải trình thành công!')
 
-      // Chuyển hướng đến trang danh sách đơn cứu xét
-      navigate('/vendor/appeals')
+      // Lưu ID đơn vừa gửi
+      setLastAppealId(response.appealId)
+
+      // Đóng overlay và chuyển đến trang chi tiết đơn
+      setIsBanned(false)
+      navigate(`/vendor/appeals/${response.appealId}`)
 
       return response
     } catch (error) {

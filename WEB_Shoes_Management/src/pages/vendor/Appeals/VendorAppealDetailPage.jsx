@@ -109,17 +109,6 @@ export const VendorAppealDetailPage = () => {
     )
   }
 
-  if (error && (error.includes('không tồn tại') || error.includes('đã bị xóa'))) {
-    return (
-      <DeletedContentNotice
-        title="Đơn cứu xét không tồn tại"
-        message="Đơn cứu xét này có thể đã bị xóa khỏi hệ thống hoặc bạn không có quyền truy cập."
-        backLink="/vendor/appeals"
-        backText="Quay lại danh sách"
-      />
-    )
-  }
-
   if (!appeal) return null
 
   return (
@@ -134,7 +123,7 @@ export const VendorAppealDetailPage = () => {
           <motion.button
             whileHover={{ scale: 1.05, x: -2 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/vendor/appeals')}
+            onClick={() => navigate('/vendor/dashboard')}
             className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-sm"
           >
             <FiArrowLeft size={20} className="text-gray-600" />

@@ -121,16 +121,6 @@ export const VendorSidebar = ({ isBanned = false }) => {
     }
   ]
 
-  // Nếu bị khóa
-  if (isBanned) {
-    menuItems.push({
-      name: 'Cứu xét cửa hàng',
-      path: '/vendor/appeals',
-      icon: <FiAlertCircle size={20} />,
-      exact: false
-    })
-  }
-
   const checkIsActive = (path, exact = false) => {
     if (exact) return location.pathname === path
     return location.pathname.startsWith(path)

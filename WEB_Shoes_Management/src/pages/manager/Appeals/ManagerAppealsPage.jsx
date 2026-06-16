@@ -1,4 +1,3 @@
-// ~/pages/manager/Appeals/ManagerAppealsPage.jsx
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
@@ -89,16 +88,19 @@ export const ManagerAppealsPage = () => {
     }
   }
 
-  const handleApprove = async (appealId) => {
-    try {
-      const res = await managerAppealApiService.processAppeal(appealId, APPEAL_STATUS.APPROVED, '')
-      toast.success(res.message)
-      fetchAppeals()
-    } catch (error) {
-      toast.error(error.message)
-    }
+  // Mở modal approve
+  const handleApprove = (appealId) => {
+    setModalConfig({
+      isOpen: true,
+      type: 'approve',
+      appealId,
+      title: 'Phê duyệt đơn cứu xét',
+      message: 'Vui lòng nhập ghi chú cho đơn cứu xét này. Ghi chú sẽ được gửi đến chủ shop.',
+      placeholder: 'Nhập ghi chú phê duyệt...'
+    })
   }
 
+  // Mở modal reject
   const handleReject = (appealId) => {
     setModalConfig({
       isOpen: true,
@@ -111,9 +113,15 @@ export const ManagerAppealsPage = () => {
   }
 
   const handleModalConfirm = async (reason) => {
+    if (!reason || reason.trim() === '') {
+      toast.error('Vui lòng nhập ghi chú / lý do phản hồi')
+      return
+    }
+
     setIsLoading(true)
     try {
-      const res = await managerAppealApiService.processAppeal(modalConfig.appealId, APPEAL_STATUS.REJECTED, reason)
+      const status = modalConfig.type === 'approve' ? APPEAL_STATUS.APPROVED : APPEAL_STATUS.REJECTED
+      const res = await managerAppealApiService.processAppeal(modalConfig.appealId, status, reason)
       toast.success(res.message)
       fetchAppeals()
       setModalConfig({ isOpen: false, type: null })
@@ -198,6 +206,7 @@ export const ManagerAppealsPage = () => {
         message={modalConfig.message}
         placeholder={modalConfig.placeholder}
         isLoading={isLoading}
+        type={modalConfig.type || 'reject'}
       />
     </div>
   )
