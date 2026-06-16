@@ -24,7 +24,7 @@ const createAppeal = async ({ storeId, appealReason, evidenceImages }) => {
   return result.insertId
 }
 
-// Lấy danh sách đơn của cửa hàng
+// Lấy danh sách đơn của cửa hàng - SỬA THEO CÁCH CỦA MANAGER
 const getAppealsByStoreId = async (storeId, { limit, offset }) => {
   const query = `
     SELECT id, appeal_reason, evidence_images, status, manager_note, created_at, updated_at
@@ -33,7 +33,7 @@ const getAppealsByStoreId = async (storeId, { limit, offset }) => {
     ORDER BY created_at DESC
     LIMIT ? OFFSET ?
   `
-  const [rows] = await pool.execute(query, [storeId, limit, offset])
+  const [rows] = await pool.execute(query, [storeId, String(limit), String(offset)])
   return rows
 }
 
