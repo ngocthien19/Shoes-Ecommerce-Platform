@@ -21,7 +21,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
 
-export const VendorHeader = () => {
+export const VendorHeader = ({ isBanned = false }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -124,6 +124,15 @@ export const VendorHeader = () => {
           <h1 className="text-xl font-extrabold text-white tracking-tight transition-all duration-300 hover:translate-x-1">
             {getPageTitle()}
           </h1>
+          {isBanned && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="px-3 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-md animate-pulse"
+            >
+              ĐÃ KHÓA
+            </motion.span>
+          )}
         </div>
 
         <div className="flex items-center gap-6">

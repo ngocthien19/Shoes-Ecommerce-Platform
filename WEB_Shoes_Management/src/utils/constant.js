@@ -63,6 +63,12 @@ export const PAYOUT_STATUS = {
   REJECTED: 'rejected'
 }
 
+export const APPEAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+}
+
 export const NOTIFICATION_TYPES = {
   // --- Phân hệ Cửa hàng ---
   STORE_PENDING: 'STORE_PENDING',

@@ -1,24 +1,96 @@
-import { Outlet } from 'react-router-dom'
-import { VendorSidebar } from './VendorSidebar'
-import { VendorHeader } from './VendorHeader'
+import { useState, useEffect } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'react-toastify'
+import { VendorSidebar } from '~/layouts/vendor/VendorSidebar'
+import { VendorHeader } from '~/layouts/vendor/VendorHeader'
+import { StoreBannedOverlay } from '~/components/vendor/StoreBannedOverlay'
+import { vendorStoreApiService } from '~/services/vendor/vendorStoreApiService'
+import { vendorAppealApiService } from '~/services/vendor/vendorAppealApiService'
 
 export const VendorLayout = () => {
+  const [isBanned, setIsBanned] = useState(false)
+  const [storeData, setStoreData] = useState(null)
+  const [checking, setChecking] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const user = useSelector((state) => state.user.userInfo)
+  const navigate = useNavigate()
+
+  // Kiểm tra trạng thái cửa hàng khi vào layout
+  useEffect(() => {
+    const checkStoreStatus = async () => {
+      try {
+        const res = await vendorStoreApiService.getStoreProfile()
+        setStoreData(res)
+        if (res && res.is_active === 0) {
+          setIsBanned(true)
+        } else {
+          setIsBanned(false)
+        }
+      } catch (error) {
+        // Nếu chưa có cửa hàng hoặc lỗi thì không sao
+        setIsBanned(false)
+      } finally {
+        setChecking(false)
+      }
+    }
+
+    if (user?.id) {
+      checkStoreStatus()
+    }
+  }, [user])
+
+  const handleAppealSubmit = async (formData) => {
+    setIsSubmitting(true)
+    try {
+      const response = await vendorAppealApiService.submitAppeal(formData)
+      toast.success(response.message || 'Đã gửi đơn giải trình thành công!')
+
+      // Chuyển hướng đến trang danh sách đơn cứu xét
+      navigate('/vendor/appeals')
+
+      return response
+    } catch (error) {
+      toast.error(error.message || 'Gửi đơn thất bại, vui lòng thử lại')
+      throw error
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Nếu đang kiểm tra, hiển thị loading
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden relative">
       {/* Sidebar cố định bên trái */}
-      <VendorSidebar />
+      <VendorSidebar isBanned={isBanned} />
 
       {/* Khu vực nội dung bên phải */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Header cố định trên cùng */}
-        <VendorHeader />
+        <VendorHeader isBanned={isBanned} />
 
-        {/* Nội dung chính cuộn dọc */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-          {/* Outlet là nơi React Router sẽ render nội dung của các trang con vào */}
+        {/* Nội dung chính cuộn dọc - bị mờ khi bị khóa */}
+        <main className={`flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar transition-all duration-300 ${isBanned ? 'opacity-50 pointer-events-none select-none blur-sm' : ''}`}>
           <Outlet />
         </main>
       </div>
+
+      {/* Overlay khi bị khóa - chặn toàn bộ tương tác */}
+      {isBanned && (
+        <StoreBannedOverlay
+          store={storeData}
+          onAppealSubmit={handleAppealSubmit}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </div>
   )
 }

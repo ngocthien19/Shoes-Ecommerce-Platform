@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  FiHome, FiPackage, FiStar, FiLogOut
+  FiHome, FiPackage, FiStar, FiLogOut, FiAlertCircle
 } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
@@ -27,6 +27,11 @@ export const ManagerSidebar = () => {
       name: 'Quản lý Đánh giá',
       path: '/manager/reviews',
       icon: <FiStar size={20} />
+    },
+    {
+      name: 'Cứu xét cửa hàng',
+      path: '/manager/appeals',
+      icon: <FiAlertCircle size={20} />
     }
   ]
 

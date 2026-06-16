@@ -32,6 +32,8 @@ import { VendorProfileAccount } from '~/pages/vendor/Profile/Account/VendorProfi
 import { VendorProfileStore } from '~/pages/vendor/Profile/Store/VendorProfileStore'
 import { VendorChatPage } from '~/pages/vendor/Chat/VendorChatPage'
 import { AllNotificationsPage } from '~/pages/common/AllNotificationsPage'
+import { VendorAppealsPage } from '~/pages/vendor/Appeals/VendorAppealsPage'
+import { VendorAppealDetailPage } from '~/pages/vendor/Appeals/VendorAppealDetailPage'
 import { VendorLayout } from '~/layouts/vendor/VendorLayout'
 
 // MANAGER PAGES
@@ -42,6 +44,9 @@ import { ManagerProductDetailPage } from '~/pages/manager/Store/StoreDetail/Prod
 import { ManagerProductsPage } from '~/pages/manager/Products/ManagerProductsPage'
 import { ManagerReviewsPage } from '~/pages/manager/Reviews/ManagerReviewsPage'
 import { ManagerReviewDetailPage } from '~/pages/manager/reviews/ReviewDetail/ManagerReviewDetailPage'
+import { ManagerAppealsPage } from '~/pages/manager/Appeals/ManagerAppealsPage'
+import { ManagerAppealDetailPage } from '~/pages/manager/Appeals/AppealDetail/ManagerAppealDetailPage'
+import { ManagerProfileAccount } from '~/pages/manager/Profile/ManagerProfileAccount'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -126,11 +131,16 @@ const App = () => {
             />
             {/* Notification */}
             <Route path="notifications" element={<AllNotificationsPage />} />
+
+            {/* Appeal */}
+            <Route path="appeals" element={<VendorAppealsPage />} />
+            <Route path="appeals/:id" element={<VendorAppealDetailPage />} />
           </Route>
         </Route>
 
         {/* MANAGER*/}
         <Route path="/manager" element={<ManagerLayout />}>
+          <Route path="profile" element={<ManagerProfileAccount />} />
           {/* Quản lý Cửa hàng */}
           <Route path="stores" element={<ManagerStoresPage />} />
           <Route path="stores/:id" element={<ManagerStoreDetailPage />} />
@@ -142,6 +152,10 @@ const App = () => {
           {/* Quản lý đánh giá */}
           <Route path="reviews" element={<ManagerReviewsPage />} />
           <Route path="reviews/:id" element={<ManagerReviewDetailPage />} />
+
+          {/* Quản lý appeal */}
+          <Route path="appeals" element={<ManagerAppealsPage />} />
+          <Route path="appeals/:id" element={<ManagerAppealDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />
