@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FiUser, FiMail, FiPhone, FiCalendar, FiCheckCircle, FiXCircle, FiMapPin } from 'react-icons/fi'
+import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiCheckCircle, FiXCircle, FiActivity } from 'react-icons/fi'
 import { formatDateTime } from '~/utils/formatters'
 
 export const UserInfoCard = ({ user }) => {
@@ -8,6 +8,7 @@ export const UserInfoCard = ({ user }) => {
     { icon: FiMail, label: 'Email', value: user.email },
     { icon: FiPhone, label: 'Số điện thoại', value: user.phone || 'Chưa cập nhật' },
     { icon: FiMapPin, label: 'Địa chỉ', value: user.address || 'Chưa cập nhật' },
+    { icon: FiActivity, label: 'Trạng thái online', value: user.is_online ? 'Đang hoạt động' : 'Không hoạt động' },
     { icon: FiCalendar, label: 'Ngày tham gia', value: formatDateTime(user.created_at) },
     {
       icon: user.is_active === 1 ? FiCheckCircle : FiXCircle,

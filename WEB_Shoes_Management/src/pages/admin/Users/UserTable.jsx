@@ -160,6 +160,14 @@ export const UserTable = ({
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-gray-100 min-w-[200px]">
+                            <DropdownMenuItem asChild className="text-xs font-bold text-blue-600 cursor-pointer py-2 gap-2">
+                              <Link to={`/admin/users/edit/${user.id}`}>
+                                <FiEdit2 size={14} /> Chỉnh sửa
+                              </Link>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
                             {user.is_active === 1 ? (
                               <DropdownMenuItem
                                 onClick={() => onToggleActive(user.id, false)}
