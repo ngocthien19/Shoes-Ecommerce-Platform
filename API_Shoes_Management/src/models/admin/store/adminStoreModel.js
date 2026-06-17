@@ -4,18 +4,23 @@ import { ROLE_ID } from '~/utils/constants'
 // 1. Lấy danh sách Store toàn sàn (Phân trang + Tìm kiếm + Bộ lọc trạng thái + Sắp xếp động)
 const getStoresForAdmin = async ({ search, isActive, sortBy, sortOrder, limit, offset }) => {
   let query = `
-    SELECT id, name, logo, owner_id, balance, rating_average, commission_rate, is_active, created_at, reject_reason 
-    FROM stores 
+    SELECT 
+      s.id, s.name, s.logo, s.owner_id, s.balance, s.rating_average, 
+      s.commission_rate, s.is_active, s.created_at, s.reject_reason,
+      u.fullname AS owner_name,
+      u.email AS owner_email
+    FROM stores s
+    JOIN users u ON s.owner_id = u.id
     WHERE 1=1
   `
   const queryParams = []
 
   if (search) {
-    query += ' AND name LIKE ?'
-    queryParams.push(`%${search}%`)
+    query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
+    queryParams.push(`%${search}%`, `%${search}%`)
   }
   if (isActive !== null) {
-    query += ' AND is_active = ?'
+    query += ' AND s.is_active = ?'
     queryParams.push(isActive)
   }
 
@@ -23,7 +28,7 @@ const getStoresForAdmin = async ({ search, isActive, sortBy, sortOrder, limit, o
   const validSortColumns = ['balance', 'rating_average', 'commission_rate', 'created_at']
   const order = sortOrder === 'ASC' ? 'ASC' : 'DESC'
   const column = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
-  query += ` ORDER BY ${column} ${order} LIMIT ? OFFSET ?`
+  query += ` ORDER BY s.${column} ${order} LIMIT ? OFFSET ?`
 
   queryParams.push(limit, offset)
 
@@ -222,6 +227,12 @@ const getStoreOwnerInfo = async (storeId) => {
   return rows[0] || null
 }
 
+const updateStoreRejectReason = async (storeId, reason) => {
+  const query = 'UPDATE stores SET reject_reason = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [reason, storeId])
+  return result.affectedRows
+}
+
 export const adminStoreModel = {
   getStoresForAdmin,
   countStoresForAdmin,
@@ -236,5 +247,6 @@ export const adminStoreModel = {
   getStoresProfilesBulk,
   deleteStoresHardBulk,
   getStoreRevenueStats,
-  getStoreOwnerInfo
+  getStoreOwnerInfo,
+  updateStoreRejectReason
 }
