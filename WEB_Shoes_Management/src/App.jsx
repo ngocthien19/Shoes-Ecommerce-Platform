@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom'
-import { useSelector } from 'react-redux'
 
 // USER PAGES
 import { HomePage } from '~/pages/user/HomePage/HomePage'
@@ -46,6 +45,13 @@ import { ManagerReviewDetailPage } from '~/pages/manager/reviews/ReviewDetail/Ma
 import { ManagerAppealsPage } from '~/pages/manager/Appeals/ManagerAppealsPage'
 import { ManagerAppealDetailPage } from '~/pages/manager/Appeals/AppealDetail/ManagerAppealDetailPage'
 import { ManagerProfileAccount } from '~/pages/manager/Profile/ManagerProfileAccount'
+
+// ADMIN PAGES
+import { AdminLayout } from '~/layouts/admin/AdminLayout'
+import { AdminDashboardPage } from '~/pages/admin/Dashboard/AdminDashboardPage'
+import { AdminUsersPage } from '~/pages/admin/Users/AdminUsersPage'
+import { AdminUserDetailPage } from '~/pages/admin/Users/UserDetail/AdminUserDetailPage'
+import { UserFormPage } from '~/pages/admin/Users/UserForm/UserFormPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -154,6 +160,21 @@ const App = () => {
           {/* Quản lý appeal */}
           <Route path="appeals" element={<ManagerAppealsPage />} />
           <Route path="appeals/:id" element={<ManagerAppealDetailPage />} />
+
+          {/* Thông báo */}
+          <Route path="notifications" element={<AllNotificationsPage />} />
+        </Route>
+
+        {/* Admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          {/* Dashboard */}
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+
+          {/* Người dùng */}
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="users/add" element={<UserFormPage />} />
+          <Route path="users/edit/:id" element={<UserFormPage />} />
+          <Route path="users/:id" element={<AdminUserDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />

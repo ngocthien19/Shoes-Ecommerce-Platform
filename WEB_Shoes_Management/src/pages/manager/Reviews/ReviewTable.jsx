@@ -174,7 +174,7 @@ export const ReviewTable = ({
                           </div>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
-                          <p className="font-semibold mb-1">📝 Lý do tố cáo:</p>
+                          <p className="font-semibold mb-1">Lý do tố cáo:</p>
                           <p>{review.report_reason || 'Không có lý do cụ thể'}</p>
                         </TooltipContent>
                       </Tooltip>
