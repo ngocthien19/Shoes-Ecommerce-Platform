@@ -28,7 +28,10 @@ const checkStoreIdsMandatory = async (req, res, next) => {
     storeIds: Joi.array().items(Joi.number().integer().positive()).required().min(1).messages({
       'array.min': 'Vui lòng tích chọn ít nhất 1 cửa hàng để thực thi tác vụ!'
     }),
-    isActive: Joi.boolean().optional()
+    isActive: Joi.boolean().optional(),
+    reason: Joi.string().allow('', null).max(500).optional().messages({
+      'string.max': 'Lý do khóa không được vượt quá 500 ký tự!'
+    })
   })
 
   try {
