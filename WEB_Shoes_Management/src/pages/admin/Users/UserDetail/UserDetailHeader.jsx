@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { FiArrowLeft, FiUser, FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { FiArrowLeft, FiUser, FiCheckCircle, FiXCircle, FiEdit2 } from 'react-icons/fi'
 import { getImageUrl } from '~/utils/formatters'
 import { ROLE_ID } from '~/utils/constant'
 
@@ -82,6 +82,20 @@ export const UserDetailHeader = ({ user, onToggleActive, onChangeRole, onBack })
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Nút hành động */}
+      <div className="flex items-center gap-3">
+        {/* Nút Chỉnh sửa */}
+        <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
+          <Link
+            to={`/admin/users/edit/${user.id}`}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-200 rounded-xl font-bold text-sm transition-all duration-200 shadow-sm cursor-pointer"
+          >
+            <FiEdit2 size={16} />
+            Chỉnh sửa
+          </Link>
+        </motion.div>
       </div>
     </motion.div>
   )

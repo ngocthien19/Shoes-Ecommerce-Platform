@@ -6,7 +6,6 @@ import { FiArrowLeft } from 'react-icons/fi'
 import { adminUserApiService } from '~/services/admin/adminUserApiService'
 import { UserDetailHeader } from './UserDetailHeader'
 import { UserInfoCard } from './UserInfoCard'
-import { UserActivityCard } from './UserActivityCard'
 import { UserOrdersCard } from './UserOrdersCard'
 import { UserStoreCard } from './UserStoreCard'
 
@@ -58,17 +57,6 @@ export const AdminUserDetailPage = () => {
     }
   }
 
-  if (error && (error.includes('không tồn tại') || error.includes('đã bị xóa'))) {
-    return (
-      <DeletedContentNotice
-        title="Người dùng không tồn tại"
-        message="Tài khoản này có thể đã bị xóa khỏi hệ thống hoặc bạn không có quyền truy cập."
-        backLink="/admin/users"
-        backText="Quay lại danh sách"
-      />
-    )
-  }
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
@@ -109,7 +97,6 @@ export const AdminUserDetailPage = () => {
         {/* Left Column - User Info */}
         <div className="lg:col-span-2 space-y-6">
           <UserInfoCard user={user} />
-          <UserActivityCard user={user} />
         </div>
 
         {/* Right Column */}

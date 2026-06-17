@@ -1,3 +1,4 @@
+// ~/pages/admin/Users/UserForm/UserFormPage.jsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useForm, FormProvider } from 'react-hook-form'
@@ -25,7 +26,7 @@ export const UserFormPage = () => {
       fullname: '',
       email: '',
       phone: '',
-      address: '',
+      address: '', // 👈 THÊM ADDRESS
       password: '',
       roleId: ROLE_ID.USER
     }
@@ -41,7 +42,7 @@ export const UserFormPage = () => {
         fullname: res.fullname,
         email: res.email,
         phone: res.phone || '',
-        address: res.address,
+        address: res.address || '',
         roleId: res.role_id
       })
       if (res.avatar) {
@@ -80,7 +81,7 @@ export const UserFormPage = () => {
       formData.append('fullname', data.fullname)
       formData.append('email', data.email)
       formData.append('phone', data.phone)
-      formData.append('address', data.address)
+      formData.append('address', data.address || '')
       formData.append('roleId', data.roleId)
 
       if (data.password) {
