@@ -155,7 +155,10 @@ export const StoreTable = ({
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <p className="font-semibold text-gray-800">Chủ shop #{store.owner_id}</p>
+                        <div>
+                          <p className="font-semibold text-gray-800">{store.owner_name || `Chủ shop #${store.owner_id}`}</p>
+                          <p className="text-[10px] text-gray-400">{store.owner_email}</p>
+                        </div>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className="font-bold text-emerald-600">{formatPrice(store.balance || 0)}</span>

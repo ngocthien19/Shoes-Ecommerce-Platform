@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiRefreshCw, FiX } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiFilter, FiClock, FiDollarSign, FiStar, FiPercent } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -30,7 +30,40 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
     { value: 0, label: 'Đã khóa' }
   ]
 
+  const sortOptions = [
+    { value: 'created_at', label: 'Mới nhất', icon: FiClock, group: 'Thời gian' },
+    { value: 'created_at_asc', label: 'Cũ nhất', icon: FiClock, group: 'Thời gian' },
+    { value: 'balance', label: 'Số dư cao nhất', icon: FiDollarSign, group: 'Số dư' },
+    { value: 'balance_asc', label: 'Số dư thấp nhất', icon: FiDollarSign, group: 'Số dư' },
+    { value: 'rating_average', label: 'Đánh giá cao nhất', icon: FiStar, group: 'Đánh giá' },
+    { value: 'rating_average_asc', label: 'Đánh giá thấp nhất', icon: FiStar, group: 'Đánh giá' },
+    { value: 'commission_rate', label: 'Phí hoa hồng cao nhất', icon: FiPercent, group: 'Phí hoa hồng' },
+    { value: 'commission_rate_asc', label: 'Phí hoa hồng thấp nhất', icon: FiPercent, group: 'Phí hoa hồng' }
+  ]
+
+  // Map icon cho từng group
+  const groupIcons = {
+    'Thời gian': FiClock,
+    'Số dư': FiDollarSign,
+    'Đánh giá': FiStar,
+    'Phí hoa hồng': FiPercent
+  }
+
   const currentStatusLabel = statusOptions.find(s => s.value === Number(filters.isActive))?.label || 'Tất cả trạng thái'
+
+  const getCurrentSortLabel = () => {
+    const sortKey = filters.sortBy || 'created_at'
+    const sortOrder = filters.sortOrder || 'DESC'
+
+    const option = sortOptions.find(s => {
+      if (sortOrder === 'ASC') {
+        return s.value === `${sortKey}_asc`
+      }
+      return s.value === sortKey
+    })
+
+    return option?.label || 'Sắp xếp'
+  }
 
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
@@ -38,10 +71,58 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
     const status = statusOptions.find(s => s.value === Number(filters.isActive))
     if (status) activeBadges.push({ key: 'isActive', label: `Trạng thái: ${status.label}` })
   }
+  if (filters.sortBy) {
+    const sortLabel = getCurrentSortLabel()
+    if (sortLabel !== 'Sắp xếp') {
+      activeBadges.push({ key: 'sortBy', label: `Sắp xếp: ${sortLabel}` })
+    }
+  }
 
   const handleRemoveFilter = (key) => {
-    onFilterChange(key, null)
+    if (key === 'sortBy') {
+      onFilterChange('sortBy', 'created_at')
+      onFilterChange('sortOrder', 'DESC')
+    } else {
+      onFilterChange(key, null)
+    }
   }
+
+  const handleSortChange = (value) => {
+    if (value === 'created_at') {
+      onFilterChange('sortBy', 'created_at')
+      onFilterChange('sortOrder', 'DESC')
+    } else if (value === 'created_at_asc') {
+      onFilterChange('sortBy', 'created_at')
+      onFilterChange('sortOrder', 'ASC')
+    } else if (value === 'balance') {
+      onFilterChange('sortBy', 'balance')
+      onFilterChange('sortOrder', 'DESC')
+    } else if (value === 'balance_asc') {
+      onFilterChange('sortBy', 'balance')
+      onFilterChange('sortOrder', 'ASC')
+    } else if (value === 'rating_average') {
+      onFilterChange('sortBy', 'rating_average')
+      onFilterChange('sortOrder', 'DESC')
+    } else if (value === 'rating_average_asc') {
+      onFilterChange('sortBy', 'rating_average')
+      onFilterChange('sortOrder', 'ASC')
+    } else if (value === 'commission_rate') {
+      onFilterChange('sortBy', 'commission_rate')
+      onFilterChange('sortOrder', 'DESC')
+    } else if (value === 'commission_rate_asc') {
+      onFilterChange('sortBy', 'commission_rate')
+      onFilterChange('sortOrder', 'ASC')
+    }
+  }
+
+  // Nhóm các option theo group
+  const groupedOptions = sortOptions.reduce((acc, option) => {
+    if (!acc[option.group]) {
+      acc[option.group] = []
+    }
+    acc[option.group].push(option)
+    return acc
+  }, {})
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -75,6 +156,44 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
                   {option.label}
                 </DropdownMenuItem>
               ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Bộ lọc sắp xếp */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[160px]">
+                <FiFilter size={12} className="text-gray-400" />
+                <span>{getCurrentSortLabel()}</span>
+                <FiChevronDown size={14} className="text-gray-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[180px]">
+              {Object.entries(groupedOptions).map(([group, options], groupIndex) => {
+                const GroupIcon = groupIcons[group]
+                return (
+                  <div key={group}>
+                    {groupIndex > 0 && <div className="border-t border-gray-50 my-1" />}
+                    <div className="flex items-center gap-2 px-3 py-1.5">
+                      {GroupIcon && <GroupIcon size={12} className="text-gray-400" />}
+                      <span className="text-[10px] font-bold text-gray-400">{group}</span>
+                    </div>
+                    {options.map((option) => {
+                      const Icon = option.icon
+                      return (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => handleSortChange(option.value)}
+                          className="text-xs font-semibold cursor-pointer rounded-lg pl-6 flex items-center gap-2"
+                        >
+                          <Icon size={12} className="text-gray-400" />
+                          {option.label}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </div>
+                )
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
 
