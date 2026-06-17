@@ -1,4 +1,5 @@
 import Joi from 'joi'
+import { ROLE_ID } from '~/utils/constants'
 
 // 1. Validate cấu hình % chiết khấu hàng loạt (PATCH)
 const updateCommissionBulk = async (req, res, next) => {
@@ -60,6 +61,7 @@ const enforceBalance = async (req, res, next) => {
   }
 }
 
+// 4. Validate tạo cửa hàng
 const createStore = async (req, res, next) => {
   const correctCondition = Joi.object({
     ownerId: Joi.number().integer().positive().required().messages({
@@ -93,6 +95,7 @@ const createStore = async (req, res, next) => {
   }
 }
 
+// 5. Validate xóa cửa hàng hàng loạt
 const checkStoreIdsBulk = async (req, res, next) => {
   const correctCondition = Joi.object({
     storeIds: Joi.array().items(Joi.number().integer().positive()).required().min(1).messages({
