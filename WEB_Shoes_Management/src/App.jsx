@@ -52,6 +52,9 @@ import { AdminDashboardPage } from '~/pages/admin/Dashboard/AdminDashboardPage'
 import { AdminUsersPage } from '~/pages/admin/Users/AdminUsersPage'
 import { AdminUserDetailPage } from '~/pages/admin/Users/UserDetail/AdminUserDetailPage'
 import { UserFormPage } from '~/pages/admin/Users/UserForm/UserFormPage'
+import { AdminStoresPage } from '~/pages/admin/Stores/AdminStoresPage'
+import { AdminStoreDetailPage } from '~/pages/admin/Stores/StoreDetail/AdminStoreDetailPage'
+import { AdminStoreFormPage } from '~/pages/admin/Stores/StoreForm/AdminStoreFormPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -175,6 +178,11 @@ const App = () => {
           <Route path="users/add" element={<UserFormPage />} />
           <Route path="users/edit/:id" element={<UserFormPage />} />
           <Route path="users/:id" element={<AdminUserDetailPage />} />
+
+          {/* Cửa hàng */}
+          <Route path="stores" element={<AdminStoresPage />} />
+          <Route path="stores/add" element={<AdminStoreFormPage />} />
+          <Route path="stores/:id" element={<AdminStoreDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />
