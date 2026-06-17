@@ -23,8 +23,8 @@ const getStoreDetail = async (req, res) => {
 
 const toggleStoreActiveBulk = async (req, res) => {
   try {
-    const { storeIds, isActive } = req.body
-    const result = await adminStoreService.toggleStoreActiveBulk(storeIds, isActive)
+    const { storeIds, isActive, reason } = req.body
+    const result = await adminStoreService.toggleStoreActiveBulk(storeIds, isActive, reason)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi đóng băng trạng thái cửa hàng loạt: ${error.message}` })

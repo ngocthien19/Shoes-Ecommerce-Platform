@@ -24,12 +24,19 @@ const getStoresForAdmin = async ({ search, isActive, sortBy, sortOrder, limit, o
     queryParams.push(isActive)
   }
 
-  // Sắp xếp động an toàn
-  const validSortColumns = ['balance', 'rating_average', 'commission_rate', 'created_at']
-  const order = sortOrder === 'ASC' ? 'ASC' : 'DESC'
-  const column = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
-  query += ` ORDER BY s.${column} ${order} LIMIT ? OFFSET ?`
+  // Sắp xếp - debug rõ ràng
+  let orderClause = ' ORDER BY '
+  if (sortBy === 'balance') {
+    orderClause += 's.balance ' + (sortOrder === 'ASC' ? 'ASC' : 'DESC')
+  } else if (sortBy === 'rating_average') {
+    orderClause += 's.rating_average ' + (sortOrder === 'ASC' ? 'ASC' : 'DESC')
+  } else if (sortBy === 'commission_rate') {
+    orderClause += 's.commission_rate ' + (sortOrder === 'ASC' ? 'ASC' : 'DESC')
+  } else {
+    orderClause += 's.created_at DESC'
+  }
 
+  query += orderClause + ' LIMIT ? OFFSET ?'
   queryParams.push(limit, offset)
 
   const [rows] = await pool.execute(query, queryParams)
