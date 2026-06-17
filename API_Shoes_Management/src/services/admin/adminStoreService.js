@@ -63,7 +63,20 @@ const getStoreDetail = async (storeId) => {
 }
 
 // 3. Đóng băng hoặc mở khóa hàng loạt Store
-const toggleStoreActiveBulk = async (storeIds, isActive) => {
+const toggleStoreActiveBulk = async (storeIds, isActive, reason = null) => {
+  // Nếu khóa (isActive = false) và có reason, lưu vào reject_reason
+  if (!isActive && reason) {
+    // Cập nhật reject_reason cho từng store
+    for (const storeId of storeIds) {
+      await adminStoreModel.updateStoreRejectReason(storeId, reason)
+    }
+  } else if (isActive) {
+    // Nếu mở khóa, xóa reject_reason
+    for (const storeId of storeIds) {
+      await adminStoreModel.updateStoreRejectReason(storeId, null)
+    }
+  }
+
   const affectedRows = await adminStoreModel.updateStoreActiveStatusBulk(storeIds, isActive)
   return {
     message: isActive
