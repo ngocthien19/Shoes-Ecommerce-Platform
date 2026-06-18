@@ -1,6 +1,6 @@
 import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel'
-import { orderModel } from '~/models/user/order/orderModel' // 🆕 Thêm import
-import { notificationService } from '~/services/notification/notificationService' // 🆕 Thêm import
+import { orderModel } from '~/models/user/order/orderModel'
+import { notificationService } from '~/services/notification/notificationService'
 import { ORDER_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 
 const getVerifiedStoreId = async (userId) => {
@@ -65,6 +65,30 @@ const sendOrderNotification = async (orderId, userId, title, message, type) => {
   }
 }
 
+// Hàm gửi thông báo cho Vendor khi xác nhận đơn hàng
+const sendNotificationToVendorOnConfirm = async (orderId, storeId) => {
+  try {
+    // Sử dụng Model thay vì query trực tiếp
+    const storeInfo = await vendorOrderModel.getStoreOwnerInfo(storeId)
+    if (!storeInfo) return
+
+    const ownerId = storeInfo.owner_id
+
+    await notificationService.createAndPushNotification({
+      userId: ownerId,
+      title: 'Xác nhận đơn hàng thành công',
+      content: JSON.stringify({
+        message: `Đơn hàng #${orderId} đã được xác nhận thành công và chuyển sang trạng thái đang xử lý.`,
+        orderId: orderId
+      }),
+      type: NOTIFICATION_TYPES.ORDER_PROCESSING,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo xác nhận đơn hàng #${orderId}:`, error)
+  }
+}
+
 // Cập nhật hàng loạt đơn lẻ (Có check vết Admin xích đơn)
 const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   const storeId = await getVerifiedStoreId(userId)
@@ -120,7 +144,7 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
 
   const affectedRows = await vendorOrderModel.updateOrderStatusBulk(orderIds, targetStatus, storeId)
 
-  // Gửi thông báo cho từng đơn hàng (nếu là cập nhật trạng thái đơn lẻ)
+  // Gửi thông báo cho từng đơn hàng
   for (const orderId of orderIds) {
     const userId = await orderModel.getOrderUserId(orderId)
     if (!userId) continue

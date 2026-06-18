@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 
 const getFlashSaleProducts = async (limit = 8) => {
   const query = `
@@ -35,6 +36,7 @@ const getFlashSaleProducts = async (limit = 8) => {
     INNER JOIN product_promotions pp ON p.id = pp.product_id
     INNER JOIN promotions pr ON pp.promotion_id = pr.id
     WHERE p.is_active = TRUE 
+      AND p.status = ? 
       AND pr.is_active = TRUE
       AND NOW() BETWEEN pr.start_date AND pr.end_date 
     GROUP BY p.id 
@@ -42,7 +44,7 @@ const getFlashSaleProducts = async (limit = 8) => {
     LIMIT ?
   `
 
-  const [rows] = await pool.execute(query, [String(limit)])
+  const [rows] = await pool.execute(query, [PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
   return rows
 }
 
@@ -75,11 +77,12 @@ const getTopSellingProducts = async (limit = 8) => {
       ) AS variants
 
     FROM products p 
-    WHERE p.is_active = TRUE
+    WHERE p.is_active = TRUE 
+      AND p.status = ?  
     ORDER BY p.sold DESC 
     LIMIT ?
   `
-  const [rows] = await pool.execute(query, [String(limit)])
+  const [rows] = await pool.execute(query, [PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
   return rows
 }
 
@@ -113,11 +116,12 @@ const getLatestProducts = async (limit = 8) => {
       ) AS variants
 
     FROM products p 
-    WHERE p.is_active = TRUE
+    WHERE p.is_active = TRUE 
+      AND p.status = ? 
     ORDER BY p.created_at DESC 
     LIMIT ?
   `
-  const [rows] = await pool.execute(query, [String(limit)])
+  const [rows] = await pool.execute(query, [PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
   return rows
 }
 
@@ -156,13 +160,15 @@ const getProductBySlug = async (slug) => {
       AND pr.is_active = TRUE 
       AND NOW() BETWEEN pr.start_date AND pr.end_date
       
-    WHERE p.slug = ? AND p.is_active = TRUE
+    WHERE p.slug = ? 
+      AND p.is_active = TRUE 
+      AND p.status = ? 
     
     ORDER BY pr.discount_value DESC
     LIMIT 1
   `
 
-  const [rows] = await pool.execute(query, [slug])
+  const [rows] = await pool.execute(query, [slug, PRODUCT_MODERATION_STATUS.APPROVED])
   return rows[0]
 }
 
@@ -209,12 +215,15 @@ const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
       ) AS variants
 
     FROM products p 
-    WHERE p.category_id = ? AND p.id != ? AND p.is_active = TRUE 
+    WHERE p.category_id = ? 
+      AND p.id != ? 
+      AND p.is_active = TRUE 
+      AND p.status = ?  
     ORDER BY p.sold DESC, p.rating_avg DESC
     LIMIT ?
   `
 
-  const [rows] = await pool.execute(query, [categoryId, currentProductId, String(limit)])
+  const [rows] = await pool.execute(query, [categoryId, currentProductId, PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
   return rows
 }
 
@@ -223,8 +232,8 @@ const increaseViewCount = async (productId) => {
 }
 
 const searchAndFilterProducts = async (filters) => {
-  // Bổ sung nhận thêm thuộc tính sortBy từ filters
   const { search, categorySlugs, storeIds, ratings, limit, offset, sortBy, sizes, colors, prices, isDiscounted } = filters
+
   let queryData = `
     SELECT 
       p.id, 
@@ -264,16 +273,19 @@ const searchAndFilterProducts = async (filters) => {
       ) AS variants
 
     FROM products p 
-    WHERE p.is_active = TRUE
+    WHERE p.is_active = TRUE 
+      AND p.status = ? 
   `
+
   let queryCount = `
     SELECT COUNT(*) AS total 
     FROM products p
-    WHERE p.is_active = TRUE
+    WHERE p.is_active = TRUE 
+      AND p.status = ? 
   `
 
   let whereClauses = ''
-  let params = []
+  let params = [PRODUCT_MODERATION_STATUS.APPROVED]
 
   if (search) {
     whereClauses += ' AND p.name LIKE ?'
@@ -392,10 +404,11 @@ const getEmptyCartRecommendations = async (limit = 8) => {
       ) AS variants
     FROM products p 
     WHERE p.is_active = TRUE 
+      AND p.status = ?  
     ORDER BY p.sold DESC, p.rating_avg DESC 
     LIMIT ?
   `
-  const [rows] = await pool.execute(query, [String(limit)])
+  const [rows] = await pool.execute(query, [PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
   return rows
 }
 
@@ -414,10 +427,12 @@ const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 
         FROM product_variants pv WHERE pv.product_id = p.id
       ) AS variants
     FROM products p 
-    WHERE p.is_active = TRUE AND p.category_id IN (?)
+    WHERE p.is_active = TRUE 
+      AND p.status = ? 
+      AND p.category_id IN (?)
   `
 
-  let params = [categoryIds]
+  let params = [PRODUCT_MODERATION_STATUS.APPROVED, categoryIds]
 
   if (excludedIds && excludedIds.length > 0) {
     query += ' AND p.id NOT IN (?)'

@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 
 // 1. Kiểm tra xem User đã từng thả tim sản phẩm này chưa
 const checkFavoriteExist = async (userId, productId) => {
@@ -27,10 +28,12 @@ const getFavoriteProductsByUserId = async (userId) => {
     FROM favorites f
     INNER JOIN products p ON f.product_id = p.id
     INNER JOIN stores s ON p.store_id = s.id
-    WHERE f.user_id = ? AND p.is_active = TRUE
+    WHERE f.user_id = ? 
+      AND p.is_active = TRUE 
+      AND p.status = ?  
     ORDER BY p.created_at DESC
   `
-  const [rows] = await pool.execute(query, [userId])
+  const [rows] = await pool.execute(query, [userId, PRODUCT_MODERATION_STATUS.APPROVED])
   return rows
 }
 

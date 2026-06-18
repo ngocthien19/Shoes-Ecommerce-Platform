@@ -8,6 +8,12 @@ const getStoreByOwnerId = async (ownerId) => {
   return rows[0]
 }
 
+const getStoreOwnerInfo = async (storeId) => {
+  const query = 'SELECT owner_id, name FROM stores WHERE id = ?'
+  const [rows] = await pool.execute(query, [storeId])
+  return rows[0] || null
+}
+
 // 1. Lấy danh sách đơn hàng thuộc về Shop (Phân trang + Lọc trạng thái + Nạp thông tin khuyến mãi)
 const getVendorOrders = async (storeId, { status, searchOrderId, paymentMethod, startDate, endDate, limit, offset }) => {
   let query = `
@@ -97,20 +103,20 @@ const getOrderItemsByStore = async (orderId) => {
     WHERE oi.order_id = ?
   `
   const [rows] = await pool.execute(query, [orderId])
-  
+
   // Parse images JSON cho từng sản phẩm
   const itemsWithParsedImages = rows.map(item => {
     let parsedImages = []
     try {
-      parsedImages = typeof item.images === 'string' 
-        ? JSON.parse(item.images) 
+      parsedImages = typeof item.images === 'string'
+        ? JSON.parse(item.images)
         : (Array.isArray(item.images) ? item.images : [])
     } catch (e) {
       parsedImages = []
     }
     return { ...item, images: parsedImages }
   })
-  
+
   return itemsWithParsedImages
 }
 
@@ -206,14 +212,14 @@ const getVendorOrderDetail = async (orderId, storeId) => {
     WHERE id = ? AND store_id = ?
   `
   const [orderRows] = await pool.execute(orderQuery, [orderId, storeId])
-  
+
   if (orderRows.length === 0) return null
-  
+
   const order = orderRows[0]
-  
+
   // Lấy danh sách sản phẩm trong đơn
   order.items = await getOrderItemsByStore(orderId)
-  
+
   return order
 }
 
@@ -273,5 +279,6 @@ export const vendorOrderModel = {
   checkMultipleOrdersOwnership,
   updateOrderStatusBulk,
   getVendorOrderDetail,
-  completeOrderAndCreditStore
+  completeOrderAndCreditStore,
+  getStoreOwnerInfo
 }

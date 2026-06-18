@@ -65,7 +65,7 @@ const coreCreateOrderTransaction = async (userId, data) => {
 
     await orderModel.clearUserCart(connection, userId)
     await connection.commit()
-    return { createdOrderIds, totalAllShops }
+    return { createdOrderIds, totalAllShops, itemsByStore }
   } catch (error) {
     await connection.rollback()
     throw error
@@ -74,22 +74,87 @@ const coreCreateOrderTransaction = async (userId, data) => {
   }
 }
 
-// 1. Luồng thanh toán COD
-const createOrderCOD = async (userId, payload) => {
-  const { createdOrderIds } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD })
+// Hàm gửi thông báo cho Vendor
+const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount, type, title) => {
+  try {
+    const [storeRows] = await pool.execute('SELECT owner_id, name FROM stores WHERE id = ?', [storeId])
+    if (storeRows.length === 0) return
 
-  // Gửi thông báo cho user khi đặt hàng COD thành công
-  for (const orderId of createdOrderIds) {
+    const ownerId = storeRows[0].owner_id
+    const storeName = storeRows[0].name
+    const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+
+    let message = ''
+    if (type === NOTIFICATION_TYPES.ORDER_CREATED) {
+      message = `Có đơn hàng mới #${orderId} từ khách hàng ${buyerName} với tổng tiền ${formattedAmount}`
+    } else if (type === NOTIFICATION_TYPES.ORDER_PAID) {
+      message = `Đơn hàng #${orderId} từ khách hàng ${buyerName} đã được thanh toán thành công với tổng tiền ${formattedAmount}. Vui lòng xác nhận và chuẩn bị hàng.`
+    }
+
+    await notificationService.createAndPushNotification({
+      userId: ownerId,
+      title: title,
+      content: JSON.stringify({
+        message: message,
+        orderId: orderId,
+        storeName: storeName,
+        buyerName: buyerName,
+        amount: totalAmount
+      }),
+      type: type,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo cho Vendor về đơn hàng #${orderId}:`, error)
+  }
+}
+
+// Hàm gửi thông báo cho User
+const sendNotificationToUser = async (userId, orderId, title, message, type) => {
+  try {
     await notificationService.createAndPushNotification({
       userId: userId,
-      title: 'Đặt hàng thành công',
+      title: title,
       content: JSON.stringify({
-        message: `Đơn hàng #${orderId} đã được đặt thành công. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+        message: message,
         orderId: orderId
       }),
-      type: NOTIFICATION_TYPES.ORDER_CREATED,
+      type: type,
       referenceId: orderId
-    }).catch(err => console.error('Lỗi gửi thông báo COD:', err))
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo cho User về đơn hàng #${orderId}:`, error)
+  }
+}
+
+// 1. Luồng thanh toán COD
+const createOrderCOD = async (userId, payload) => {
+  const { createdOrderIds, itemsByStore } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD })
+
+  // Lấy tên người đặt
+  const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
+  const buyerName = userRows.length > 0 ? userRows[0].fullname : 'Khách hàng'
+
+  // Gửi thông báo cho user và vendor
+  for (const orderId of createdOrderIds) {
+    // Lấy thông tin đơn hàng
+    const [orderRows] = await pool.execute('SELECT store_id, total_amount FROM orders WHERE id = ?', [orderId])
+    if (orderRows.length > 0) {
+      const storeId = orderRows[0].store_id
+      const totalAmount = orderRows[0].total_amount
+
+      // Gửi thông báo cho Vendor
+      await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_CREATED, 'Đơn hàng mới')
+    }
+
+    // Gửi thông báo cho User
+    await sendNotificationToUser(
+      userId,
+      orderId,
+      'Đặt hàng thành công',
+      `Đơn hàng #${orderId} đã được đặt thành công. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+      NOTIFICATION_TYPES.ORDER_CREATED
+    )
   }
 
   return { message: 'Đặt đơn hàng COD thành công!', orderIds: createdOrderIds }
@@ -97,7 +162,7 @@ const createOrderCOD = async (userId, payload) => {
 
 // 2. Luồng thanh toán Online (VNPAY)
 const createOrderOnline = async (userId, payload, ipAddr) => {
-  const { createdOrderIds, totalAllShops } = await coreCreateOrderTransaction(userId, payload)
+  const { createdOrderIds, totalAllShops, itemsByStore } = await coreCreateOrderTransaction(userId, payload)
   const txnRef = createdOrderIds.join('_') + '_' + Date.now()
 
   let paymentUrl = ''
@@ -108,18 +173,30 @@ const createOrderOnline = async (userId, payload, ipAddr) => {
     paymentUrl = await PaymentProvider.createMoMoUrl(txnRef, totalAllShops)
   }
 
-  // Gửi thông báo cho user khi tạo đơn online thành công
+  // Lấy tên người đặt
+  const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
+  const buyerName = userRows.length > 0 ? userRows[0].fullname : 'Khách hàng'
+
+  // Gửi thông báo cho user và vendor khi tạo đơn (chờ thanh toán)
   for (const orderId of createdOrderIds) {
-    await notificationService.createAndPushNotification({
-      userId: userId,
-      title: 'Đơn hàng đang chờ thanh toán',
-      content: JSON.stringify({
-        message: `Đơn hàng #${orderId} đã được tạo. Vui lòng thanh toán để hoàn tất đặt hàng.`,
-        orderId: orderId
-      }),
-      type: NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT,
-      referenceId: orderId
-    }).catch(err => console.error('Lỗi gửi thông báo online:', err))
+    // Lấy thông tin đơn hàng
+    const [orderRows] = await pool.execute('SELECT store_id, total_amount FROM orders WHERE id = ?', [orderId])
+    if (orderRows.length > 0) {
+      const storeId = orderRows[0].store_id
+      const totalAmount = orderRows[0].total_amount
+
+      // Gửi thông báo cho Vendor (đang chờ thanh toán)
+      await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT, 'Đơn hàng chờ thanh toán')
+    }
+
+    // Gửi thông báo cho User
+    await sendNotificationToUser(
+      userId,
+      orderId,
+      'Đơn hàng đang chờ thanh toán',
+      `Đơn hàng #${orderId} đã được tạo. Vui lòng thanh toán để hoàn tất đặt hàng.`,
+      NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT
+    )
   }
 
   return { message: 'Tạo đơn chờ thanh toán thành công!', orderIds: createdOrderIds, paymentUrl }
@@ -146,20 +223,34 @@ const vnpayIPN = async (vnp_Params) => {
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
-      // Gửi thông báo cho user khi thanh toán VNPAY thành công
+      // Gửi thông báo cho User và Vendor khi thanh toán VNPAY thành công
       for (const orderId of orderIds) {
         const userId = await orderModel.getOrderUserId(orderId)
         if (userId) {
-          await notificationService.createAndPushNotification({
-            userId: userId,
-            title: 'Thanh toán thành công',
-            content: JSON.stringify({
-              message: `Đơn hàng #${orderId} đã được thanh toán thành công qua VNPAY. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-              orderId: orderId
-            }),
-            type: NOTIFICATION_TYPES.ORDER_PAID,
-            referenceId: orderId
-          }).catch(err => console.error('Lỗi gửi thông báo VNPAY:', err))
+          // Lấy thông tin đơn hàng và tên khách hàng
+          const [orderRows] = await pool.execute(`
+            SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+            FROM orders o 
+            JOIN users u ON o.user_id = u.id 
+            WHERE o.id = ?
+          `, [orderId])
+
+          if (orderRows.length > 0) {
+            const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+            const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+
+            // Gửi thông báo cho Vendor
+            await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+
+            // Gửi thông báo cho User
+            await sendNotificationToUser(
+              userId,
+              orderId,
+              'Thanh toán thành công',
+              `Đơn hàng #${orderId} đã được thanh toán thành công qua VNPAY với số tiền ${formattedAmount}. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+              NOTIFICATION_TYPES.ORDER_PAID
+            )
+          }
         }
       }
 
@@ -189,20 +280,34 @@ const momoIPN = async (reqBody) => {
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
-      // Gửi thông báo cho user khi thanh toán MoMo thành công
+      // Gửi thông báo cho User và Vendor khi thanh toán MoMo thành công
       for (const orderId of orderIds) {
         const userId = await orderModel.getOrderUserId(orderId)
         if (userId) {
-          await notificationService.createAndPushNotification({
-            userId: userId,
-            title: 'Thanh toán thành công',
-            content: JSON.stringify({
-              message: `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-              orderId: orderId
-            }),
-            type: NOTIFICATION_TYPES.ORDER_PAID,
-            referenceId: orderId
-          }).catch(err => console.error('Lỗi gửi thông báo MoMo:', err))
+          // Lấy thông tin đơn hàng và tên khách hàng
+          const [orderRows] = await pool.execute(`
+            SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+            FROM orders o 
+            JOIN users u ON o.user_id = u.id 
+            WHERE o.id = ?
+          `, [orderId])
+
+          if (orderRows.length > 0) {
+            const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+            const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+
+            // Gửi thông báo cho Vendor
+            await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+
+            // Gửi thông báo cho User
+            await sendNotificationToUser(
+              userId,
+              orderId,
+              'Thanh toán thành công',
+              `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo với số tiền ${formattedAmount}. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+              NOTIFICATION_TYPES.ORDER_PAID
+            )
+          }
         }
       }
 
@@ -222,20 +327,34 @@ const processMoMoReturn = async (queryData) => {
 
     await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
-    // Gửi thông báo cho user khi thanh toán MoMo thành công
+    // Gửi thông báo cho User và Vendor khi thanh toán MoMo thành công
     for (const orderId of orderIds) {
       const userId = await orderModel.getOrderUserId(orderId)
       if (userId) {
-        await notificationService.createAndPushNotification({
-          userId: userId,
-          title: 'Thanh toán thành công',
-          content: JSON.stringify({
-            message: `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-            orderId: orderId
-          }),
-          type: NOTIFICATION_TYPES.ORDER_PAID,
-          referenceId: orderId
-        }).catch(err => console.error('Lỗi gửi thông báo MoMo:', err))
+        // Lấy thông tin đơn hàng và tên khách hàng
+        const [orderRows] = await pool.execute(`
+          SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+          FROM orders o 
+          JOIN users u ON o.user_id = u.id 
+          WHERE o.id = ?
+        `, [orderId])
+
+        if (orderRows.length > 0) {
+          const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+          const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+
+          // Gửi thông báo cho Vendor
+          await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+
+          // Gửi thông báo cho User
+          await sendNotificationToUser(
+            userId,
+            orderId,
+            'Thanh toán thành công',
+            `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo với số tiền ${formattedAmount}. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+            NOTIFICATION_TYPES.ORDER_PAID
+          )
+        }
       }
     }
 
