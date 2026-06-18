@@ -4,7 +4,13 @@ import { PAYOUT_STATUS } from '~/utils/constants'
 // A. Lấy danh sách lệnh rút tiền toàn sàn (Có phân trang và lọc theo status)
 const getPayoutRequests = async ({ status, limit, offset }) => {
   let query = `
-    SELECT pr.*, s.name AS store_name, u.fullname AS vendor_name, u.email AS vendor_email
+    SELECT 
+      pr.*, 
+      s.name AS store_name, 
+      s.logo,  
+      u.fullname AS vendor_name, 
+      u.email AS vendor_email,
+      u.avatar  
     FROM payout_requests pr
     JOIN stores s ON pr.store_id = s.id
     JOIN users u ON s.owner_id = u.id
@@ -38,7 +44,14 @@ const countPayoutRequests = async ({ status }) => {
 // C. Lấy chi tiết thông tin một lệnh rút tiền
 const getPayoutDetail = async (payoutId) => {
   const query = `
-    SELECT pr.*, s.name AS store_name, s.logo, s.owner_id, u.fullname AS vendor_name, u.email AS vendor_email
+    SELECT 
+      pr.*, 
+      s.name AS store_name, 
+      s.logo,  
+      s.owner_id, 
+      u.fullname AS vendor_name, 
+      u.email AS vendor_email,
+      u.avatar  
     FROM payout_requests pr
     JOIN stores s ON pr.store_id = s.id
     JOIN users u ON s.owner_id = u.id
