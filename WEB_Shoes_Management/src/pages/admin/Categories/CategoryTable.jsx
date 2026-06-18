@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom'
 
 export const CategoryTable = ({
   categories,
-  onToggleStatus, // 🆕 Thêm prop
+  onToggleStatus,
   onDelete
 }) => {
   const getStatusBadge = (isActive) => {
@@ -147,17 +147,17 @@ export const CategoryTable = ({
 
                             <DropdownMenuSeparator />
 
-                            {/* Toggle trạng thái */}
+                            {/* Toggle trạng thái - Truyền thêm tên danh mục */}
                             {category.is_active === 1 ? (
                               <DropdownMenuItem
-                                onClick={() => onToggleStatus(category.id, false)}
+                                onClick={() => onToggleStatus(category.id, false, category.name)}
                                 className="text-xs font-bold text-red-500 cursor-pointer py-2 gap-2"
                               >
                                 <FiToggleLeft size={14} /> Khóa danh mục
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                onClick={() => onToggleStatus(category.id, true)}
+                                onClick={() => onToggleStatus(category.id, true, category.name)}
                                 className="text-xs font-bold text-green-600 cursor-pointer py-2 gap-2"
                               >
                                 <FiToggleRight size={14} /> Kích hoạt danh mục
