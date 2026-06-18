@@ -55,7 +55,7 @@ export const StoreTable = ({
             </span>
           </TooltipTrigger>
           <TooltipContent className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
-            <p className="font-semibold mb-1">📝 Lý do khóa:</p>
+            <p className="font-semibold mb-1">Lý do khóa:</p>
             <p className="break-words">{store.reject_reason}</p>
           </TooltipContent>
         </Tooltip>

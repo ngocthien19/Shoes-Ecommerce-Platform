@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FiHome, FiMapPin, FiFileText, FiCalendar, FiStar, FiDollarSign, FiPercent } from 'react-icons/fi'
+import { FiHome, FiMapPin, FiFileText, FiCalendar, FiStar, FiDollarSign, FiPercent, FiAlertCircle } from 'react-icons/fi'
 import { formatDateTime, formatPrice } from '~/utils/formatters'
 
 export const StoreInfoCard = ({ store }) => {
@@ -12,6 +12,10 @@ export const StoreInfoCard = ({ store }) => {
     { icon: FiDollarSign, label: 'Số dư ví', value: formatPrice(store.balance || 0), highlight: true },
     { icon: FiPercent, label: 'Phí hoa hồng', value: `${store.commission_rate || 10}%` }
   ]
+
+  // Kiểm tra trạng thái khóa và lý do
+  const isBanned = store.is_active === 0
+  const hasRejectReason = store.reject_reason && store.reject_reason.trim() !== ''
 
   return (
     <motion.div
@@ -45,6 +49,43 @@ export const StoreInfoCard = ({ store }) => {
           </motion.div>
         ))}
       </div>
+
+      {/* Hiển thị lý do khóa/từ chối */}
+      {isBanned && hasRejectReason && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.3 }}
+          className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <FiAlertCircle className="text-red-500" size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-red-600 uppercase tracking-wider">Lý do khóa cửa hàng</p>
+              <p className="text-sm font-semibold text-gray-800 mt-1 leading-relaxed">
+                {store.reject_reason}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Hiển thị trạng thái đang hoạt động */}
+      {!isBanned && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.3 }}
+          className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-xs font-bold text-emerald-600">Cửa hàng đang hoạt động</p>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   )
 }
