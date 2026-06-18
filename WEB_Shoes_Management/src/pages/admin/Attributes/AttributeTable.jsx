@@ -107,7 +107,7 @@ export const AttributeTable = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
               <th className="py-3 px-4">ID</th>
               <th className="py-3 px-4">
                 {isColor ? 'Tên màu sắc' : 'Kích cỡ'}

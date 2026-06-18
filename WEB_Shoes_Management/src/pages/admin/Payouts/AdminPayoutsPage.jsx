@@ -59,7 +59,7 @@ export const AdminPayoutsPage = () => {
 
   const handleResetFilters = () => setSearchParams({})
 
-  // 🆕 Xử lý mở modal xử lý
+  // Xử lý mở modal xử lý
   const handleProcessPayout = (payout) => {
     setProcessModal({
       isOpen: true,
@@ -67,7 +67,7 @@ export const AdminPayoutsPage = () => {
     })
   }
 
-  // 🆕 Xử lý đóng modal
+  // Xử lý đóng modal
   const handleCloseProcessModal = () => {
     setProcessModal({
       isOpen: false,
@@ -75,7 +75,7 @@ export const AdminPayoutsPage = () => {
     })
   }
 
-  // 🆕 Xử lý xác nhận
+  // Xử lý xác nhận
   const handleConfirmProcess = async (targetStatus, adminNote) => {
     setIsSubmitting(true)
     try {
@@ -86,7 +86,7 @@ export const AdminPayoutsPage = () => {
       )
       toast.success(res.message)
       handleCloseProcessModal()
-      fetchPayouts() // Refresh lại danh sách
+      fetchPayouts()
     } catch (error) {
       toast.error(error.message || 'Xử lý yêu cầu thất bại')
     } finally {

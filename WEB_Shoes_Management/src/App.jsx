@@ -63,6 +63,8 @@ import { AdminOrdersPage } from '~/pages/admin/Orders/AdminOrdersPage'
 import { AdminOrderDetailPage } from '~/pages/admin/Orders/OrderDetail/AdminOrderDetailPage'
 import { AdminPayoutsPage } from '~/pages/admin/Payouts/AdminPayoutsPage'
 import { AdminPayoutDetailPage } from '~/pages/admin/Payouts/PayoutDetail/AdminPayoutDetailPage'
+import { AdminSystemSettingsPage } from '~/pages/admin/SystemSettings/AdminSystemSettingsPage'
+import { AdminProfilePage } from '~/pages/admin/Profile/AdminProfilePage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -178,6 +180,8 @@ const App = () => {
 
         {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>
+          <Route path="profile" element={<AdminProfilePage />} />
+
           {/* Dashboard */}
           <Route path="dashboard" element={<AdminDashboardPage />} />
 
@@ -208,6 +212,9 @@ const App = () => {
           {/* Tài chính */}
           <Route path="payouts" element={<AdminPayoutsPage />} />
           <Route path="payouts/:id" element={<AdminPayoutDetailPage />} />
+
+          {/* Cài đặt */}
+          <Route path="settings" element={<AdminSystemSettingsPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />

@@ -1,18 +1,48 @@
+import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
+import { useMaintenance } from '~/hooks/useMaintenance'
+import { MaintenanceModal } from '~/components/common/MaintenanceModal'
+import { Header } from './Header'
+import { Footer } from './Footer'
 
 export const MainLayout = () => {
-  return (
-    <div className="min-h-screen bg-gray-50/50 flex flex-col relative">
-      <Header />
+  const { isMaintenance, maintenanceMessage, loading, handleMaintenanceLogout } = useMaintenance()
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
 
-      {/* Khu vực nội dung sẽ thay đổi theo từng trang */}
-      <main className="flex-1 flex flex-col w-full">
+  useEffect(() => {
+    if (!loading && isMaintenance) {
+      setShowMaintenanceModal(true)
+    }
+  }, [loading, isMaintenance])
+
+  const handleCloseMaintenance = () => {
+    setShowMaintenanceModal(false)
+    // Gọi logout
+    handleMaintenanceLogout()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen">
         <Outlet />
       </main>
-
       <Footer />
-    </div>
+
+      <MaintenanceModal
+        isOpen={showMaintenanceModal}
+        message={maintenanceMessage}
+        onClose={handleCloseMaintenance}
+        onLogout={handleMaintenanceLogout}
+      />
+    </>
   )
 }
