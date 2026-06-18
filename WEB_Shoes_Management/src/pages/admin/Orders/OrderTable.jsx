@@ -1,6 +1,6 @@
 import { formatDateTime, formatPrice, getImageUrl } from '~/utils/formatters'
 import {
-  FiEye, FiMoreVertical, FiShoppingBag, FiUser, FiStore,
+  FiEye, FiMoreVertical, FiShoppingBag, FiUser, FiHome,
   FiClock, FiPackage, FiTruck, FiCheckCircle, FiXCircle,
   FiInfo
 } from 'react-icons/fi'

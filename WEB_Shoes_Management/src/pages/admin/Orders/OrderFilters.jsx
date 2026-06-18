@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiFilter, FiCalendar } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiFilter, FiCalendar, FiCreditCard } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ORDER_STATUS } from '~/utils/constant'
+import { ORDER_STATUS, PAYMENT_STATUS } from '~/utils/constant'
 
 export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
   const [searchTxt, setSearchTxt] = useState(filters.searchOrderId || '')
@@ -34,6 +34,13 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
     { value: ORDER_STATUS.CANCELLED, label: 'Đã hủy' }
   ]
 
+  const paymentStatusOptions = [
+    { value: '', label: 'Tất cả thanh toán' },
+    { value: PAYMENT_STATUS.UNPAID, label: 'Chưa thanh toán' },
+    { value: PAYMENT_STATUS.PAID, label: 'Đã thanh toán' },
+    { value: PAYMENT_STATUS.REFUNDED, label: 'Đã hoàn tiền' }
+  ]
+
   const getStatusColor = (status) => {
     const colors = {
       [ORDER_STATUS.PENDING]: 'text-amber-600 bg-amber-50',
@@ -45,13 +52,27 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
     return colors[status] || ''
   }
 
+  const getPaymentStatusColor = (status) => {
+    const colors = {
+      [PAYMENT_STATUS.UNPAID]: 'text-gray-600 bg-gray-50',
+      [PAYMENT_STATUS.PAID]: 'text-green-600 bg-green-50',
+      [PAYMENT_STATUS.REFUNDED]: 'text-purple-600 bg-purple-50'
+    }
+    return colors[status] || ''
+  }
+
   const currentStatusLabel = statusOptions.find(s => s.value === filters.status)?.label || 'Tất cả trạng thái'
+  const currentPaymentStatusLabel = paymentStatusOptions.find(s => s.value === filters.paymentStatus)?.label || 'Tất cả thanh toán'
 
   const activeBadges = []
   if (filters.searchOrderId) activeBadges.push({ key: 'searchOrderId', label: `Mã đơn: #${filters.searchOrderId}` })
   if (filters.status) {
     const status = statusOptions.find(s => s.value === filters.status)
     if (status) activeBadges.push({ key: 'status', label: `Trạng thái: ${status.label}` })
+  }
+  if (filters.paymentStatus) {
+    const pStatus = paymentStatusOptions.find(s => s.value === filters.paymentStatus)
+    if (pStatus) activeBadges.push({ key: 'paymentStatus', label: `Thanh toán: ${pStatus.label}` })
   }
   if (filters.startDate) activeBadges.push({ key: 'startDate', label: `Từ: ${filters.startDate}` })
   if (filters.endDate) activeBadges.push({ key: 'endDate', label: `Đến: ${filters.endDate}` })
@@ -81,7 +102,7 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Bộ lọc trạng thái */}
+          {/* Bộ lọc trạng thái đơn hàng */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[150px]">
@@ -96,6 +117,30 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
                   onClick={() => onFilterChange('status', option.value || null)}
                   className={`text-xs font-semibold cursor-pointer rounded-lg flex items-center gap-2 ${
                     option.value ? getStatusColor(option.value) : ''
+                  }`}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Bộ lọc trạng thái thanh toán */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[150px]">
+                <FiCreditCard size={14} className="text-gray-400" />
+                <span>{currentPaymentStatusLabel}</span>
+                <FiChevronDown size={14} className="text-gray-400" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[180px]">
+              {paymentStatusOptions.map(option => (
+                <DropdownMenuItem
+                  key={option.value || 'all'}
+                  onClick={() => onFilterChange('paymentStatus', option.value || null)}
+                  className={`text-xs font-semibold cursor-pointer rounded-lg flex items-center gap-2 ${
+                    option.value ? getPaymentStatusColor(option.value) : ''
                   }`}
                 >
                   {option.label}
