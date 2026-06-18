@@ -103,7 +103,7 @@ export const OrderTable = ({ orders, onForceCancel }) => {
       <div className="overflow-x-auto min-h-[300px]">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
               <th className="py-4 px-4 min-w-[100px]">Mã đơn</th>
               <th className="py-4 px-4 min-w-[180px]">Khách hàng</th>
               <th className="py-4 px-4 min-w-[180px]">Cửa hàng</th>

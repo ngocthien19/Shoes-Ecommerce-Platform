@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import { VendorSidebar } from '~/layouts/vendor/VendorSidebar'
@@ -7,6 +7,8 @@ import { VendorHeader } from '~/layouts/vendor/VendorHeader'
 import { StoreBannedOverlay } from '~/components/vendor/StoreBannedOverlay'
 import { vendorStoreApiService } from '~/services/vendor/vendorStoreApiService'
 import { vendorAppealApiService } from '~/services/vendor/vendorAppealApiService'
+import { useMaintenance } from '~/hooks/useMaintenance'
+import { MaintenanceModal } from '~/components/common/MaintenanceModal'
 
 export const VendorLayout = () => {
   const [isBanned, setIsBanned] = useState(false)
@@ -14,8 +16,10 @@ export const VendorLayout = () => {
   const [checking, setChecking] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastAppealId, setLastAppealId] = useState(null)
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
   const user = useSelector((state) => state.user.userInfo)
-  const navigate = useNavigate()
+
+  const { isMaintenance, maintenanceMessage, loading: maintenanceLoading, handleMaintenanceLogout } = useMaintenance()
 
   // Kiểm tra trạng thái cửa hàng khi vào layout
   useEffect(() => {
@@ -40,10 +44,16 @@ export const VendorLayout = () => {
     }
   }, [user])
 
+  // Kiểm tra maintenance
+  useEffect(() => {
+    if (!maintenanceLoading && isMaintenance) {
+      setShowMaintenanceModal(true)
+    }
+  }, [maintenanceLoading, isMaintenance])
+
   // Khi navigate quay lại từ trang detail, kiểm tra lại trạng thái
   useEffect(() => {
     if (!isBanned && !checking && lastAppealId) {
-      // Nếu đã được mở khóa, không cần làm gì
       setLastAppealId(null)
     }
   }, [isBanned, checking, lastAppealId])
@@ -54,10 +64,7 @@ export const VendorLayout = () => {
       const response = await vendorAppealApiService.submitAppeal(formData)
       toast.success(response.message || 'Đã gửi đơn giải trình thành công!')
 
-      // Lưu ID đơn vừa gửi
       setLastAppealId(response.appealId)
-
-      // Đóng overlay và chuyển đến trang chi tiết đơn
       setIsBanned(false)
       navigate(`/vendor/appeals/${response.appealId}`)
 
@@ -70,8 +77,14 @@ export const VendorLayout = () => {
     }
   }
 
+  const handleCloseMaintenance = () => {
+    setShowMaintenanceModal(false)
+    // Gọi logout
+    handleMaintenanceLogout()
+  }
+
   // Nếu đang kiểm tra, hiển thị loading
-  if (checking) {
+  if (checking || maintenanceLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
@@ -80,29 +93,39 @@ export const VendorLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden relative">
-      {/* Sidebar cố định bên trái */}
-      <VendorSidebar isBanned={isBanned} />
+    <>
+      <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden relative">
+        {/* Sidebar cố định bên trái */}
+        <VendorSidebar isBanned={isBanned} />
 
-      {/* Khu vực nội dung bên phải */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Header cố định trên cùng */}
-        <VendorHeader isBanned={isBanned} />
+        {/* Khu vực nội dung bên phải */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Header cố định trên cùng */}
+          <VendorHeader isBanned={isBanned} />
 
-        {/* Nội dung chính cuộn dọc - bị mờ khi bị khóa */}
-        <main className={`flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar transition-all duration-300 ${isBanned ? 'opacity-50 pointer-events-none select-none blur-sm' : ''}`}>
-          <Outlet />
-        </main>
+          {/* Nội dung chính cuộn dọc - bị mờ khi bị khóa */}
+          <main className={`flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar transition-all duration-300 ${isBanned ? 'opacity-50 pointer-events-none select-none blur-sm' : ''}`}>
+            <Outlet />
+          </main>
+        </div>
+
+        {/* Overlay khi bị khóa - chặn toàn bộ tương tác */}
+        {isBanned && (
+          <StoreBannedOverlay
+            store={storeData}
+            onAppealSubmit={handleAppealSubmit}
+            isSubmitting={isSubmitting}
+          />
+        )}
       </div>
 
-      {/* Overlay khi bị khóa - chặn toàn bộ tương tác */}
-      {isBanned && (
-        <StoreBannedOverlay
-          store={storeData}
-          onAppealSubmit={handleAppealSubmit}
-          isSubmitting={isSubmitting}
-        />
-      )}
-    </div>
+      {/* Maintenance Modal */}
+      <MaintenanceModal
+        isOpen={showMaintenanceModal}
+        message={maintenanceMessage}
+        onClose={handleCloseMaintenance}
+        onLogout={handleMaintenanceLogout}
+      />
+    </>
   )
 }

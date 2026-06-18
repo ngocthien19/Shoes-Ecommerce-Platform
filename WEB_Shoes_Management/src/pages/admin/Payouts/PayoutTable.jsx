@@ -1,16 +1,9 @@
 import { formatDateTime, formatPrice, getImageUrl } from '~/utils/formatters'
 import {
-  FiEye, FiCheckCircle, FiXCircle, FiClock, FiDollarSign,
-  FiUser, FiHome, FiCreditCard, FiMoreVertical, FiSend
+  FiEye, FiCheckCircle, FiXCircle, FiClock,
+  FiCreditCard, FiSend
 } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '~/components/ui/dropdown-menu'
 import { Link } from 'react-router-dom'
 import { PAYOUT_STATUS } from '~/utils/constant'
 
@@ -41,7 +34,7 @@ export const PayoutTable = ({ payouts, onProcessPayout }) => {
       <div className="overflow-x-auto min-h-[300px]">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
               <th className="py-4 px-4 min-w-[80px]">Mã</th>
               <th className="py-4 px-4 min-w-[180px]">Cửa hàng</th>
               <th className="py-4 px-4 min-w-[180px]">Chủ shop</th>

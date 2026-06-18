@@ -97,7 +97,7 @@ export const getLinkByType = (notification, userRole) => {
     case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
       return reference_id ? `/manager/reviews/${reference_id}?type=${reviewType || 'product'}` : null
     case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-      return reference_id ? `/admin/financial/payouts/${reference_id}` : null
+      return reference_id ? `/admin/payouts/${reference_id}` : null
     case NOTIFICATION_TYPES.APPEAL_REQUESTED:
     case NOTIFICATION_TYPES.APPEAL_APPROVED:
     case NOTIFICATION_TYPES.APPEAL_REJECTED:

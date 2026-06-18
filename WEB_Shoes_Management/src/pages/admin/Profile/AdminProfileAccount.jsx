@@ -1,18 +1,18 @@
-// ~/pages/manager/Profile/ManagerProfileAccount.jsx
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiCamera, FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { FiCamera, FiCheckCircle, FiXCircle, FiShield } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 
-import { managerUserApiService } from '~/services/manager/managerUserApiService'
+import { adminUserApiService } from '~/services/admin/adminUserApiService'
 import { updateUserFields } from '~/redux/user/userSlice'
 import { getImageUrl } from '~/utils/formatters'
-import { ManagerProfileInfo } from './ManagerProfileInfo'
-import { ManagerPasswordChange } from './ManagerPasswordChange'
+import { AdminProfileInfo } from './AdminProfileInfo'
+import { AdminPasswordChange } from './AdminPasswordChange'
+import { ROLE_ID } from '~/utils/constant'
 
-export const ManagerProfileAccount = () => {
+export const AdminProfileAccount = () => {
   const [searchParams] = useSearchParams()
   const dispatch = useDispatch()
 
@@ -61,7 +61,7 @@ export const ManagerProfileAccount = () => {
     }
 
     try {
-      const response = await managerUserApiService.updateProfile(formData)
+      const response = await adminUserApiService.updateProfile(formData)
       toast.success(response.message || 'Cập nhật thành công!')
 
       dispatch(updateUserFields(response.user))
@@ -75,6 +75,9 @@ export const ManagerProfileAccount = () => {
       if (activeTab === 'password') {
         setActiveTab('profile')
       }
+    } catch (error) {
+      // Lỗi đã được xử lý trong service
+      console.error('Update profile error:', error)
     } finally {
       setLoading(false)
     }
@@ -89,7 +92,7 @@ export const ManagerProfileAccount = () => {
   if (!user) {
     return (
       <div className="lg:col-span-8 bg-white rounded-3xl border border-gray-100 p-6 sm:p-10 shadow-sm flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -103,14 +106,14 @@ export const ManagerProfileAccount = () => {
             <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-gray-100 overflow-hidden ring-1 ring-gray-200">
               <img src={previewAvatar} alt="Hồ sơ" className="w-full h-full object-cover" />
             </div>
-            <label htmlFor="avatar-file" className="absolute bottom-0 right-0 w-7 h-7 bg-blue-600 text-white border-2 border-white rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 cursor-pointer transition-all">
+            <label htmlFor="avatar-file" className="absolute bottom-0 right-0 w-7 h-7 bg-emerald-500 text-white border-2 border-white rounded-full flex items-center justify-center shadow-md hover:bg-emerald-600 cursor-pointer transition-all">
               <FiCamera size={12} />
             </label>
             <input type="file" id="avatar-file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </div>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-extrabold text-brand-secondary tracking-tight">{user?.fullname}</h1>
+              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{user?.fullname}</h1>
               <span className={`px-2.5 py-1 rounded-full text-[12px] font-bold flex items-center gap-1 ${
                 user?.isActive
                   ? 'px-5 py-3 ring ring-green-600 bg-green-50 text-green-600 border border-green-100'
@@ -140,7 +143,7 @@ export const ManagerProfileAccount = () => {
           onClick={() => setActiveTab('profile')}
           className={`px-4 py-2 text-sm font-bold transition-all duration-300 cursor-pointer ${
             activeTab === 'profile'
-              ? 'text-blue-600 border-b-2 border-blue-600'
+              ? 'text-emerald-600 border-b-2 border-emerald-600'
               : 'text-gray-400 hover:text-gray-600'
           }`}
         >
@@ -150,7 +153,7 @@ export const ManagerProfileAccount = () => {
           onClick={() => setActiveTab('password')}
           className={`px-4 py-2 text-sm font-bold transition-all duration-300 cursor-pointer ${
             activeTab === 'password'
-              ? 'text-blue-600 border-b-2 border-blue-600'
+              ? 'text-emerald-600 border-b-2 border-emerald-600'
               : 'text-gray-400 hover:text-gray-600'
           }`}
         >
@@ -169,7 +172,7 @@ export const ManagerProfileAccount = () => {
               animate="visible"
               exit="exit"
             >
-              <ManagerProfileInfo user={user} loading={loading} onUpdateProfile={handleUpdateProfile} />
+              <AdminProfileInfo user={user} loading={loading} onUpdateProfile={handleUpdateProfile} />
             </motion.div>
           )}
 
@@ -181,7 +184,7 @@ export const ManagerProfileAccount = () => {
               animate="visible"
               exit="exit"
             >
-              <ManagerPasswordChange loading={loading} onUpdateProfile={handleUpdateProfile} />
+              <AdminPasswordChange loading={loading} onUpdateProfile={handleUpdateProfile} />
             </motion.div>
           )}
         </AnimatePresence>
