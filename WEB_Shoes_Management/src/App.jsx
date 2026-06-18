@@ -103,7 +103,7 @@ const App = () => {
             <Route path="/orders/:orderId" element={<PageTransition><OrderDetailPage /></PageTransition>} />
             <Route path="/orders/:orderId/review" element={<PageTransition><ReviewOrderPage /></PageTransition>} />
             <Route path="/register-store" element={<PageTransition><RegisterStorePage /></PageTransition>} />
-
+            <Route path="/notifications" element={<AllNotificationsPage />} />
           </Route>
 
         </Route>

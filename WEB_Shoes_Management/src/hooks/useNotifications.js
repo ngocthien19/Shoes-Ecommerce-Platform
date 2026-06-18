@@ -40,6 +40,13 @@ export const useNotifications = () => {
     }
   }
 
+  // Hàm refresh lại danh sách
+  const refetch = useCallback(async () => {
+    setPage(1)
+    setHasMore(true)
+    await fetchNotifications(1, false)
+  }, [])
+
   useEffect(() => {
     fetchNotifications(1, false)
   }, [])
@@ -90,6 +97,7 @@ export const useNotifications = () => {
     loadingMore,
     loadMore,
     markAllAsRead,
-    selectNotification
+    selectNotification,
+    refetch
   }
 }
