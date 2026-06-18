@@ -25,6 +25,12 @@ router.put(
   adminCategoryController.updateCategory
 )
 
+router.patch(
+  '/toggle-status/:id',
+  adminCategoryValidation.toggleCategoryStatus,
+  adminCategoryController.toggleCategoryStatus
+)
+
 router.delete('/delete/:id', adminCategoryController.deleteCategory)
 
 router.get('/detail/:id', adminCategoryController.getCategoryDetail)
