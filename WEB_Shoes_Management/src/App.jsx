@@ -61,6 +61,8 @@ import { AdminCategoryDetailPage } from '~/pages/admin/Categories/CategoryDetail
 import { AdminAttributesPage } from '~/pages/admin/Attributes/AdminAttributesPage'
 import { AdminOrdersPage } from '~/pages/admin/Orders/AdminOrdersPage'
 import { AdminOrderDetailPage } from '~/pages/admin/Orders/OrderDetail/AdminOrderDetailPage'
+import { AdminPayoutsPage } from '~/pages/admin/Payouts/AdminPayoutsPage'
+import { AdminPayoutDetailPage } from '~/pages/admin/Payouts/PayoutDetail/AdminPayoutDetailPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -203,6 +205,10 @@ const App = () => {
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
 
+          {/* Tài chính */}
+          <Route path="payouts" element={<AdminPayoutsPage />} />
+          <Route path="payouts/:id" element={<AdminPayoutDetailPage />} />
+
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />
         </Route>
@@ -218,7 +224,7 @@ const App = () => {
 
       </Routes>
 
-      {/* Widget chat độc lập nổi trên cùng */}
+      {/* Widget chat */}
       <ChatWidget />
     </div>
   )
