@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { StoreProfileHeader } from './StoreProfileHeader'
 import { StoreProductList } from './StoreProductList'
 import { StoreReview } from './StoreReview'

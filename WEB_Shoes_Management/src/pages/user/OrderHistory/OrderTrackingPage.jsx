@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion' // 🟢 Import framer-motion
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Pagination } from '~/components/common/Pagination'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs'
 import { orderTrackingApiService } from '~/services/user/orderTrackingApiService'

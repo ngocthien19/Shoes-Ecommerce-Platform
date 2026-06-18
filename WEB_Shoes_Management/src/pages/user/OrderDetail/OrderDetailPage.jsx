@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { orderTrackingApiService } from '~/services/user/orderTrackingApiService'
 import { toast } from 'react-toastify'
 import { FiArrowLeft, FiBox, FiInfo } from 'react-icons/fi'

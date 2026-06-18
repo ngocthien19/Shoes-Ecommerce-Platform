@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { ProductGallery } from '~/pages/user/ProductDetail/ProductGallery'
 import { ProductInfo } from '~/pages/user/ProductDetail/ProductInfo'
 import { StoreInfo } from '~/pages/user/ProductDetail/StoreInfo'
@@ -30,11 +28,9 @@ export const ProductDetailPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
         </main>
-        <Footer />
       </div>
     )
   }

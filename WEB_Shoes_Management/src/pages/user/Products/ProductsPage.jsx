@@ -6,8 +6,6 @@ import { FilterSidebar } from './FilterSidebar'
 import { Pagination } from '~/components/common/Pagination'
 import { ProductCard } from '~/components/user/ProductCard'
 import { productService } from '~/services/user/productService'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { FiX, FiZap } from 'react-icons/fi'
 
 export const ProductsPage = () => {
@@ -294,7 +292,6 @@ export const ProductsPage = () => {
                     exit={{ opacity: 0 }}
                     className="bg-white rounded-3xl p-16 text-center text-gray-500 shadow-sm border border-gray-100 flex flex-col items-center justify-center mt-4"
                   >
-                    <div className="text-6xl mb-6">👟</div>
                     <h3 className="text-2xl font-extrabold text-gray-800 mb-2">Không tìm thấy sản phẩm!</h3>
                     <p className="text-gray-500 font-medium max-w-md">Chúng tôi không tìm thấy kết quả nào phù hợp. Bạn hãy thử bỏ bớt một vài bộ lọc hoặc tìm kiếm bằng từ khóa khác xem sao nhé.</p>
                     <button
