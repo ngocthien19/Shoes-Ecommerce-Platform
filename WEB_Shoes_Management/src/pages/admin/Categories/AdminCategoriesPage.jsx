@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { FiGrid, FiPlus } from 'react-icons/fi'
 
 import { adminCategoryApiService } from '~/services/admin/adminCategoryApiService'
@@ -21,11 +21,12 @@ export const AdminCategoriesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
 
-  // 🆕 State cho toggle modal
+  // State cho toggle modal
   const [toggleModal, setToggleModal] = useState({
     isOpen: false,
     categoryId: null,
-    isActive: null
+    isActive: null,
+    categoryName: ''
   })
 
   const page = Number(searchParams.get('page')) || 1
@@ -63,12 +64,13 @@ export const AdminCategoriesPage = () => {
 
   const handleResetFilters = () => setSearchParams({})
 
-  // Xử lý toggle trạng thái
-  const handleToggleStatus = (id, isActive) => {
+  // 🆕 Xử lý toggle trạng thái
+  const handleToggleStatus = (id, isActive, categoryName) => {
     setToggleModal({
       isOpen: true,
       categoryId: id,
-      isActive: isActive
+      isActive: isActive,
+      categoryName: categoryName
     })
   }
 
@@ -77,7 +79,7 @@ export const AdminCategoriesPage = () => {
     try {
       const res = await adminCategoryApiService.toggleCategoryStatus(categoryId, isActive)
       toast.success(res.message)
-      setToggleModal({ isOpen: false, categoryId: null, isActive: null })
+      setToggleModal({ isOpen: false, categoryId: null, isActive: null, categoryName: '' })
       fetchCategories()
     } catch (error) {
       toast.error(error.message || 'Cập nhật trạng thái thất bại')
@@ -170,20 +172,21 @@ export const AdminCategoriesPage = () => {
         )
       )}
 
-      {/* Modal xác nhận toggle trạng thái */}
+      {/* Modal toggle trạng thái - Không cần nhập lý do */}
       <ConfirmReasonModal
         isOpen={toggleModal.isOpen}
-        onClose={() => setToggleModal({ isOpen: false, categoryId: null, isActive: null })}
+        onClose={() => setToggleModal({ isOpen: false, categoryId: null, isActive: null, categoryName: '' })}
         onConfirm={handleConfirmToggle}
         title={toggleModal.isActive ? 'Kích hoạt danh mục' : 'Khóa danh mục'}
-        message={toggleModal.isActive
-          ? 'Bạn có chắc muốn kích hoạt danh mục này? Tất cả danh mục con và sản phẩm liên quan sẽ được kích hoạt theo.'
-          : 'Bạn có chắc muốn khóa danh mục này? Tất cả danh mục con và sản phẩm liên quan sẽ bị khóa theo.'
+        message={
+          toggleModal.isActive
+            ? `Bạn có chắc muốn kích hoạt danh mục "${toggleModal.categoryName}"?\n\nTất cả danh mục con và sản phẩm liên quan sẽ được kích hoạt theo.`
+            : `Bạn có chắc muốn khóa danh mục "${toggleModal.categoryName}"?\n\nTất cả danh mục con và sản phẩm liên quan sẽ bị khóa theo.`
         }
-        placeholder=""
+        placeholder="" // Không cần placeholder
         isLoading={false}
-        type={toggleModal.isActive ? 'approve' : 'ban'}
-        hideReasonInput={true}
+        hideReasonInput={true} // 🆕 Ẩn input nhập lý do
+        type={toggleModal.isActive ? 'success' : 'danger'}
       />
 
       <ConfirmDeleteModal

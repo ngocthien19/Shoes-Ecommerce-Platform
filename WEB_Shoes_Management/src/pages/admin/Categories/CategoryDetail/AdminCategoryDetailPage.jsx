@@ -2,10 +2,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { toast } from 'react-toastify'
-import { FiArrowLeft, FiEdit2, FiTrash2, FiFolder, FiFolderPlus, FiFileText, FiCalendar, FiImage, FiPackage } from 'react-icons/fi'
+import {
+  FiArrowLeft, FiEdit2, FiTrash2, FiFolder, FiFolderPlus,
+  FiFileText, FiCalendar, FiImage, FiPackage,
+  FiToggleLeft, FiToggleRight, FiCheckCircle, FiXCircle
+} from 'react-icons/fi'
 import { adminCategoryApiService } from '~/services/admin/adminCategoryApiService'
 import { getImageUrl, formatDateTime } from '~/utils/formatters'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
+import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 
 export const AdminCategoryDetailPage = () => {
   const { id } = useParams()
@@ -13,6 +18,13 @@ export const AdminCategoryDetailPage = () => {
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
+  // State cho toggle modal
+  const [toggleModal, setToggleModal] = useState({
+    isOpen: false,
+    isActive: null
+  })
+  const [isToggling, setIsToggling] = useState(false)
 
   const fetchCategoryDetail = async () => {
     try {
@@ -30,6 +42,29 @@ export const AdminCategoryDetailPage = () => {
   useEffect(() => {
     if (id) fetchCategoryDetail()
   }, [id])
+
+  // Xử lý toggle trạng thái
+  const handleToggleStatus = (isActive) => {
+    setToggleModal({
+      isOpen: true,
+      isActive: isActive
+    })
+  }
+
+  const handleConfirmToggle = async () => {
+    const { isActive } = toggleModal
+    setIsToggling(true)
+    try {
+      const res = await adminCategoryApiService.toggleCategoryStatus(id, isActive)
+      toast.success(res.message)
+      setToggleModal({ isOpen: false, isActive: null })
+      fetchCategoryDetail() // Refresh lại dữ liệu
+    } catch (error) {
+      toast.error(error.message || 'Cập nhật trạng thái thất bại')
+    } finally {
+      setIsToggling(false)
+    }
+  }
 
   const handleDelete = async () => {
     try {
@@ -71,7 +106,7 @@ export const AdminCategoryDetailPage = () => {
     { icon: FiCalendar, label: 'Ngày tạo', value: formatDateTime(category.createdAt) },
     { icon: FiPackage, label: 'Số sản phẩm', value: category.totalProducts || 0 },
     {
-      icon: category.isActive ? FiFolder : FiFolder,
+      icon: category.isActive ? FiCheckCircle : FiXCircle,
       label: 'Trạng thái',
       value: category.isActive ? 'Đang hoạt động' : 'Đã khóa',
       valueColor: category.isActive ? 'text-green-600' : 'text-red-600'
@@ -115,11 +150,16 @@ export const AdminCategoryDetailPage = () => {
                   {category.name}
                 </h1>
                 <span className="text-xs text-gray-400">Slug: {category.slug}</span>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
                   category.isActive
                     ? 'bg-green-50 text-green-600 border-green-200'
                     : 'bg-red-50 text-red-600 border-red-200'
                 }`}>
+                  {category.isActive ? (
+                    <FiCheckCircle size={10} />
+                  ) : (
+                    <FiXCircle size={10} />
+                  )}
                   {category.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                 </span>
               </div>
@@ -130,7 +170,30 @@ export const AdminCategoryDetailPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* 🆕 Nút toggle trạng thái */}
+          {category.isActive ? (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <button
+                onClick={() => handleToggleStatus(false)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 rounded-xl font-bold text-sm transition-all duration-200 shadow-sm cursor-pointer"
+              >
+                <FiToggleLeft size={16} />
+                Khóa danh mục
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <button
+                onClick={() => handleToggleStatus(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-green-50 hover:bg-green-600 text-green-600 hover:text-white border border-green-200 rounded-xl font-bold text-sm transition-all duration-200 shadow-sm cursor-pointer"
+              >
+                <FiToggleRight size={16} />
+                Kích hoạt danh mục
+              </button>
+            </motion.div>
+          )}
+
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Link
               to={`/admin/categories/edit/${category.id}`}
@@ -140,6 +203,7 @@ export const AdminCategoryDetailPage = () => {
               Chỉnh sửa
             </Link>
           </motion.div>
+
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <button
               onClick={() => setIsDeleteModalOpen(true)}
@@ -163,8 +227,20 @@ export const AdminCategoryDetailPage = () => {
             whileHover={{ x: 3 }}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4"
           >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <item.icon size={18} className="text-emerald-500" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              item.label === 'Trạng thái'
+                ? category.isActive
+                  ? 'bg-green-500/10'
+                  : 'bg-red-500/10'
+                : 'bg-emerald-500/10'
+            }`}>
+              <item.icon size={18} className={
+                item.label === 'Trạng thái'
+                  ? category.isActive
+                    ? 'text-green-500'
+                    : 'text-red-500'
+                  : 'text-emerald-500'
+              } />
             </div>
             <div>
               <p className="text-[10px] font-bold text-gray-400 uppercase">{item.label}</p>
@@ -175,6 +251,23 @@ export const AdminCategoryDetailPage = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Modal toggle trạng thái - Không cần nhập lý do */}
+      <ConfirmReasonModal
+        isOpen={toggleModal.isOpen}
+        onClose={() => setToggleModal({ isOpen: false, isActive: null })}
+        onConfirm={handleConfirmToggle}
+        title={toggleModal.isActive ? 'Kích hoạt danh mục' : 'Khóa danh mục'}
+        message={
+          toggleModal.isActive
+            ? `Bạn có chắc muốn kích hoạt danh mục "${category?.name}"?\n\nTất cả danh mục con và sản phẩm liên quan sẽ được kích hoạt theo.`
+            : `Bạn có chắc muốn khóa danh mục "${category?.name}"?\n\nTất cả danh mục con và sản phẩm liên quan sẽ bị khóa theo.`
+        }
+        placeholder=""
+        isLoading={isToggling}
+        hideReasonInput={true}
+        type={toggleModal.isActive ? 'success' : 'danger'}
+      />
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}

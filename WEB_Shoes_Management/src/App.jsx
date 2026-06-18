@@ -58,7 +58,9 @@ import { AdminStoreFormPage } from '~/pages/admin/Stores/StoreForm/AdminStoreFor
 import { AdminCategoriesPage } from '~/pages/admin/Categories/AdminCategoriesPage'
 import { CategoryFormPage } from '~/pages/admin/Categories/CategoryForm/CategoryFormPage'
 import { AdminCategoryDetailPage } from '~/pages/admin/Categories/CategoryDetail/AdminCategoryDetailPage'
-
+import { AdminAttributesPage } from '~/pages/admin/Attributes/AdminAttributesPage'
+import { AdminOrdersPage } from '~/pages/admin/Orders/AdminOrdersPage'
+import { AdminOrderDetailPage } from '~/pages/admin/Orders/OrderDetail/AdminOrderDetailPage'
 
 // AUTH PAGES
 import { RegisterPage } from '~/pages/auth/RegisterPage/RegisterPage'
@@ -193,6 +195,13 @@ const App = () => {
           <Route path="categories/add" element={<CategoryFormPage />} />
           <Route path="categories/edit/:id" element={<CategoryFormPage />} />
           <Route path="categories/:id" element={<AdminCategoryDetailPage />} />
+
+          {/* Attributes (Sizes & Colors) */}
+          <Route path="attributes" element={<AdminAttributesPage />} />
+
+          {/* Đơn hàng */}
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
 
           {/* Thông báo */}
           <Route path="notifications" element={<AllNotificationsPage />} />
