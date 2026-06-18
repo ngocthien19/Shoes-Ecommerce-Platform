@@ -4,7 +4,8 @@ import qs from 'qs'
 import { env } from '~/config/environment'
 import { orderModel } from '~/models/user/order/orderModel'
 import { PaymentProvider } from '~/providers/PaymentProvider'
-import { PAYMENT_METHODS, PAYMENT_STATUS, ORDER_STATUS } from '~/utils/constants'
+import { PAYMENT_METHODS, PAYMENT_STATUS, ORDER_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
+import { notificationService } from '~/services/notification/notificationService'
 
 // Tạo đơn hàng và trừ kho (Dùng chung cho cả COD và Online)
 const coreCreateOrderTransaction = async (userId, data) => {
@@ -36,13 +37,10 @@ const coreCreateOrderTransaction = async (userId, data) => {
       const discountAmount = Number(specificStoreDiscount?.amount) || 0
       const appliedVoucher = specificStoreDiscount?.code || null
 
-      // Trừ đi số tiền giảm giá chính xác của shop đó
       const totalAmount = Math.max(0, subTotal - discountAmount)
-
       totalAllShops += totalAmount
       const commissionRateSnapshot = storeItems[0].commission_rate || 10.00
 
-      // Tạo đơn hàng riêng biệt với thông tin chuẩn xác 100%
       const orderId = await orderModel.createOrder(connection, {
         userId,
         recipientName: data.recipientName,
@@ -79,6 +77,21 @@ const coreCreateOrderTransaction = async (userId, data) => {
 // 1. Luồng thanh toán COD
 const createOrderCOD = async (userId, payload) => {
   const { createdOrderIds } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD })
+
+  // Gửi thông báo cho user khi đặt hàng COD thành công
+  for (const orderId of createdOrderIds) {
+    await notificationService.createAndPushNotification({
+      userId: userId,
+      title: 'Đặt hàng thành công',
+      content: JSON.stringify({
+        message: `Đơn hàng #${orderId} đã được đặt thành công. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+        orderId: orderId
+      }),
+      type: NOTIFICATION_TYPES.ORDER_CREATED,
+      referenceId: orderId
+    }).catch(err => console.error('Lỗi gửi thông báo COD:', err))
+  }
+
   return { message: 'Đặt đơn hàng COD thành công!', orderIds: createdOrderIds }
 }
 
@@ -89,11 +102,24 @@ const createOrderOnline = async (userId, payload, ipAddr) => {
 
   let paymentUrl = ''
 
-  // Rẽ nhánh tùy theo user chọn cổng nào
   if (payload.paymentMethod === PAYMENT_METHODS.VNPAY) {
     paymentUrl = PaymentProvider.createVNPayUrl(txnRef, totalAllShops, ipAddr)
   } else if (payload.paymentMethod === PAYMENT_METHODS.MOMO) {
     paymentUrl = await PaymentProvider.createMoMoUrl(txnRef, totalAllShops)
+  }
+
+  // Gửi thông báo cho user khi tạo đơn online thành công
+  for (const orderId of createdOrderIds) {
+    await notificationService.createAndPushNotification({
+      userId: userId,
+      title: 'Đơn hàng đang chờ thanh toán',
+      content: JSON.stringify({
+        message: `Đơn hàng #${orderId} đã được tạo. Vui lòng thanh toán để hoàn tất đặt hàng.`,
+        orderId: orderId
+      }),
+      type: NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT,
+      referenceId: orderId
+    }).catch(err => console.error('Lỗi gửi thông báo online:', err))
   }
 
   return { message: 'Tạo đơn chờ thanh toán thành công!', orderIds: createdOrderIds, paymentUrl }
@@ -103,11 +129,9 @@ const createOrderOnline = async (userId, payload, ipAddr) => {
 const vnpayIPN = async (vnp_Params) => {
   const secureHash = vnp_Params['vnp_SecureHash']
 
-  // Xóa chữ ký cũ đi trước khi băm lại
   delete vnp_Params['vnp_SecureHash']
   delete vnp_Params['vnp_SecureHashType']
 
-  // Phải dùng đúng hàm sortObject của VNPAY thay vì sort thường
   vnp_Params = PaymentProvider.sortObject(vnp_Params)
 
   const signData = qs.stringify(vnp_Params, { encode: false })
@@ -121,6 +145,24 @@ const vnpayIPN = async (vnp_Params) => {
       const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+
+      // Gửi thông báo cho user khi thanh toán VNPAY thành công
+      for (const orderId of orderIds) {
+        const userId = await orderModel.getOrderUserId(orderId)
+        if (userId) {
+          await notificationService.createAndPushNotification({
+            userId: userId,
+            title: 'Thanh toán thành công',
+            content: JSON.stringify({
+              message: `Đơn hàng #${orderId} đã được thanh toán thành công qua VNPAY. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+              orderId: orderId
+            }),
+            type: NOTIFICATION_TYPES.ORDER_PAID,
+            referenceId: orderId
+          }).catch(err => console.error('Lỗi gửi thông báo VNPAY:', err))
+        }
+      }
+
       return { code: '00', message: 'Confirm Success' }
     } else {
       return { code: '00', message: 'Success but not paid' }
@@ -130,38 +172,72 @@ const vnpayIPN = async (vnp_Params) => {
   return { code: '97', message: 'Checksum failed' }
 }
 
+// MoMo IPN
 const momoIPN = async (reqBody) => {
   const {
     partnerCode, orderId, requestId, amount, orderInfo, orderType,
     transId, resultCode, message, payType, responseTime, extraData, signature
   } = reqBody
 
-  // Băm lại chữ ký xem có đúng của MoMo gửi không
   const rawSignature = `accessKey=${env.MOMO_ACCESS_KEY}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`
   const expectedSignature = crypto.createHmac('sha256', env.MOMO_SECRET_KEY).update(rawSignature).digest('hex')
 
   if (signature === expectedSignature) {
-    if (resultCode === 0) { // 0 là mã thành công của MoMo
+    if (resultCode === 0) {
       const parts = orderId.split('_')
       const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+
+      // Gửi thông báo cho user khi thanh toán MoMo thành công
+      for (const orderId of orderIds) {
+        const userId = await orderModel.getOrderUserId(orderId)
+        if (userId) {
+          await notificationService.createAndPushNotification({
+            userId: userId,
+            title: 'Thanh toán thành công',
+            content: JSON.stringify({
+              message: `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+              orderId: orderId
+            }),
+            type: NOTIFICATION_TYPES.ORDER_PAID,
+            referenceId: orderId
+          }).catch(err => console.error('Lỗi gửi thông báo MoMo:', err))
+        }
+      }
+
       return { success: true }
     }
   }
   throw new Error('Giao dịch MoMo thất bại hoặc sai chữ ký bảo mật.')
 }
 
+// MoMo Return
 const processMoMoReturn = async (queryData) => {
   const { resultCode, message, orderId } = queryData
 
   if (resultCode === '0') {
-    // Bóc tách ID đơn hàng
     const parts = orderId.split('_')
     const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
-    // Gọi Model cập nhật DB ngay tại tầng Service
     await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+
+    // Gửi thông báo cho user khi thanh toán MoMo thành công
+    for (const orderId of orderIds) {
+      const userId = await orderModel.getOrderUserId(orderId)
+      if (userId) {
+        await notificationService.createAndPushNotification({
+          userId: userId,
+          title: 'Thanh toán thành công',
+          content: JSON.stringify({
+            message: `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+            orderId: orderId
+          }),
+          type: NOTIFICATION_TYPES.ORDER_PAID,
+          referenceId: orderId
+        }).catch(err => console.error('Lỗi gửi thông báo MoMo:', err))
+      }
+    }
 
     return {
       isSuccess: true,
@@ -177,4 +253,10 @@ const processMoMoReturn = async (queryData) => {
   }
 }
 
-export const orderService = { createOrderCOD, createOrderOnline, vnpayIPN, momoIPN, processMoMoReturn }
+export const orderService = {
+  createOrderCOD,
+  createOrderOnline,
+  vnpayIPN,
+  momoIPN,
+  processMoMoReturn
+}
