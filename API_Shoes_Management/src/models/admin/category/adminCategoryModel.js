@@ -136,6 +136,57 @@ const getCategoriesOverviewStats = async () => {
   }
 }
 
+// 11. Cập nhật trạng thái danh mục (kèm cập nhật sản phẩm)
+const updateCategoryStatus = async (id, isActive) => {
+  const query = 'UPDATE categories SET is_active = ? WHERE id = ?'
+  const [result] = await pool.execute(query, [isActive, id])
+  return result.affectedRows
+}
+
+// 12. Cập nhật trạng thái sản phẩm theo category_id
+const updateProductsStatusByCategory = async (categoryId, isActive) => {
+  const query = 'UPDATE products SET is_active = ? WHERE category_id = ?'
+  const [result] = await pool.execute(query, [isActive, categoryId])
+  return result.affectedRows
+}
+
+// 13. Lấy tất cả category con (đệ quy) - hỗ trợ cập nhật cascade
+const getAllChildCategoryIds = async (parentId) => {
+  const query = `
+    WITH RECURSIVE category_tree AS (
+      SELECT id FROM categories WHERE id = ?
+      UNION ALL
+      SELECT c.id FROM categories c
+      INNER JOIN category_tree ct ON c.parent_id = ct.id
+    )
+    SELECT id FROM category_tree
+  `
+  const [rows] = await pool.execute(query, [parentId])
+  return rows.map(row => row.id)
+}
+
+// 14. Cập nhật trạng thái danh mục và tất cả danh mục con (cascade)
+const updateCategoryAndChildrenStatus = async (categoryId, isActive) => {
+  // Lấy tất cả ID danh mục con (bao gồm cả chính nó)
+  const childIds = await getAllChildCategoryIds(categoryId)
+
+  if (childIds.length === 0) return { categoryUpdated: 0, productsUpdated: 0 }
+
+  // Cập nhật trạng thái cho tất cả danh mục con
+  const placeholders = childIds.map(() => '?').join(', ')
+  const updateCategoryQuery = `UPDATE categories SET is_active = ? WHERE id IN (${placeholders})`
+  const [categoryResult] = await pool.execute(updateCategoryQuery, [isActive, ...childIds])
+
+  // Cập nhật trạng thái cho tất cả sản phẩm thuộc các danh mục con
+  const updateProductQuery = `UPDATE products SET is_active = ? WHERE category_id IN (${placeholders})`
+  const [productResult] = await pool.execute(updateProductQuery, [isActive, ...childIds])
+
+  return {
+    categoryUpdated: categoryResult.affectedRows,
+    productsUpdated: productResult.affectedRows
+  }
+}
+
 export const adminCategoryModel = {
   getAllCategoriesFlat,
   checkSlugExist,
@@ -146,5 +197,9 @@ export const adminCategoryModel = {
   deleteCategoryHard,
   getCategoriesForAdmin,
   countCategoriesForAdmin,
-  getCategoriesOverviewStats
+  getCategoriesOverviewStats,
+  updateCategoryStatus,
+  updateProductsStatusByCategory,
+  getAllChildCategoryIds,
+  updateCategoryAndChildrenStatus
 }
