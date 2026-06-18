@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { FiCheck } from 'react-icons/fi'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { RecommendedProducts } from '~/components/user/RecommendedProducts'
 import { useDispatch } from 'react-redux'
 import { setCartCount } from '~/redux/user/cartSlice'

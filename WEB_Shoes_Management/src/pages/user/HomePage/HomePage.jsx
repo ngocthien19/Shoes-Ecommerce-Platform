@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { productService } from '~/services/user/productService'
-import { Header } from '~/layouts/user/Header'
 import { HeroSection } from '~/pages/user/HomePage/HeroSection'
-import { Footer } from '~/layouts/user/Footer'
 import { ProductSection } from '~/components/user/ProductSection'
 
 export const HomePage = () => {
