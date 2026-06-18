@@ -1,6 +1,7 @@
 import {
   FiBell, FiPackage, FiHome, FiFlag, FiDollarSign, FiAlertCircle,
-  FiUser, FiMail, FiMapPin, FiClock, FiPhone, FiStar, FiTag, FiHash
+  FiUser, FiMail, FiMapPin, FiClock, FiPhone, FiStar, FiTag, FiHash,
+  FiShoppingBag, FiTruck, FiCheckCircle, FiXCircle
 } from 'react-icons/fi'
 import { NOTIFICATION_TYPES, ROLE_ID, REVIEW_TYPES } from '~/utils/constant'
 
@@ -32,6 +33,20 @@ export const getIconByType = (type) => {
   case NOTIFICATION_TYPES.APPEAL_APPROVED:
   case NOTIFICATION_TYPES.APPEAL_REJECTED:
     return { icon: FiAlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
+  case NOTIFICATION_TYPES.ORDER_CREATED:
+  case NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT:
+    return { icon: FiShoppingBag, color: 'text-blue-500', bg: 'bg-blue-50' }
+  case NOTIFICATION_TYPES.ORDER_PAID:
+    return { icon: FiDollarSign, color: 'text-green-500', bg: 'bg-green-50' }
+  case NOTIFICATION_TYPES.ORDER_PROCESSING:
+    return { icon: FiPackage, color: 'text-purple-500', bg: 'bg-purple-50' }
+  case NOTIFICATION_TYPES.ORDER_SHIPPED:
+    return { icon: FiTruck, color: 'text-indigo-500', bg: 'bg-indigo-50' }
+  case NOTIFICATION_TYPES.ORDER_DELIVERED:
+    return { icon: FiCheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' }
+  case NOTIFICATION_TYPES.ORDER_CANCELLED:
+  case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
+    return { icon: FiXCircle, color: 'text-red-500', bg: 'bg-red-50' }
   default:
     return { icon: FiBell, color: 'text-gray-500', bg: 'bg-gray-50' }
   }
@@ -62,7 +77,21 @@ export const getLinkByType = (notification, userRole) => {
   const contentData = parseContent(notification.content)
   const reviewType = contentData.reviewType
 
-  if (userRole === ROLE_ID.VENDOR) {
+  if (userRole === ROLE_ID.USER || !userRole) {
+    switch (type) {
+    case NOTIFICATION_TYPES.ORDER_CREATED:
+    case NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT:
+    case NOTIFICATION_TYPES.ORDER_PAID:
+    case NOTIFICATION_TYPES.ORDER_PROCESSING:
+    case NOTIFICATION_TYPES.ORDER_SHIPPED:
+    case NOTIFICATION_TYPES.ORDER_DELIVERED:
+    case NOTIFICATION_TYPES.ORDER_CANCELLED:
+    case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
+      return reference_id ? `/orders/${reference_id}` : '/orders'
+    default:
+      return null
+    }
+  } else if (userRole === ROLE_ID.VENDOR) {
     switch (type) {
     case NOTIFICATION_TYPES.PRODUCT_PENDING:
     case NOTIFICATION_TYPES.PRODUCT_APPROVED:

@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  FiBell, FiX, FiCheckCircle, FiPackage, FiShoppingBag, FiFlag,
-  FiDollarSign, FiHome, FiAlertCircle, FiUser, FiClock, FiMapPin,
-  FiMail, FiPhone, FiExternalLink, FiMoreHorizontal
+  FiBell, FiX, FiCheckCircle, FiExternalLink, FiMoreHorizontal
 } from 'react-icons/fi'
-import { formatRelativeTime, getImageUrl } from '~/utils/formatters'
+import { formatRelativeTime } from '~/utils/formatters'
 import { notificationApiService } from '~/services/notification/notificationApiService'
-import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constant'
+import { ROLE_ID } from '~/utils/constant'
 import { Link, useNavigate } from 'react-router-dom'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import {
@@ -16,6 +14,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
+import {
+  getIconByType,
+  parseContent,
+  getLinkByType,
+  getDetailItems
+} from '~/utils/notificationHelpers'
 
 export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChange }) => {
   const [notifications, setNotifications] = useState([])
@@ -105,97 +109,6 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     }
   }, [hasMore, loadingMore, page])
 
-  const getIconByType = (type) => {
-    switch (type) {
-    case NOTIFICATION_TYPES.PRODUCT_PENDING:
-    case NOTIFICATION_TYPES.PRODUCT_APPROVED:
-    case NOTIFICATION_TYPES.PRODUCT_REJECTED:
-    case NOTIFICATION_TYPES.PRODUCT_BANNED:
-    case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
-      return { icon: FiPackage, color: 'text-blue-500', bg: 'bg-blue-50' }
-    case NOTIFICATION_TYPES.STORE_PENDING:
-    case NOTIFICATION_TYPES.STORE_APPROVED:
-    case NOTIFICATION_TYPES.STORE_REJECTED:
-    case NOTIFICATION_TYPES.STORE_BANNED:
-      return { icon: FiHome, color: 'text-purple-500', bg: 'bg-purple-50' }
-    case NOTIFICATION_TYPES.REVIEW_REPORTED:
-    case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-      return { icon: FiFlag, color: 'text-amber-500', bg: 'bg-amber-50' }
-    case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-    case NOTIFICATION_TYPES.PAYOUT_APPROVED:
-    case NOTIFICATION_TYPES.PAYOUT_REJECTED:
-      return { icon: FiDollarSign, color: 'text-green-500', bg: 'bg-green-50' }
-    case NOTIFICATION_TYPES.APPEAL_REQUESTED:
-    case NOTIFICATION_TYPES.APPEAL_APPROVED:
-    case NOTIFICATION_TYPES.APPEAL_REJECTED:
-      return { icon: FiAlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
-    default:
-      return { icon: FiBell, color: 'text-brand-secondary', bg: 'bg-brand-secondary/10' }
-    }
-  }
-
-  const parseContent = (content) => {
-    try {
-      return JSON.parse(content)
-    } catch {
-      return { message: content }
-    }
-  }
-
-  const getLinkByType = (notification) => {
-    const { type, reference_id } = notification
-    const contentData = parseContent(notification.content)
-    const reviewType = contentData.reviewType
-
-    if (userRole === ROLE_ID.VENDOR) {
-      switch (type) {
-      case NOTIFICATION_TYPES.PRODUCT_PENDING:
-      case NOTIFICATION_TYPES.PRODUCT_APPROVED:
-      case NOTIFICATION_TYPES.PRODUCT_REJECTED:
-      case NOTIFICATION_TYPES.PRODUCT_BANNED:
-      case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
-        return reference_id ? `/vendor/products/detail/${reference_id}` : null
-      case NOTIFICATION_TYPES.STORE_PENDING:
-      case NOTIFICATION_TYPES.STORE_APPROVED:
-      case NOTIFICATION_TYPES.STORE_REJECTED:
-      case NOTIFICATION_TYPES.STORE_BANNED:
-        return '/vendor/profile-store'
-      case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-      case NOTIFICATION_TYPES.PAYOUT_APPROVED:
-      case NOTIFICATION_TYPES.PAYOUT_REJECTED:
-        return '/vendor/payouts'
-      case NOTIFICATION_TYPES.APPEAL_APPROVED:
-      case NOTIFICATION_TYPES.APPEAL_REJECTED:
-      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
-        return reference_id ? `/vendor/appeals/${reference_id}` : null
-      default:
-        return null
-      }
-    } else if (userRole === ROLE_ID.USER) {
-      return null
-    } else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
-      switch (type) {
-      case NOTIFICATION_TYPES.PRODUCT_PENDING:
-      case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
-        return reference_id ? `/manager/products/detail/${reference_id}` : null
-      case NOTIFICATION_TYPES.STORE_PENDING:
-        return reference_id ? `/manager/stores/${reference_id}` : null
-      case NOTIFICATION_TYPES.REVIEW_REPORTED:
-      case NOTIFICATION_TYPES.REVIEW_REOPEN_REQUESTED:
-        return reference_id ? `/manager/reviews/${reference_id}?type=${reviewType || 'product'}` : null
-      case NOTIFICATION_TYPES.PAYOUT_REQUESTED:
-        return reference_id ? `/admin/payouts/${reference_id}` : null
-      case NOTIFICATION_TYPES.APPEAL_REQUESTED:
-      case NOTIFICATION_TYPES.APPEAL_APPROVED:
-      case NOTIFICATION_TYPES.APPEAL_REJECTED:
-        return reference_id ? `/manager/appeals/${reference_id}` : null
-      default:
-        return null
-      }
-    }
-    return null
-  }
-
   // Xử lý chuyển sang trang xem tất cả
   const handleViewAll = () => {
     onClose()
@@ -210,80 +123,9 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
     }
   }
 
-  // Render thông tin chi tiết dựa trên nội dung JSON
+  // Render thông tin chi tiết dựa trên nội dung JSON - Sử dụng getDetailItems từ helper
   const renderDetailInfo = (contentData) => {
-    const detailItems = []
-
-    // Người đăng ký / Chủ cửa hàng
-    if (contentData.ownerName) {
-      detailItems.push({
-        icon: FiUser,
-        label: 'Người đăng ký',
-        value: contentData.ownerName
-      })
-    }
-    if (contentData.ownerEmail) {
-      detailItems.push({
-        icon: FiMail,
-        label: 'Email',
-        value: contentData.ownerEmail
-      })
-    }
-
-    // Sản phẩm
-    if (contentData.productName) {
-      detailItems.push({
-        icon: FiPackage,
-        label: 'Sản phẩm',
-        value: contentData.productName
-      })
-    }
-
-    // Số tiền
-    if (contentData.amount) {
-      detailItems.push({
-        icon: FiDollarSign,
-        label: 'Số tiền',
-        value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(contentData.amount)
-      })
-    }
-
-    // Số lượng sản phẩm / đánh giá
-    if (contentData.count) {
-      detailItems.push({
-        icon: FiPackage,
-        label: 'Số lượng',
-        value: contentData.count
-      })
-    }
-
-    // Thời gian
-    if (contentData.date) {
-      detailItems.push({
-        icon: FiClock,
-        label: 'Thời gian',
-        value: contentData.date
-      })
-    }
-
-    // Địa chỉ
-    if (contentData.address) {
-      detailItems.push({
-        icon: FiMapPin,
-        label: 'Địa chỉ',
-        value: contentData.address
-      })
-    }
-
-    // Số điện thoại
-    if (contentData.phone) {
-      detailItems.push({
-        icon: FiPhone,
-        label: 'SĐT',
-        value: contentData.phone
-      })
-    }
-
+    const detailItems = getDetailItems(contentData)
     if (detailItems.length === 0) return null
 
     return (
@@ -386,10 +228,12 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
               ) : (
                 <>
                   {notifications.map((notif) => {
+                    // 🆕 Sử dụng getIconByType từ helper
                     const { icon: Icon, color, bg } = getIconByType(notif.type)
                     const contentData = parseContent(notif.content)
                     const isUnread = !notif.is_read
-                    const link = getLinkByType(notif)
+                    // 🆕 Sử dụng getLinkByType từ helper
+                    const link = getLinkByType(notif, userRole)
                     const imageUrl = contentData.image
 
                     return (
@@ -456,7 +300,6 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
                               </div>
                             )}
 
-                            {/* Thông tin chi tiết động từ JSON */}
                             {renderDetailInfo(contentData)}
 
                             {/* Link xem chi tiết */}
