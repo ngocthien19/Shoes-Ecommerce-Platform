@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiFilter, FiClock, FiDollarSign, FiStar, FiPercent } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
@@ -11,6 +12,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip
 import { motion, AnimatePresence } from 'framer-motion'
 
 export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchTxt, setSearchTxt] = useState(filters.search || '')
 
   useEffect(() => {
@@ -32,7 +34,6 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
 
   const sortOptions = [
     { value: 'created_at', label: 'Mới nhất', icon: FiClock, group: 'Thời gian' },
-    { value: 'created_at_asc', label: 'Cũ nhất', icon: FiClock, group: 'Thời gian' },
     { value: 'balance', label: 'Số dư cao nhất', icon: FiDollarSign, group: 'Số dư' },
     { value: 'balance_asc', label: 'Số dư thấp nhất', icon: FiDollarSign, group: 'Số dư' },
     { value: 'rating_average', label: 'Đánh giá cao nhất', icon: FiStar, group: 'Đánh giá' },
@@ -41,7 +42,6 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
     { value: 'commission_rate_asc', label: 'Phí hoa hồng thấp nhất', icon: FiPercent, group: 'Phí hoa hồng' }
   ]
 
-  // Map icon cho từng group
   const groupIcons = {
     'Thời gian': FiClock,
     'Số dư': FiDollarSign,
@@ -80,42 +80,42 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
 
   const handleRemoveFilter = (key) => {
     if (key === 'sortBy') {
-      onFilterChange('sortBy', 'created_at')
-      onFilterChange('sortOrder', 'DESC')
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('sortBy')
+      newParams.delete('sortOrder')
+      newParams.set('page', '1')
+      setSearchParams(newParams)
     } else {
       onFilterChange(key, null)
     }
   }
 
   const handleSortChange = (value) => {
-    if (value === 'created_at') {
-      onFilterChange('sortBy', 'created_at')
-      onFilterChange('sortOrder', 'DESC')
-    } else if (value === 'created_at_asc') {
-      onFilterChange('sortBy', 'created_at')
-      onFilterChange('sortOrder', 'ASC')
-    } else if (value === 'balance') {
-      onFilterChange('sortBy', 'balance')
-      onFilterChange('sortOrder', 'DESC')
-    } else if (value === 'balance_asc') {
-      onFilterChange('sortBy', 'balance')
-      onFilterChange('sortOrder', 'ASC')
-    } else if (value === 'rating_average') {
-      onFilterChange('sortBy', 'rating_average')
-      onFilterChange('sortOrder', 'DESC')
-    } else if (value === 'rating_average_asc') {
-      onFilterChange('sortBy', 'rating_average')
-      onFilterChange('sortOrder', 'ASC')
-    } else if (value === 'commission_rate') {
-      onFilterChange('sortBy', 'commission_rate')
-      onFilterChange('sortOrder', 'DESC')
-    } else if (value === 'commission_rate_asc') {
-      onFilterChange('sortBy', 'commission_rate')
-      onFilterChange('sortOrder', 'ASC')
+    const newParams = new URLSearchParams(searchParams)
+
+    newParams.delete('sortBy')
+    newParams.delete('sortOrder')
+
+    const sortMap = {
+      'created_at': { sortBy: 'created_at', sortOrder: 'DESC' },
+      'balance': { sortBy: 'balance', sortOrder: 'DESC' },
+      'balance_asc': { sortBy: 'balance', sortOrder: 'ASC' },
+      'rating_average': { sortBy: 'rating_average', sortOrder: 'DESC' },
+      'rating_average_asc': { sortBy: 'rating_average', sortOrder: 'ASC' },
+      'commission_rate': { sortBy: 'commission_rate', sortOrder: 'DESC' },
+      'commission_rate_asc': { sortBy: 'commission_rate', sortOrder: 'ASC' }
     }
+
+    const config = sortMap[value]
+    if (config) {
+      newParams.set('sortBy', config.sortBy)
+      newParams.set('sortOrder', config.sortOrder)
+    }
+
+    newParams.set('page', '1')
+    setSearchParams(newParams)
   }
 
-  // Nhóm các option theo group
   const groupedOptions = sortOptions.reduce((acc, option) => {
     if (!acc[option.group]) {
       acc[option.group] = []
@@ -138,7 +138,6 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Bộ lọc trạng thái */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[140px]">
@@ -159,7 +158,6 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Bộ lọc sắp xếp */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[160px]">
