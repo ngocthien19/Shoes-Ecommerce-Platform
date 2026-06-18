@@ -11,6 +11,7 @@ const getAllOrdersSystem = async (queryParams) => {
   const [orders, totalItems, overviewStats] = await Promise.all([
     adminOrderModel.getAllOrdersSystem({
       status: queryParams.status,
+      paymentStatus: queryParams.paymentStatus,
       searchOrderId: queryParams.searchOrderId,
       startDate: queryParams.startDate,
       endDate: queryParams.endDate,
@@ -19,6 +20,7 @@ const getAllOrdersSystem = async (queryParams) => {
     }),
     adminOrderModel.countAllOrdersSystem({
       status: queryParams.status,
+      paymentStatus: queryParams.paymentStatus,
       searchOrderId: queryParams.searchOrderId,
       startDate: queryParams.startDate,
       endDate: queryParams.endDate

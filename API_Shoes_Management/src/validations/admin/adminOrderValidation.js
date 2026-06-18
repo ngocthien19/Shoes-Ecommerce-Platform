@@ -1,11 +1,12 @@
 import Joi from 'joi'
-import { ORDER_STATUS } from '~/utils/constants'
+import { ORDER_STATUS, PAYMENT_STATUS } from '~/utils/constants'
 
 const checkFiltersAndId = async (req, res, next) => {
   const correctCondition = Joi.object({
     page: Joi.number().integer().min(1).optional(),
     limit: Joi.number().integer().min(1).max(100).optional(),
     status: Joi.string().valid(...Object.values(ORDER_STATUS)).optional(),
+    paymentStatus: Joi.string().valid(...Object.values(PAYMENT_STATUS)).optional(),
     searchOrderId: Joi.number().integer().positive().optional(),
     startDate: Joi.string().isoDate().optional(),
     endDate: Joi.string().isoDate().optional()
