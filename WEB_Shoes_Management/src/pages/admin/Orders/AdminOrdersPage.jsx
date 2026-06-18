@@ -26,11 +26,12 @@ export const AdminOrdersPage = () => {
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10
   const status = searchParams.get('status') || null
+  const paymentStatus = searchParams.get('paymentStatus') || null
   const searchOrderId = searchParams.get('searchOrderId') || null
   const startDate = searchParams.get('startDate') || null
   const endDate = searchParams.get('endDate') || null
 
-  const activeFilters = { page, limit, status, searchOrderId, startDate, endDate }
+  const activeFilters = { page, limit, status, paymentStatus, searchOrderId, startDate, endDate } // 🆕 Thêm paymentStatus
 
   const fetchOrders = async () => {
     try {
@@ -90,6 +91,7 @@ export const AdminOrdersPage = () => {
   const getActiveFiltersCount = () => {
     let count = 0
     if (status) count++
+    if (paymentStatus) count++
     if (searchOrderId) count++
     if (startDate) count++
     if (endDate) count++
