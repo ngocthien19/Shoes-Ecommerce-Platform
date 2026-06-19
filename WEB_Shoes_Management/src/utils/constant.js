@@ -1,4 +1,10 @@
-export const DEV_API_URL = 'http://localhost:3000'
+const isDocker = window.location.hostname === 'localhost'
+  ? false
+  : true
+
+export const DEV_API_URL = isDocker
+  ? 'http://backend:3000' // Khi chạy Docker
+  : 'http://localhost:3000' // Khi chạy local
 
 export const ROLE_ID = {
   ADMIN: 1,
