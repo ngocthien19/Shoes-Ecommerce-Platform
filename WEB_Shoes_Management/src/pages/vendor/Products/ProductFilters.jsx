@@ -17,7 +17,9 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
   const [searchTxt, setSearchTxt] = useState(filters.search || '')
 
   useEffect(() => {
-    categoryService.getAllCategories().then(setCategories).catch(console.error)
+    categoryService.getAllCategories()
+      .then(setCategories)
+      .catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -30,6 +32,24 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
     }, 400)
     return () => clearTimeout(timer)
   }, [searchTxt])
+
+  // Hàm làm phẳng danh sách categories để hiển thị trong dropdown
+  const flattenCategories = (categories, level = 0) => {
+    let result = []
+    categories.forEach(category => {
+      result.push({
+        ...category,
+        level // Thêm level để biết độ sâu
+      })
+      if (category.children && category.children.length > 0) {
+        result = result.concat(flattenCategories(category.children, level + 1))
+      }
+    })
+    return result
+  }
+
+  // Lấy danh sách phẳng để hiển thị
+  const flatCategories = flattenCategories(categories)
 
   const statusOptions = [
     { value: 1, label: 'Đang mở bán' },
@@ -45,7 +65,22 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
     { value: 'rating', label: 'Đánh giá cao nhất' }
   ]
 
-  const currentCategoryLabel = categories.find(c => c.id === filters.categoryId)?.name || 'Tất cả danh mục'
+  // Tìm category để hiển thị label (có thể là category con)
+  const findCategoryName = (categories, id) => {
+    for (const cat of categories) {
+      if (cat.id === id) return cat.name
+      if (cat.children) {
+        const found = findCategoryName(cat.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const currentCategoryLabel = filters.categoryId
+    ? findCategoryName(categories, filters.categoryId) || 'Tất cả danh mục'
+    : 'Tất cả danh mục'
+
   const currentStatusLabel = statusOptions.find(s => s.value === filters.isActive)?.label || 'Tất cả trạng thái'
   const currentSortLabel = sortOptions.find(s => s.value === filters.sortBy)?.label || 'Sắp xếp'
 
@@ -53,8 +88,8 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
   if (filters.categoryId) {
-    const cat = categories.find(c => c.id === filters.categoryId)
-    if (cat) activeBadges.push({ key: 'categoryId', label: `Danh mục: ${cat.name}` })
+    const catName = findCategoryName(categories, filters.categoryId)
+    if (catName) activeBadges.push({ key: 'categoryId', label: `Danh mục: ${catName}` })
   }
   if (filters.isActive !== null && filters.isActive !== undefined) {
     const statusLabel = filters.isActive === 1 ? 'Đang mở bán' : 'Đang tạm ẩn'
@@ -88,11 +123,32 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
                 <FiChevronDown size={14} className="text-gray-400" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto rounded-xl shadow-xl border-gray-50">
-              <DropdownMenuItem onClick={() => onFilterChange('categoryId', null)} className="text-xs font-bold cursor-pointer rounded-lg">Tất cả danh mục</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="max-h-60 overflow-y-auto rounded-xl shadow-xl border-gray-50 min-w-[200px]">
+              <DropdownMenuItem onClick={() => onFilterChange('categoryId', null)} className="text-xs font-bold cursor-pointer rounded-lg">
+                Tất cả danh mục
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              {categories.map(c => (
-                <DropdownMenuItem key={c.id} onClick={() => onFilterChange('categoryId', c.id)} className="text-xs font-semibold cursor-pointer rounded-lg">{c.name}</DropdownMenuItem>
+
+              {/* Hiển thị categories với thụt lề */}
+              {flatCategories.map(c => (
+                <DropdownMenuItem
+                  key={c.id}
+                  onClick={() => onFilterChange('categoryId', c.id)}
+                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                  style={{
+                    paddingLeft: `${c.level * 20 + 12}px`,
+                    borderLeft: c.level > 0 ? '2px solid #e5e7eb' : 'none',
+                    marginLeft: c.level > 0 ? '8px' : '0'
+                  }}
+                >
+                  {c.level > 0 && (
+                    <span className="text-gray-400 mr-2">└</span>
+                  )}
+                  {c.name}
+                  {c.children && c.children.length > 0 && (
+                    <span className="ml-2 text-xs text-gray-400">({c.children.length})</span>
+                  )}
+                </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -105,9 +161,17 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
-              <DropdownMenuItem onClick={() => onFilterChange('isActive', null)} className="text-xs font-bold cursor-pointer rounded-lg">Tất cả trạng thái</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onFilterChange('isActive', null)} className="text-xs font-bold cursor-pointer rounded-lg">
+                Tất cả trạng thái
+              </DropdownMenuItem>
               {statusOptions.map(s => (
-                <DropdownMenuItem key={s.label} onClick={() => onFilterChange('isActive', s.value)} className="text-xs font-semibold cursor-pointer rounded-lg">{s.label}</DropdownMenuItem>
+                <DropdownMenuItem
+                  key={s.label}
+                  onClick={() => onFilterChange('isActive', s.value)}
+                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                >
+                  {s.label}
+                </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -121,21 +185,29 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
               {sortOptions.map(o => (
-                <DropdownMenuItem key={o.value} onClick={() => onFilterChange('sortBy', o.value)} className="text-xs font-semibold cursor-pointer rounded-lg">{o.label}</DropdownMenuItem>
+                <DropdownMenuItem
+                  key={o.value}
+                  onClick={() => onFilterChange('sortBy', o.value)}
+                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                >
+                  {o.label}
+                </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={onReset} className="p-2.5 bg-gray-50 text-gray-500 hover:text-brand-primary border border-gray-200 rounded-xl cursor-pointer transition-colors hover:bg-brand-primary/5 shadow-sm" title="Làm mới bộ lọc">
+              <button
+                onClick={onReset}
+                className="p-2.5 bg-gray-50 text-gray-500 hover:text-brand-primary border border-gray-200 rounded-xl cursor-pointer transition-colors hover:bg-brand-primary/5 shadow-sm"
+                title="Làm mới bộ lọc"
+              >
                 <FiRefreshCw size={15} />
               </button>
             </TooltipTrigger>
             <TooltipContent className="font-semibold">Làm mới bộ lọc</TooltipContent>
           </Tooltip>
-
-
         </div>
       </div>
 
@@ -155,10 +227,16 @@ export const ProductFilters = ({ filters, onFilterChange, onReset }) => {
                 className="flex items-center gap-1.5 px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-xs font-bold shadow-sm"
               >
                 {badge.label}
-                <FiX className="cursor-pointer hover:bg-brand-primary hover:text-white rounded-full p-0.5 transition-all w-4 h-4" onClick={() => onFilterChange(badge.key, null)} />
+                <FiX
+                  className="cursor-pointer hover:bg-brand-primary hover:text-white rounded-full p-0.5 transition-all w-4 h-4"
+                  onClick={() => onFilterChange(badge.key, null)}
+                />
               </motion.span>
             ))}
-            <button onClick={onReset} className="text-xs font-semibold text-gray-500 hover:text-red-500 underline ml-3 transition-colors cursor-pointer">
+            <button
+              onClick={onReset}
+              className="text-xs font-semibold text-gray-500 hover:text-red-500 underline ml-3 transition-colors cursor-pointer"
+            >
               Xóa tất cả bộ lọc
             </button>
           </motion.div>

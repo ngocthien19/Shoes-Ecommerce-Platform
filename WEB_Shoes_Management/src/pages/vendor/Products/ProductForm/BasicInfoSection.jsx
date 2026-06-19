@@ -15,6 +15,18 @@ import {
 export const BasicInfoSection = ({ categories, imageFiles, existingImages, onImageSelect, onRemoveNewImage, onRemoveOldImage }) => {
   const { register, control, formState: { errors } } = useFormContext()
 
+  // Hàm tìm tên category theo id (hỗ trợ nested)
+  const findCategoryName = (categories, id) => {
+    for (const cat of categories) {
+      if (cat.id === id) return cat.displayName || cat.name
+      if (cat.children) {
+        const found = findCategoryName(cat.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -58,12 +70,14 @@ export const BasicInfoSection = ({ categories, imageFiles, existingImages, onIma
                 control={control}
                 rules={{ required: 'Vui lòng chọn danh mục' }}
                 render={({ field }) => {
-                  const selectedCat = categories.find(c => c.id === field.value)
+                  // Tìm category đã chọn (có thể là category con)
+                  const selectedCatName = findCategoryName(categories, field.value)
+
                   return (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="flex w-full items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-sm font-semibold text-gray-700 outline-none cursor-pointer transition-all duration-300 focus:ring-4 focus:ring-brand-primary/10">
-                          <span>{selectedCat ? selectedCat.name : 'Chọn danh mục'}</span>
+                          <span>{selectedCatName || 'Chọn danh mục'}</span>
                           <FiChevronDown size={16} className="text-gray-400" />
                         </button>
                       </DropdownMenuTrigger>
@@ -73,8 +87,19 @@ export const BasicInfoSection = ({ categories, imageFiles, existingImages, onIma
                             key={c.id}
                             onClick={() => field.onChange(c.id)}
                             className="text-sm font-semibold cursor-pointer py-2.5 hover:bg-brand-primary/5 hover:text-brand-primary transition-colors duration-200"
+                            style={{
+                              paddingLeft: c.level ? `${c.level * 20 + 12}px` : '12px',
+                              borderLeft: c.level && c.level > 0 ? '2px solid #e5e7eb' : 'none',
+                              marginLeft: c.level && c.level > 0 ? '8px' : '0'
+                            }}
                           >
+                            {c.level && c.level > 0 && (
+                              <span className="text-gray-400 mr-2">└</span>
+                            )}
                             {c.name}
+                            {c.children && c.children.length > 0 && (
+                              <span className="ml-2 text-xs text-gray-400">({c.children.length})</span>
+                            )}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
