@@ -19,6 +19,7 @@ export const ProductFormPage = () => {
 
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])
+  const [flatCategories, setFlatCategories] = useState([])
   const [attributes, setAttributes] = useState({ sizes: [], colors: [] })
 
   const [imageFiles, setImageFiles] = useState([])
@@ -28,12 +29,39 @@ export const ProductFormPage = () => {
     defaultValues: { name: '', categoryId: '', price: '', description: '', variants: [] }
   })
 
+  const flattenCategories = (categories, level = 0) => {
+    let result = []
+    categories.forEach(category => {
+      result.push({
+        ...category,
+        level,
+        displayName: level > 0 ? '└ ' + '  '.repeat(level) + category.name : category.name
+      })
+      if (category.children && category.children.length > 0) {
+        result = result.concat(flattenCategories(category.children, level + 1))
+      }
+    })
+    return result
+  }
+
+  const findCategoryById = (categories, id) => {
+    for (const cat of categories) {
+      if (cat.id === id) return cat
+      if (cat.children) {
+        const found = findCategoryById(cat.children, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
   useEffect(() => {
     Promise.all([
       categoryService.getAllCategories(),
       attributeService.getGlobalAttributes()
     ]).then(([cats, attrs]) => {
       setCategories(cats)
+      setFlatCategories(flattenCategories(cats))
       setAttributes(attrs)
     }).catch(console.error)
   }, [])
@@ -42,6 +70,8 @@ export const ProductFormPage = () => {
     if (isEditMode) {
       setLoading(true)
       vendorProductApiService.getProductDetail(id).then(data => {
+        const category = findCategoryById(categories, data.category_id)
+
         methods.reset({
           name: data.name,
           categoryId: data.category_id,
@@ -70,7 +100,7 @@ export const ProductFormPage = () => {
         navigate('/vendor/products')
       }).finally(() => setLoading(false))
     }
-  }, [id, isEditMode, methods, navigate])
+  }, [id, isEditMode, methods, navigate, categories])
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files)
@@ -175,7 +205,7 @@ export const ProductFormPage = () => {
           <form className="space-y-6 flex flex-col">
 
             <BasicInfoSection
-              categories={categories}
+              categories={flatCategories}
               imageFiles={imageFiles}
               existingImages={existingImages}
               onImageSelect={handleImageSelect}

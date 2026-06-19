@@ -1,5 +1,5 @@
 import { formatPrice, getImageUrl } from '~/utils/formatters'
-import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar, FiInfo } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiEye, FiChevronDown, FiStar, FiInfo, FiGrid } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '~/components/ui/dropdown-menu'
 import { Link } from 'react-router-dom'
@@ -70,6 +70,7 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                 />
               </th>
               <th className="py-4 px-4">Thông tin sản phẩm</th>
+              <th className="py-4 px-4">Danh mục</th>
               <th className="py-4 px-4">Giá bán</th>
               <th className="py-4 px-4 text-center">Đã bán</th>
               <th className="py-4 px-4 text-center">Đánh giá</th>
@@ -81,7 +82,7 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
           <tbody className="divide-y divide-gray-50 text-sm font-semibold text-gray-700">
             {products.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-16 text-gray-400 font-medium">Không tìm thấy sản phẩm nào phù hợp bộ lọc.</td>
+                <td colSpan="9" className="text-center py-16 text-gray-400 font-medium">Không tìm thấy sản phẩm nào phù hợp bộ lọc.</td>
               </tr>
             ) : (
               products.map((p) => {
@@ -114,6 +115,27 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                           <span className="text-[11px] text-gray-400 mt-0.5">ID: #{p.id}</span>
                         </div>
                       </div>
+                    </td>
+                    {/* Cột Danh mục */}
+                    <td className="py-4 px-4">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1.5 cursor-help">
+                            <FiGrid size={12} className="text-gray-400 shrink-0" />
+                            <span className="text-sm font-medium text-gray-700 line-clamp-1">
+                              {p.category_name || 'Chưa phân loại'}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="rounded-lg bg-gray-800 text-white text-xs border-none font-semibold max-w-xs">
+                          <p className="break-words">
+                            {p.category_name ? `Danh mục: ${p.category_name}` : 'Chưa phân loại sản phẩm'}
+                          </p>
+                          {p.category_id && (
+                            <p className="text-gray-400 text-[10px] mt-1">ID: #{p.category_id}</p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
                     <td className="py-4 px-4 text-brand-primary font-black">{formatPrice(p.price)}</td>
                     <td className="py-4 px-4 text-center text-gray-500 font-bold">{p.sold}</td>

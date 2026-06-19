@@ -6,20 +6,20 @@ let isRedirecting = false
 let isRefreshing = false
 let failedQueue = []
 
-const processQueue = (error) => {
+const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error)
     } else {
-      prom.resolve()
+      prom.resolve(token)
     }
   })
   failedQueue = []
 }
 
 const handleSessionExpired = () => {
-  // Xóa Redux Persist state
   localStorage.removeItem('persist:root')
+  localStorage.removeItem('userInfo')
 
   if (!isRedirecting) {
     isRedirecting = true
@@ -69,30 +69,27 @@ authorizedAxiosInstance.interceptors.response.use(
       isRefreshing = true
 
       try {
-        // Gọi API refresh token - cookie refreshToken tự động gửi kèm nhờ withCredentials
-        // Dùng axios thuần để tránh bị interceptor bắt lại
-        await axios.post(
+        const response = await axios.post(
           `${DEV_API_URL}/api/auth/refresh-token`,
           {},
           { withCredentials: true }
         )
 
-        // Refresh thành công - backend đã set cookie accessToken mới
-        // Notify các request đang chờ trong queue để retry
-        processQueue(null)
+        const newAccessToken = response.data.accessToken
 
-        // Retry request gốc với cookie mới
+        // Process queue với token mới
+        processQueue(null, newAccessToken)
+
+        // Retry request gốc với cookie mới (cookie đã được set bởi server)
         return authorizedAxiosInstance(originalRequest)
 
       } catch (refreshError) {
         // Refresh thất bại - notify queue rồi xử lý
-        processQueue(refreshError)
+        processQueue(refreshError, null)
 
         if (refreshError.response?.status === 401) {
-          // Refresh token hết hạn hoặc không hợp lệ -> buộc đăng xuất
           handleSessionExpired()
         } else {
-          // Lỗi mạng hoặc server
           toast.error('Có lỗi xảy ra khi làm mới phiên đăng nhập')
         }
 
@@ -116,7 +113,7 @@ authorizedAxiosInstance.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Hiển thị toast cho các lỗi còn lại (trừ 401, 410, 503 đã xử lý riêng)
+    // Hiển thị toast cho các lỗi còn lại
     if (
       error.response?.status !== 401 &&
       error.response?.status !== 410 &&

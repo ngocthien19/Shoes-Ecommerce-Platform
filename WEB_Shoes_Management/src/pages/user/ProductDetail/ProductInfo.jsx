@@ -289,14 +289,6 @@ export const ProductInfo = ({ product }) => {
           <FiShoppingCart size={20} />
           {isAddingToCart ? 'Đang xử lý...' : 'Thêm vào giỏ hàng'}
         </motion.button>
-
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex-1 bg-brand-primary text-white font-bold py-4 rounded-xl hover:bg-[#c73652] hover:shadow-lg hover:shadow-[#e94560]/30 transition-all duration-300 cursor-pointer"
-        >
-          Mua ngay
-        </motion.button>
       </motion.div>
 
       {/* Info Phụ */}

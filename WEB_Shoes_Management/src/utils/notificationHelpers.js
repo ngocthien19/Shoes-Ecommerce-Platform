@@ -77,6 +77,7 @@ export const getLinkByType = (notification, userRole) => {
   const contentData = parseContent(notification.content)
   const reviewType = contentData.reviewType
 
+  // USER (Khách hàng)
   if (userRole === ROLE_ID.USER || !userRole) {
     switch (type) {
     case NOTIFICATION_TYPES.ORDER_CREATED:
@@ -87,11 +88,14 @@ export const getLinkByType = (notification, userRole) => {
     case NOTIFICATION_TYPES.ORDER_DELIVERED:
     case NOTIFICATION_TYPES.ORDER_CANCELLED:
     case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
-      return reference_id ? `/orders/${reference_id}` : '/orders'
+      return reference_id ? `/orders/detail/${reference_id}` : '/orders'
     default:
       return null
     }
-  } else if (userRole === ROLE_ID.VENDOR) {
+  }
+
+  // VENDOR (Người bán)
+  else if (userRole === ROLE_ID.VENDOR) {
     switch (type) {
     case NOTIFICATION_TYPES.PRODUCT_PENDING:
     case NOTIFICATION_TYPES.PRODUCT_APPROVED:
@@ -112,10 +116,22 @@ export const getLinkByType = (notification, userRole) => {
     case NOTIFICATION_TYPES.APPEAL_APPROVED:
     case NOTIFICATION_TYPES.APPEAL_REJECTED:
       return reference_id ? `/vendor/appeals/${reference_id}` : null
+    case NOTIFICATION_TYPES.ORDER_CREATED:
+    case NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT:
+    case NOTIFICATION_TYPES.ORDER_PAID:
+    case NOTIFICATION_TYPES.ORDER_PROCESSING:
+    case NOTIFICATION_TYPES.ORDER_SHIPPED:
+    case NOTIFICATION_TYPES.ORDER_DELIVERED:
+    case NOTIFICATION_TYPES.ORDER_CANCELLED:
+    case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
+      return reference_id ? `/vendor/orders/detail/${reference_id}` : '/vendor/orders'
     default:
       return null
     }
-  } else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
+  }
+
+  // MANAGER hoặc ADMIN
+  else if (userRole === ROLE_ID.MANAGER || userRole === ROLE_ID.ADMIN) {
     switch (type) {
     case NOTIFICATION_TYPES.PRODUCT_PENDING:
     case NOTIFICATION_TYPES.PRODUCT_REAPPROVAL:
@@ -180,7 +196,11 @@ export const getDetailItems = (contentData) => {
     detailItems.push({ icon: FiFlag, label: 'ID đánh giá', value: `#${contentData.reviewId}` })
   }
   if (contentData.reviewType) {
-    detailItems.push({ icon: FiFlag, label: 'Loại đánh giá', value: contentData.reviewType === 'product' ? 'Đánh giá sản phẩm' : 'Đánh giá cửa hàng' })
+    detailItems.push({
+      icon: FiFlag,
+      label: 'Loại đánh giá',
+      value: contentData.reviewType === 'product' ? 'Đánh giá sản phẩm' : 'Đánh giá cửa hàng'
+    })
   }
   if (contentData.rating !== undefined && contentData.rating !== null) {
     detailItems.push({ icon: FiStar, label: 'Số sao', value: `${contentData.rating}/5` })
@@ -196,6 +216,42 @@ export const getDetailItems = (contentData) => {
       label: 'Số tiền',
       value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(contentData.amount)
     })
+  }
+
+  if (contentData.orderId) {
+    detailItems.push({ icon: FiShoppingBag, label: 'Mã đơn hàng', value: `#${contentData.orderId}` })
+  }
+  if (contentData.orderStatus) {
+    const statusMap = {
+      'pending': 'Chờ thanh toán',
+      'paid': 'Đã thanh toán',
+      'processing': 'Đang xử lý',
+      'shipped': 'Đã giao hàng',
+      'delivered': 'Đã nhận hàng',
+      'cancelled': 'Đã hủy',
+      'refunded': 'Đã hoàn tiền'
+    }
+    detailItems.push({
+      icon: FiClock,
+      label: 'Trạng thái đơn hàng',
+      value: statusMap[contentData.orderStatus] || contentData.orderStatus
+    })
+  }
+  if (contentData.totalAmount) {
+    detailItems.push({
+      icon: FiDollarSign,
+      label: 'Tổng tiền',
+      value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(contentData.totalAmount)
+    })
+  }
+  if (contentData.shippingAddress) {
+    detailItems.push({ icon: FiMapPin, label: 'Địa chỉ giao hàng', value: contentData.shippingAddress })
+  }
+  if (contentData.shippingMethod) {
+    detailItems.push({ icon: FiTruck, label: 'Phương thức vận chuyển', value: contentData.shippingMethod })
+  }
+  if (contentData.paymentMethod) {
+    detailItems.push({ icon: FiDollarSign, label: 'Phương thức thanh toán', value: contentData.paymentMethod })
   }
 
   // Thông tin bổ sung
