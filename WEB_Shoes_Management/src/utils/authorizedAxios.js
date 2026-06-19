@@ -40,6 +40,23 @@ authorizedAxiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Tránh loop khi refresh token bị lỗi 401
+    if (originalRequest.url?.includes('/refresh-token')) {
+      // Nếu refresh token bị lỗi, logout luôn
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('persist:root')
+
+      if (!isRedirecting) {
+        isRedirecting = true
+        toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 1500)
+      }
+      return Promise.reject(error)
+    }
+
     // Nếu lỗi 401 và chưa thử refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Nếu đang refresh, đợi và retry
@@ -58,41 +75,56 @@ authorizedAxiosInstance.interceptors.response.use(
       isRefreshing = true
 
       try {
+        // Lấy refresh token từ cookie
+
         // Gọi API refresh token
         const response = await axios.post(
           `${DEV_API_URL}/api/auth/refresh-token`,
-          {},
-          { withCredentials: true }
+          {}, // body rỗng, cookie sẽ tự động gửi
+          {
+            withCredentials: true
+            // TRÁNH LOOP: không dùng authorizedAxiosInstance để không bị interceptor
+          }
         )
 
         const newAccessToken = response.data.accessToken
 
-        // Lưu token mới vào localStorage
-        localStorage.setItem('accessToken', newAccessToken)
+        if (newAccessToken) {
+          // Lưu token mới vào localStorage
+          localStorage.setItem('accessToken', newAccessToken)
 
-        // Cập nhật header cho request hiện tại
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+          // Cập nhật header cho request hiện tại
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 
-        // Process queue
-        processQueue(null, newAccessToken)
+          // Process queue
+          processQueue(null, newAccessToken)
 
-        // Retry request gốc
-        return authorizedAxiosInstance(originalRequest)
+          // Retry request gốc
+          return authorizedAxiosInstance(originalRequest)
+        } else {
+          throw new Error('Không nhận được access token mới')
+        }
       } catch (refreshError) {
         // Refresh token thất bại
         processQueue(refreshError, null)
 
-        // Xóa token và chuyển hướng về login
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('userInfo')
-        localStorage.removeItem('persist:root')
+        // Kiểm tra nếu refreshError là 401 (refresh token hết hạn)
+        if (refreshError.response?.status === 401) {
+          // Xóa token và chuyển hướng về login
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('userInfo')
+          localStorage.removeItem('persist:root')
 
-        if (!isRedirecting) {
-          isRedirecting = true
-          toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 1500)
+          if (!isRedirecting) {
+            isRedirecting = true
+            toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
+            setTimeout(() => {
+              window.location.href = '/login'
+            }, 1500)
+          }
+        } else {
+          // Lỗi khác (network, server error)
+          toast.error('Có lỗi xảy ra khi làm mới phiên đăng nhập')
         }
 
         return Promise.reject(refreshError)
@@ -105,16 +137,13 @@ authorizedAxiosInstance.interceptors.response.use(
     if (error.response?.status === 503) {
       const maintenanceMessage = error.response?.data?.maintenanceMessage || 'Hệ thống đang bảo trì'
 
-      // Lưu thông báo vào localStorage
       localStorage.setItem('maintenanceMessage', maintenanceMessage)
       localStorage.setItem('isMaintenance', 'true')
 
-      // Dispatch event để các component biết
       window.dispatchEvent(new CustomEvent('maintenanceMode', {
         detail: { message: maintenanceMessage }
       }))
 
-      // Không toast error để tránh làm phiền người dùng
       return Promise.reject(error)
     }
 
