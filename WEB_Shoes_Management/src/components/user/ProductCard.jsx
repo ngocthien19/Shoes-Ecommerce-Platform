@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiShoppingCart, FiInfo, FiHeart } from 'react-icons/fi'
+import { FiShoppingCart, FiInfo, FiHeart, FiStar } from 'react-icons/fi'
 import { FaEye } from 'react-icons/fa'
 import { formatPrice, formatSold } from '~/utils/formatters'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -35,21 +35,17 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
 
   const isColorDisabled = (color) => {
     if (selectedSize) {
-      // Nếu đã chọn Size, kiểm tra xem biến thể kết hợp [Size này + Màu kia] có hàng không
       const match = variants.find(v => v.size === selectedSize && v.color === color)
       return !match || match.stock <= 0
     }
-    // Nếu chưa chọn Size, kiểm tra xem Màu này còn đôi nào trong kho không
     return !variants.some(v => v.color === color && v.stock > 0)
   }
 
   const isSizeDisabled = (size) => {
     if (selectedColor) {
-      // Nếu đã chọn Màu, kiểm tra xem biến thể kết hợp [Màu này + Size kia] có hàng không
       const match = variants.find(v => v.color === selectedColor && v.size === size)
       return !match || match.stock <= 0
     }
-    // Nếu chưa chọn Màu, kiểm tra xem Size này còn đôi nào trong kho không
     return !variants.some(v => v.size === size && v.stock > 0)
   }
 
@@ -87,8 +83,6 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
 
     if (!showVariantPicker) {
       setShowVariantPicker(true)
-
-      // TỰ ĐỘNG LẤY SIZE VÀ COLOR ĐẦU TIÊN CÒN HÀNG TRONG KHO GÁN SẴN
       const firstAvailableVariant = variants.find(v => v.stock > 0)
       if (firstAvailableVariant) {
         setSelectedSize(firstAvailableVariant.size)
@@ -97,7 +91,6 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
       return
     }
 
-    // Bắt đầu đối chiếu dữ liệu chọn khi bấm nút Xác Nhận lần 2
     const matchedVariant = variants.find(
       (v) => v.size === selectedSize && v.color === selectedColor
     )
@@ -123,13 +116,18 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
     }
   }
 
+  // Lấy giá hiển thị
+  const hasDiscount = product?.discount_percentage && parseFloat(product.discount_percentage) > 0
+  const originalPrice = product?.price || 0
+  const salePrice = product?.sale_price || (hasDiscount ? originalPrice * (1 - parseFloat(product.discount_percentage) / 100) : originalPrice)
+
   return (
     <div className="group bg-white shadow-bold rounded-2xl p-4 transition-all duration-300 hover:shadow-bold hover:-translate-y-1 flex flex-col justify-between min-h-[410px] relative overflow-hidden">
 
       <div>
         {/* Khối hình ảnh */}
         <div className="relative overflow-hidden rounded-xl mb-4 bg-gray-50 h-56 w-full flex items-center justify-center">
-          {product?.discount_percentage && parseFloat(product.discount_percentage) > 0 && (
+          {hasDiscount && (
             <div className="absolute top-3 left-3 z-10 bg-brand-primary text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">
               -{Math.round(parseFloat(product.discount_percentage))}%
             </div>
@@ -140,14 +138,13 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
               <button
                 onClick={handleToggleFavorite}
                 className={`absolute top-3 right-3 z-10 p-1.5 backdrop-blur-sm rounded-full ring-1 transition-all duration-300 hover:scale-110 cursor-pointer
-            ${isFavorite ? 'bg-red-500 text-white ring-red-500' : 'bg-white/80 text-brand-secondary ring-brand-secondary'}`}
+                  ${isFavorite ? 'bg-red-500 text-white ring-red-500' : 'bg-white/80 text-brand-secondary ring-brand-secondary'}`}
               >
                 <FiHeart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
               </button>
             </TooltipTrigger>
             <TooltipContent><p>{isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'}</p></TooltipContent>
           </Tooltip>
-
 
           <Link to={`/product/${product.slug}`} className="w-full h-full">
             <img
@@ -187,9 +184,14 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
           <p className="text-xs text-gray-500 line-clamp-3 break-words min-h-[32px]">{product?.description}</p>
 
           <div className="flex items-center gap-2 text-xs text-gray-400">
-            <span className="text-yellow-400">
-              {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
-            </span>
+            <div className="flex items-center text-yellow-400">
+              {[...Array(5)].map((_, i) => (
+                <FiStar
+                  key={i}
+                  className={`w-3.5 h-3.5 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                />
+              ))}
+            </div>
             <span>({product?.rating_count || 0})</span>
             <span>|</span>
             {sortBy === 'views_desc' ? (
@@ -204,13 +206,23 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
       </div>
 
       <div>
-        {/* Khối hiển thị giá */}
+        {/* Khối hiển thị giá - Sửa lại */}
         <div className="flex items-center gap-2 pt-2 text-left">
-          <p className={`font-bold text-lg ${product?.sale_price ? 'text-brand-primary' : 'text-gray-800'}`}>
-            {formatPrice(product?.sale_price || product?.price)}
-          </p>
-          {product?.sale_price && (
-            <p className="text-xs text-gray-400 line-through">{formatPrice(product.price)}</p>
+          {hasDiscount ? (
+            <>
+              {/* Giá sau giảm (màu đỏ) */}
+              <p className="font-bold text-lg text-brand-primary">
+                {formatPrice(salePrice)}
+              </p>
+              {/* Giá gốc bị gạch ngang (màu xám) */}
+              <p className="text-xs text-gray-400 line-through">
+                {formatPrice(originalPrice)}
+              </p>
+            </>
+          ) : (
+            <p className="font-bold text-lg text-gray-800">
+              {formatPrice(originalPrice)}
+            </p>
           )}
         </div>
 
