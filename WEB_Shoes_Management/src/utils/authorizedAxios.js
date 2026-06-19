@@ -6,15 +6,28 @@ let isRedirecting = false
 let isRefreshing = false
 let failedQueue = []
 
-const processQueue = (error, token = null) => {
+const processQueue = (error) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error)
     } else {
-      prom.resolve(token)
+      prom.resolve()
     }
   })
   failedQueue = []
+}
+
+const handleSessionExpired = () => {
+  // Xóa Redux Persist state
+  localStorage.removeItem('persist:root')
+
+  if (!isRedirecting) {
+    isRedirecting = true
+    toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
+    setTimeout(() => {
+      window.location.href = '/login'
+    }, 1500)
+  }
 }
 
 const authorizedAxiosInstance = axios.create()
@@ -22,52 +35,33 @@ const authorizedAxiosInstance = axios.create()
 authorizedAxiosInstance.defaults.timeout = 1000 * 60 * 10
 authorizedAxiosInstance.defaults.withCredentials = true
 
-// Request interceptor - thêm access token vào header
+// Request interceptor - cookie httpOnly tự động gửi
 authorizedAxiosInstance.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem('accessToken')
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`
-    }
-    return config
-  },
+  (config) => config,
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - xử lý refresh token
+// Response interceptor - xử lý refresh token tự động
 authorizedAxiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    // Tránh loop khi refresh token bị lỗi 401
+    // Tránh loop vô tận khi chính request refresh-token bị lỗi 401
     if (originalRequest.url?.includes('/refresh-token')) {
-      // Nếu refresh token bị lỗi, logout luôn
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('userInfo')
-      localStorage.removeItem('persist:root')
-
-      if (!isRedirecting) {
-        isRedirecting = true
-        toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 1500)
-      }
+      handleSessionExpired()
       return Promise.reject(error)
     }
 
-    // Nếu lỗi 401 và chưa thử refresh token
+    // Nếu lỗi 401 và chưa thử refresh token lần nào
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Nếu đang refresh, đợi và retry
+
+      // Nếu đang có request khác đang refresh, đưa vào hàng đợi chờ
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
-          .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            return authorizedAxiosInstance(originalRequest)
-          })
+          .then(() => authorizedAxiosInstance(originalRequest))
           .catch(err => Promise.reject(err))
       }
 
@@ -75,55 +69,30 @@ authorizedAxiosInstance.interceptors.response.use(
       isRefreshing = true
 
       try {
-        // Lấy refresh token từ cookie
-
-        // Gọi API refresh token
-        const response = await axios.post(
+        // Gọi API refresh token - cookie refreshToken tự động gửi kèm nhờ withCredentials
+        // Dùng axios thuần để tránh bị interceptor bắt lại
+        await axios.post(
           `${DEV_API_URL}/api/auth/refresh-token`,
-          {}, // body rỗng, cookie sẽ tự động gửi
-          {
-            withCredentials: true
-            // TRÁNH LOOP: không dùng authorizedAxiosInstance để không bị interceptor
-          }
+          {},
+          { withCredentials: true }
         )
 
-        const newAccessToken = response.data.accessToken
+        // Refresh thành công - backend đã set cookie accessToken mới
+        // Notify các request đang chờ trong queue để retry
+        processQueue(null)
 
-        if (newAccessToken) {
-          // Lưu token mới vào localStorage
-          localStorage.setItem('accessToken', newAccessToken)
+        // Retry request gốc với cookie mới
+        return authorizedAxiosInstance(originalRequest)
 
-          // Cập nhật header cho request hiện tại
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
-
-          // Process queue
-          processQueue(null, newAccessToken)
-
-          // Retry request gốc
-          return authorizedAxiosInstance(originalRequest)
-        } else {
-          throw new Error('Không nhận được access token mới')
-        }
       } catch (refreshError) {
-        // Refresh token thất bại
-        processQueue(refreshError, null)
+        // Refresh thất bại - notify queue rồi xử lý
+        processQueue(refreshError)
 
-        // Kiểm tra nếu refreshError là 401 (refresh token hết hạn)
         if (refreshError.response?.status === 401) {
-          // Xóa token và chuyển hướng về login
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('userInfo')
-          localStorage.removeItem('persist:root')
-
-          if (!isRedirecting) {
-            isRedirecting = true
-            toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.')
-            setTimeout(() => {
-              window.location.href = '/login'
-            }, 1500)
-          }
+          // Refresh token hết hạn hoặc không hợp lệ -> buộc đăng xuất
+          handleSessionExpired()
         } else {
-          // Lỗi khác (network, server error)
+          // Lỗi mạng hoặc server
           toast.error('Có lỗi xảy ra khi làm mới phiên đăng nhập')
         }
 
@@ -133,7 +102,7 @@ authorizedAxiosInstance.interceptors.response.use(
       }
     }
 
-    // Xử lý lỗi 503 (Maintenance)
+    // Xử lý lỗi 503 (Maintenance mode)
     if (error.response?.status === 503) {
       const maintenanceMessage = error.response?.data?.maintenanceMessage || 'Hệ thống đang bảo trì'
 
@@ -147,10 +116,12 @@ authorizedAxiosInstance.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // Xử lý các lỗi khác (trừ 401 và 503)
-    if (error.response?.status !== 410 &&
-        error.response?.status !== 401 &&
-        error.response?.status !== 503) {
+    // Hiển thị toast cho các lỗi còn lại (trừ 401, 410, 503 đã xử lý riêng)
+    if (
+      error.response?.status !== 401 &&
+      error.response?.status !== 410 &&
+      error.response?.status !== 503
+    ) {
       const errorMessage = error.response?.data?.message || error?.message
       toast.error(errorMessage)
     }
