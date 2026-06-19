@@ -40,11 +40,14 @@ const login = async (req, res) => {
   try {
     const result = await authService.login(req.body)
 
-    // Cấu hình Cookie an toàn chống XSS và CSRF
+    // Phân biệt môi trường
+    const isProduction = process.env.NODE_ENV === 'production'
+
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
     }
 
     // Đưa cả 2 token vào cookie
@@ -105,7 +108,7 @@ const resetPassword = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken
+    const refreshToken = req.cookies?.refreshToken
 
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh Token là bắt buộc để đăng xuất.' })
@@ -113,10 +116,12 @@ const logout = async (req, res) => {
 
     await authService.logout(refreshToken)
 
+    const isProduction = process.env.NODE_ENV === 'production'
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
     }
 
     res.clearCookie('accessToken', cookieOptions)
@@ -139,11 +144,12 @@ const refreshAccessToken = async (req, res) => {
 
     const result = await authService.refreshAccessToken(refreshToken)
 
-    // Cập nhật cookie access token mới
+    const isProduction = process.env.NODE_ENV === 'production'
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
     }
 
     res.cookie('accessToken', result.accessToken, {
@@ -160,10 +166,12 @@ const refreshAccessToken = async (req, res) => {
     if (error.message.includes('không hợp lệ') ||
         error.message.includes('hết hạn') ||
         error.message.includes('đã bị thu hồi')) {
+      const isProduction = process.env.NODE_ENV === 'production'
       const cookieOptions = {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none'
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        path: '/'
       }
       res.clearCookie('accessToken', cookieOptions)
       res.clearCookie('refreshToken', cookieOptions)
