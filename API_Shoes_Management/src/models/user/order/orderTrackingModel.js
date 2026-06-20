@@ -37,14 +37,49 @@ const getOrderHistoryPaginated = async (userId, page, limit, status) => {
 // 2. USER: Lấy chi tiết các đôi giày nằm trong đơn hàng đó để hiển thị lên UI
 const getOrderItemsByOrderId = async (orderId) => {
   const query = `
-    SELECT oi.id AS item_id, oi.quantity, oi.price, pv.size, pv.color, p.name AS product_name, p.images, p.slug
+    SELECT 
+      oi.id AS item_id, 
+      oi.quantity, 
+      oi.price, 
+      pv.size, 
+      pv.color, 
+      pv.image AS variant_image, 
+      p.name AS product_name, 
+      p.images AS product_images, 
+      p.slug
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
     WHERE oi.order_id = ?
   `
   const [items] = await pool.execute(query, [orderId])
-  return items
+
+  // Parse variant_image nếu là string JSON
+  return items.map(item => {
+    let parsedVariantImage = item.variant_image
+    if (item.variant_image && typeof item.variant_image === 'string') {
+      try {
+        parsedVariantImage = JSON.parse(item.variant_image)
+      } catch (e) {
+        parsedVariantImage = null
+      }
+    }
+
+    let parsedProductImages = item.product_images
+    if (item.product_images && typeof item.product_images === 'string') {
+      try {
+        parsedProductImages = JSON.parse(item.product_images)
+      } catch (e) {
+        parsedProductImages = []
+      }
+    }
+
+    return {
+      ...item,
+      variant_image: parsedVariantImage,
+      product_images: parsedProductImages
+    }
+  })
 }
 
 // 3. USER: Tìm thông tin một đơn hàng (Bổ sung đầy đủ các trường dữ liệu bọc lót đối soát)
