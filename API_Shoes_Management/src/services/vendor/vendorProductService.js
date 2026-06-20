@@ -157,6 +157,41 @@ const createVariant = async (userId, productId, variantData) => {
   return { message: 'Thêm biến thể kho hàng thành công.' }
 }
 
+const updateVariant = async (userId, productId, variantId, variantData) => {
+  const store = await getVerifiedStore(userId)
+  const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
+  if (!isOwner) throw new Error('Bạn không có quyền sửa biến thể của sản phẩm này.')
+
+  const updated = await vendorProductModel.updateVariant(variantId, {
+    size: variantData.size,
+    color: variantData.color,
+    stock: variantData.stock
+  })
+
+  if (updated === 0) throw new Error('Không tìm thấy biến thể hoặc không có thay đổi.')
+
+  return { message: 'Cập nhật biến thể thành công.' }
+}
+
+const deleteVariant = async (userId, productId, variantId) => {
+  const store = await getVerifiedStore(userId)
+  const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
+  if (!isOwner) throw new Error('Bạn không có quyền xóa biến thể của sản phẩm này.')
+
+  // Kiểm tra biến thể có tồn tại không
+  const variant = await vendorProductModel.getVariantById(variantId)
+  if (!variant) throw new Error('Biến thể không tồn tại.')
+
+  // Kiểm tra biến thể có trong giỏ hàng không
+  const inCart = await vendorProductModel.checkVariantInCart(variantId)
+  if (inCart) {
+    throw new Error('Biến thể đang có trong giỏ hàng của khách, không thể xóa. Hãy ẩn thay vì xóa.')
+  }
+
+  await vendorProductModel.deleteVariant(variantId)
+  return { message: 'Xóa biến thể thành công.' }
+}
+
 // Lấy danh sách sản phẩm phân trang + tìm kiếm + lọc + sắp xếp
 const getVendorProducts = async (userId, filters) => {
   const store = await getVerifiedStore(userId)
@@ -310,6 +345,8 @@ export const vendorProductService = {
   updateProduct,
   deleteProduct,
   createVariant,
+  updateVariant,
+  deleteVariant,
   getVendorProducts,
   getProductDetail,
   toggleProductsActiveBulk,

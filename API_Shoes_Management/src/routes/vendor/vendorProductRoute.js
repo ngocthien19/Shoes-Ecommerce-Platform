@@ -20,6 +20,17 @@ router.delete('/delete/:id', vendorProductValidation.validateProductIdParam, ven
 // 4. Thêm biến thể kho (size, màu, số lượng)
 router.post('/add/:id/variants', vendorProductValidation.validateCreateVariantBody, vendorProductController.createVariant)
 
+router.put('/:productId/variants/:variantId',
+  vendorProductValidation.validateUpdateVariantBody,
+  vendorProductController.updateVariant
+)
+
+// Xóa biến thể
+router.delete('/:productId/variants/:variantId',
+  vendorProductValidation.validateVariantIdParam,
+  vendorProductController.deleteVariant
+)
+
 // 5. Tải danh sách sản phẩm có bộ lọc và phân trang
 router.get('/', vendorProductValidation.validateGetProductsFilters, vendorProductController.getVendorProducts)
 

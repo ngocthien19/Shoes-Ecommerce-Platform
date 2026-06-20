@@ -225,12 +225,20 @@ const checkEmailExist = async (email) => {
 }
 
 // 8. Admin tạo mới tài khoản nhân sự trực tiếp
-const createNewUserByAdmin = async ({ roleId, fullname, email, password, phone, avatar }) => {
+const createNewUserByAdmin = async ({ roleId, fullname, email, password, phone, address, avatar }) => {
   const query = `
-    INSERT INTO users (role_id, fullname, email, password, phone, avatar, is_verified) 
-    VALUES (?, ?, ?, ?, ?, ?, TRUE)
+    INSERT INTO users (role_id, fullname, email, password, phone, address, avatar, is_verified) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
   `
-  const [result] = await pool.execute(query, [Number(roleId), fullname, email, password, phone, avatar])
+  const [result] = await pool.execute(query, [
+    Number(roleId),
+    fullname,
+    email,
+    password,
+    phone,
+    address,
+    avatar
+  ])
   return result.insertId
 }
 

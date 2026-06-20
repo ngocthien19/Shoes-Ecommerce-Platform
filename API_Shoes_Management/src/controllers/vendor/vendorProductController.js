@@ -98,6 +98,44 @@ const createVariant = async (req, res) => {
   }
 }
 
+const updateVariant = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { productId, variantId } = req.params
+    const { size, color, stock } = req.body
+
+    const result = await vendorProductService.updateVariant(
+      userId,
+      Number(productId),
+      Number(variantId),
+      {
+        size,
+        color: color || null,
+        stock: Number(stock)
+      }
+    )
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi cập nhật biến thể: ${error.message}` })
+  }
+}
+
+const deleteVariant = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { productId, variantId } = req.params
+
+    const result = await vendorProductService.deleteVariant(
+      userId,
+      Number(productId),
+      Number(variantId)
+    )
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi xóa biến thể: ${error.message}` })
+  }
+}
+
 const getVendorProducts = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
@@ -174,6 +212,8 @@ export const vendorProductController = {
   updateProduct,
   deleteProduct,
   createVariant,
+  updateVariant,
+  deleteVariant,
   getVendorProducts,
   getProductDetail,
   toggleProductsActiveBulk,
