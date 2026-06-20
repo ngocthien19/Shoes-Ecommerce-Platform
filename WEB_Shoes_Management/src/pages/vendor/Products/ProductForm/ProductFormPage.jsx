@@ -22,9 +22,6 @@ export const ProductFormPage = () => {
   const [flatCategories, setFlatCategories] = useState([])
   const [attributes, setAttributes] = useState({ sizes: [], colors: [] })
 
-  const [imageFiles, setImageFiles] = useState([])
-  const [existingImages, setExistingImages] = useState([])
-
   const [editingVariantIndex, setEditingVariantIndex] = useState(null)
   const [isAddingVariant, setIsAddingVariant] = useState(false)
 
@@ -85,21 +82,6 @@ export const ProductFormPage = () => {
         description: data.description,
         variants: data.variants || []
       })
-
-      let parsedImages = []
-      if (typeof data.images === 'string') {
-        try {
-          parsedImages = JSON.parse(data.images)
-        } catch {
-          parsedImages = []
-        }
-      } else if (Array.isArray(data.images)) {
-        parsedImages = data.images
-      } else if (data.images) {
-        parsedImages = [data.images]
-      }
-
-      setExistingImages(Array.isArray(parsedImages) ? parsedImages : [parsedImages])
     } catch (error) {
       toast.error('Không thể tải lại dữ liệu sản phẩm')
     } finally {
@@ -122,8 +104,6 @@ export const ProductFormPage = () => {
     if (isEditMode) {
       setLoading(true)
       vendorProductApiService.getProductDetail(id).then(data => {
-        const category = findCategoryById(categories, data.category_id)
-
         reset({
           name: data.name,
           categoryId: data.category_id,
@@ -131,41 +111,12 @@ export const ProductFormPage = () => {
           description: data.description,
           variants: data.variants || []
         })
-
-        let parsedImages = []
-        if (typeof data.images === 'string') {
-          try {
-            parsedImages = JSON.parse(data.images)
-          } catch {
-            parsedImages = []
-          }
-        } else if (Array.isArray(data.images)) {
-          parsedImages = data.images
-        } else if (data.images) {
-          parsedImages = [data.images]
-        }
-
-        setExistingImages(Array.isArray(parsedImages) ? parsedImages : [parsedImages])
-
       }).catch(() => {
         toast.error('Không tải được thông tin sản phẩm')
         navigate('/vendor/products')
       }).finally(() => setLoading(false))
     }
   }, [id, isEditMode, reset, navigate, categories])
-
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files)
-    setImageFiles(prev => [...prev, ...files])
-  }
-
-  const handleRemoveNewImage = (indexToRemove) => {
-    setImageFiles(prev => prev.filter((_, idx) => idx !== indexToRemove))
-  }
-
-  const handleRemoveOldImage = (indexToRemove) => {
-    setExistingImages(prev => prev.filter((_, idx) => idx !== indexToRemove))
-  }
 
   // Bắt đầu thêm biến thể mới
   const handleAddVariant = () => {
@@ -192,7 +143,6 @@ export const ProductFormPage = () => {
     const variants = getValues('variants')
     const variant = variants[index]
 
-    // Kiểm tra dữ liệu hợp lệ
     if (!variant.size) {
       toast.error('Vui lòng chọn kích cỡ (Size)')
       return
@@ -203,16 +153,13 @@ export const ProductFormPage = () => {
     }
 
     if (variant.id) {
-    // Cập nhật biến thể đã có trong DB
       try {
         setLoading(true)
 
-        // Tạo FormData để gửi file ảnh
         const formData = new FormData()
         formData.append('size', variant.size)
         formData.append('color', variant.color || '')
         formData.append('stock', variant.stock)
-
         if (variant.imageFile instanceof File) {
           formData.append('image', variant.imageFile)
         }
@@ -242,7 +189,6 @@ export const ProductFormPage = () => {
   const handleCancelEditVariant = () => {
     const variants = getValues('variants')
 
-    // Nếu đang thêm mới và không có dữ liệu thì xóa luôn
     if (isAddingVariant && variants.length > 0) {
       const lastVariant = variants[variants.length - 1]
       if (!lastVariant.size && !lastVariant.color && (lastVariant.stock === 0 || !lastVariant.stock)) {
@@ -285,9 +231,6 @@ export const ProductFormPage = () => {
       formData.append('price', data.price)
       if (data.description) formData.append('description', data.description)
 
-      imageFiles.forEach(file => formData.append('images', file))
-      if (isEditMode) formData.append('oldImages', JSON.stringify(existingImages))
-
       if (isEditMode) {
         await vendorProductApiService.updateProduct(id, formData)
 
@@ -301,7 +244,7 @@ export const ProductFormPage = () => {
               variantFormData.append('size', variant.size)
               variantFormData.append('color', variant.color || '')
               variantFormData.append('stock', variant.stock)
-              if (variant.imageFile) {
+              if (variant.imageFile instanceof File) {
                 variantFormData.append('image', variant.imageFile)
               }
               await vendorProductApiService.createVariant(id, variantFormData)
@@ -312,8 +255,6 @@ export const ProductFormPage = () => {
         toast.success('Cập nhật sản phẩm và biến thể thành công!')
         navigate('/vendor/products')
       } else {
-        if (imageFiles.length === 0) return toast.warning('Vui lòng chọn ít nhất 1 hình ảnh minh họa')
-
         const resProduct = await vendorProductApiService.createProduct(formData)
         const newProductId = resProduct.insertId
 
@@ -376,14 +317,7 @@ export const ProductFormPage = () => {
       {!loading && (
         <FormProvider {...methods}>
           <form className="space-y-6 flex flex-col">
-            <BasicInfoSection
-              categories={flatCategories}
-              imageFiles={imageFiles}
-              existingImages={existingImages}
-              onImageSelect={handleImageSelect}
-              onRemoveNewImage={handleRemoveNewImage}
-              onRemoveOldImage={handleRemoveOldImage}
-            />
+            <BasicInfoSection categories={flatCategories} />
 
             <VariantsSection
               attributes={attributes}
