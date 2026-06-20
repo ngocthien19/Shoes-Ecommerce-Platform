@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { TabProfile } from './Tabs/TabProfile'
 import { TabFavorites } from './Tabs/TabFavorites'
 import { TabPassword } from './Tabs/TabPassword'
+import { Avatar } from '~/components/common/Avatar'
 
 export const ProfileTabsContent = ({
   user,
@@ -27,7 +28,13 @@ export const ProfileTabsContent = ({
       <div className="flex items-center gap-5 pb-8 border-b border-gray-100 w-full mb-8">
         <div className="relative group/avatar">
           <div className="w-20 h-20 rounded-full border-4 border-white shadow-md bg-gray-100 overflow-hidden ring-1 ring-gray-200">
-            <img src={previewAvatar} alt="Hồ sơ" className="w-full h-full object-cover" />
+            <Avatar
+              user={user}
+              src={previewAvatar}
+              size="w-full h-full"
+              textSize="text-2xl"
+              rounded="rounded-full"
+            />
           </div>
           <label htmlFor="avatar-file" className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary text-white border-2 border-white rounded-full flex items-center justify-center shadow-md hover:bg-[#c73652] cursor-pointer transition-all">
             <FiCamera size={12} />

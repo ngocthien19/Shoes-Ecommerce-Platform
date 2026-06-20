@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Avatar } from '~/components/common/Avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,45 @@ import { NotificationModal } from '~/components/common/notification/Notification
 import { notificationApiService } from '~/services/notification/notificationApiService'
 import { ROLE_ID, DEV_API_URL } from '~/utils/constant'
 
+// ✅ Hàm lấy chữ cái đầu và cuối của tên
+const getInitials = (fullname) => {
+  if (!fullname) return '?'
+
+  const words = fullname.trim().split(' ')
+  if (words.length === 0) return '?'
+  if (words.length === 1) {
+    // Nếu chỉ có 1 từ, lấy 2 chữ cái đầu
+    return fullname.substring(0, 2).toUpperCase()
+  }
+  // Lấy chữ cái đầu của từ đầu tiên và từ cuối cùng
+  const first = words[0].charAt(0)
+  const last = words[words.length - 1].charAt(0)
+  return (first + last).toUpperCase()
+}
+
+const UserAvatar = ({ user, className = '' }) => {
+  const avatarUrl = user?.avatar ? getImageUrl(user.avatar) : null
+  const fullname = user?.fullname || 'User'
+  const initials = getInitials(fullname)
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt="Avatar"
+        className={`w-full h-full object-cover ${className}`}
+      />
+    )
+  }
+
+  // Nếu không có avatar, hiển thị chữ cái đầu và cuối
+  return (
+    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-primary to-brand-secondary text-white font-bold text-sm ${className}`}>
+      {initials}
+    </div>
+  )
+}
+
 export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -57,16 +97,11 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
       console.error('Socket connection error:', error.message)
     })
 
-    // Lắng nghe thông báo mới
     socket.on('new_notification', (notification) => {
-      // Cập nhật số lượng chưa đọc
       setUnreadNotificationCount(prev => prev + 1)
-
-      // Kích hoạt hiệu ứng rung
       setIsShaking(true)
       setTimeout(() => setIsShaking(false), 1000)
 
-      // Hiển thị toast thông báo
       toast.info(notification.title, {
         position: 'top-right',
         autoClose: 5000,
@@ -75,7 +110,6 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
         }
       })
 
-      // Phát sự kiện để component khác cập nhật
       window.dispatchEvent(new CustomEvent('newNotification', { detail: notification }))
     })
 
@@ -86,7 +120,6 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
     }
   }, [])
 
-  // Lấy số lượng thông báo chưa đọc ban đầu
   const fetchUnreadCount = async () => {
     try {
       const res = await notificationApiService.getUnreadCount()
@@ -183,10 +216,11 @@ export const UserInfo = ({ user, mobileMenuOpen, setMobileMenuOpen }) => {
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 cursor-pointer group outline-none">
               <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden transition-all duration-300 ease-out group-hover:border-brand-primary shrink-0">
-                <img
-                  src={getImageUrl(user.avatar)}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
+                <Avatar
+                  user={user}
+                  size="w-full h-full"
+                  textSize="text-xs"
+                  rounded="rounded-full"
                 />
               </div>
               <div className="text-base hidden lg:block">
