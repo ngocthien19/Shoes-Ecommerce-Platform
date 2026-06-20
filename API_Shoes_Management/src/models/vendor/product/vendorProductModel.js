@@ -77,6 +77,34 @@ const createVariant = async ({ productId, size, color, stock }) => {
   return result
 }
 
+const getVariantById = async (variantId) => {
+  const query = 'SELECT id, product_id, size, color, stock FROM product_variants WHERE id = ?'
+  const [rows] = await pool.execute(query, [variantId])
+  return rows[0] || null
+}
+
+const checkVariantInCart = async (variantId) => {
+  const query = 'SELECT COUNT(*) as count FROM cart WHERE variant_id = ?'
+  const [rows] = await pool.execute(query, [variantId])
+  return rows[0].count > 0
+}
+
+const updateVariant = async (variantId, { size, color, stock }) => {
+  const query = `
+    UPDATE product_variants 
+    SET size = ?, color = ?, stock = ?
+    WHERE id = ?
+  `
+  const [result] = await pool.execute(query, [size, color, stock, variantId])
+  return result.affectedRows
+}
+
+const deleteVariant = async (variantId) => {
+  const query = 'DELETE FROM product_variants WHERE id = ?'
+  const [result] = await pool.execute(query, [variantId])
+  return result.affectedRows
+}
+
 // 8. Lấy danh sách sản phẩm cửa hàng (N nạp thêm p.status vào mảng SELECT để hiển thị thẻ trạng thái)
 const getVendorProductsWithFilters = async (storeId, { search, categoryId, isActive, minPrice, maxPrice, sortBy, limit, offset }) => {
   let query = `
@@ -258,6 +286,10 @@ export const vendorProductModel = {
   getProductImages,
   hardDeleteProduct,
   createVariant,
+  getVariantById,
+  checkVariantInCart,
+  updateVariant,
+  deleteVariant,
   getVendorProductsWithFilters,
   countVendorProductsWithFilters,
   getProductDetailWithVariants,

@@ -47,11 +47,17 @@ const toggleUserActiveBulk = async (req, res) => {
 // 5. POST: Admin tự tay tạo tài khoản nhân sự (Hỗ trợ FormData tải ảnh avatar lẻ)
 const createUser = async (req, res) => {
   try {
-    const { roleId, fullname, email, password, phone } = req.body
+    const { roleId, fullname, email, password, phone, address } = req.body
     const avatarFile = req.file
 
     const result = await adminUserService.createUserByAdmin({
-      roleId, fullname, email, password, phone, avatarFile
+      roleId,
+      fullname,
+      email,
+      password,
+      phone,
+      address,
+      avatarFile
     })
     return res.status(201).json(result)
   } catch (error) {
