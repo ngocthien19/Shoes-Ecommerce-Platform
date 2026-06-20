@@ -16,7 +16,7 @@ const checkProductOwnership = async (productId, storeId) => {
 }
 
 // 3. Thêm mới sản phẩm - Ép ẩn khỏi sàn (is_active = 0) và gán trạng thái pending chờ duyệt
-const createProduct = async ({ storeId, categoryId, name, slug, description, price, images }) => {
+const createProduct = async ({ storeId, categoryId, name, slug, description, price }) => {
   const query = `
     INSERT INTO products (store_id, category_id, name, slug, description, price, images, rating_avg, sold, is_active, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 0.00, 0, FALSE, ?)
@@ -26,19 +26,19 @@ const createProduct = async ({ storeId, categoryId, name, slug, description, pri
     categoryId,
     name,
     slug,
-    description,
+    description || null,
     price,
-    images,
+    JSON.stringify([]),
     PRODUCT_MODERATION_STATUS.PENDING
   ])
   return result
 }
 
 // 4. Chỉnh sửa sản phẩm - Tự động đá văng về trạng thái pending chờ duyệt lại và hạ is_active về 0
-const updateProduct = async (productId, { categoryId, name, description, price, images }) => {
+const updateProduct = async (productId, { categoryId, name, description, price }) => {
   const query = `
     UPDATE products 
-    SET category_id = ?, name = ?, description = ?, price = ?, images = ?, is_active = FALSE, status = ?
+    SET category_id = ?, name = ?, description = ?, price = ?, is_active = FALSE, status = ?
     WHERE id = ?
   `
   const [result] = await pool.execute(query, [
@@ -46,7 +46,6 @@ const updateProduct = async (productId, { categoryId, name, description, price, 
     name,
     description,
     price,
-    images,
     PRODUCT_MODERATION_STATUS.PENDING,
     productId
   ])
@@ -102,18 +101,39 @@ const checkVariantInCart = async (variantId) => {
 }
 
 const updateVariant = async (variantId, { size, color, stock, image }) => {
+  // Xây dựng câu query động
+  let updateFields = []
+  let queryParams = []
+
+  // Luôn update size, color, stock
+  updateFields.push('size = ?')
+  queryParams.push(size)
+
+  updateFields.push('color = ?')
+  queryParams.push(color)
+
+  updateFields.push('stock = ?')
+  queryParams.push(stock)
+
+  // Chỉ update image khi có ảnh mới
+  if (image !== undefined && image !== null) {
+    updateFields.push('image = ?')
+    queryParams.push(JSON.stringify(image))
+  }
+  // Nếu image = null và muốn xóa ảnh
+  else if (image === null) {
+    updateFields.push('image = ?')
+    queryParams.push(null)
+  }
+
+  queryParams.push(variantId)
+
   const query = `
     UPDATE product_variants 
-    SET size = ?, color = ?, stock = ?, image = ?
+    SET ${updateFields.join(', ')}
     WHERE id = ?
   `
-  const [result] = await pool.execute(query, [
-    size,
-    color,
-    stock,
-    image ? JSON.stringify(image) : null,
-    variantId
-  ])
+  const [result] = await pool.execute(query, queryParams)
   return result.affectedRows
 }
 
@@ -205,7 +225,14 @@ const countVendorProductsWithFilters = async (storeId, { search, categoryId, isA
 
 // 10. Lấy chi tiết 1 sản phẩm kèm toàn bộ biến thể size/màu của nó
 const getProductDetailWithVariants = async (productId, storeId) => {
-  const pQuery = 'SELECT * FROM products WHERE id = ? AND store_id = ?'
+  const pQuery = `
+    SELECT 
+      p.*,
+      c.name AS category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.id = ? AND p.store_id = ?
+  `
   const [pRows] = await pool.execute(pQuery, [productId, storeId])
   if (pRows.length === 0) return null
 

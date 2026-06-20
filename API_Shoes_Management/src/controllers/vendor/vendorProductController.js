@@ -91,7 +91,13 @@ const updateVariant = async (req, res) => {
     const { size, color, stock } = req.body
 
     // Lấy ảnh mới từ multer (nếu có)
-    const newImage = extractVariantImage(req.file)
+    let newImage = undefined // Mặc định là undefined (không update ảnh)
+    if (req.file) {
+      newImage = {
+        public_id: req.file.filename,
+        secure_url: req.file.path
+      }
+    }
 
     const result = await vendorProductService.updateVariant(
       userId,
@@ -101,7 +107,7 @@ const updateVariant = async (req, res) => {
         size,
         color: color || null,
         stock: Number(stock),
-        image: newImage // Ảnh mới hoặc null
+        image: newImage // undefined, object, hoặc null
       }
     )
     return res.status(200).json(result)

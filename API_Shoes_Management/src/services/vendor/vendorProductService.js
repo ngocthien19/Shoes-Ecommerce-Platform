@@ -26,21 +26,17 @@ const createProduct = async (userId, productData) => {
     name: productData.name,
     slug,
     description: productData.description,
-    price: productData.price,
-    images: JSON.stringify(productData.images)
+    price: productData.price
   })
 
-  const thumbnail = (productData.images && productData.images.length > 0) ? productData.images[0].secure_url : ''
   const managerIds = await userModel.getAllManagerIds()
-
-  // THÔNG BÁO MANAGER
   for (const managerId of managerIds) {
     await notificationService.createAndPushNotification({
       userId: managerId,
       title: 'Yêu cầu kiểm duyệt sản phẩm mới',
       content: JSON.stringify({
         message: `Gian hàng "${store.store_name}" vừa thêm sản phẩm: ${productData.name}`,
-        image: thumbnail,
+        image: '',
         storeName: store.store_name,
         productName: productData.name
       }),
@@ -68,8 +64,7 @@ const updateProduct = async (userId, productId, updateData) => {
     categoryId: updateData.categoryId,
     name: updateData.name,
     description: updateData.description,
-    price: updateData.price,
-    images: JSON.stringify(updateData.images)
+    price: updateData.price
   })
 
   if (wasApproved) {
@@ -77,9 +72,21 @@ const updateProduct = async (userId, productId, updateData) => {
 
     let thumbnail = ''
     try {
-      const images = JSON.parse(currentProduct.images || '[]')
-      if (images.length > 0 && images[0].secure_url) {
-        thumbnail = images[0].secure_url
+      // Lấy variants của product
+      const variants = currentProduct?.variants || []
+
+      // Tìm variant đầu tiên có ảnh
+      const variantWithImage = variants.find(v => v.image)
+
+      if (variantWithImage && variantWithImage.image) {
+        // Parse image nếu là string JSON
+        const imageData = typeof variantWithImage.image === 'string'
+          ? JSON.parse(variantWithImage.image)
+          : variantWithImage.image
+
+        if (imageData && imageData.secure_url) {
+          thumbnail = imageData.secure_url
+        }
       }
     } catch (e) {
       thumbnail = ''
@@ -162,32 +169,19 @@ const updateVariant = async (userId, productId, variantId, variantData) => {
   const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
   if (!isOwner) throw new Error('Bạn không có quyền sửa biến thể của sản phẩm này.')
 
-  // 1. Lấy variant cũ để biết ảnh cũ
-  const oldVariant = await vendorProductModel.getVariantById(variantId)
-  const oldImage = oldVariant?.image
-
-  // 2. Cập nhật variant
+  // 1. Cập nhật variant
   const updated = await vendorProductModel.updateVariant(variantId, {
     size: variantData.size,
     color: variantData.color,
     stock: variantData.stock,
-    image: variantData.image // Ảnh mới hoặc null
+    image: variantData.image // Có thể là object, null, hoặc undefined
   })
 
   if (updated === 0) throw new Error('Không tìm thấy biến thể hoặc không có thay đổi.')
 
-  // 3. Xử lý ảnh trong product.images
-  if (variantData.image) {
-    // Có ảnh mới -> thêm vào product.images (nếu chưa có)
+  // 2. Nếu có ảnh mới -> thêm vào product.images
+  if (variantData.image && typeof variantData.image === 'object') {
     await vendorProductModel.addImageToProduct(productId, variantData.image)
-  }
-
-  // 4. Nếu có ảnh cũ và ảnh mới khác ảnh cũ -> xóa ảnh cũ khỏi product.images (nếu không còn variant nào dùng)
-  if (oldImage && variantData.image && oldImage.secure_url !== variantData.image.secure_url) {
-    const hasOtherVariant = await vendorProductModel.checkImageUsedByOtherVariant(productId, oldImage, variantId)
-    if (!hasOtherVariant) {
-      await vendorProductModel.removeImageFromProduct(productId, oldImage)
-    }
   }
 
   return { message: 'Cập nhật biến thể thành công.' }
