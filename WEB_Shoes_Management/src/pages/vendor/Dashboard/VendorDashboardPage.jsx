@@ -9,7 +9,7 @@ import { DashboardWidgets } from './DashboardWidgets'
 import { RevenueChart } from './RevenueChart'
 import { CategoryPieChart } from './CategoryPieChart'
 import { TopProductsList } from './TopProductsList'
-import { QuickActions } from './QuickActions' // Thêm import
+import { QuickActions } from './QuickActions'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,

@@ -1,4 +1,4 @@
-import { formatRelativeTime, formatDateTime, getImageUrl, formatPrice } from '~/utils/formatters'
+import { formatRelativeTime, formatDateTime, getImageUrl, formatPrice, getFirstVariantImage } from '~/utils/formatters'
 import { FiEye, FiCheckCircle, FiXCircle, FiMoreVertical, FiStar, FiInfo } from 'react-icons/fi'
 import { FaBan } from 'react-icons/fa'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
@@ -88,7 +88,7 @@ export const ProductTable = ({
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={imageUrl}
+                          src={getFirstVariantImage(product, 'https://placehold.co/100x100?text=Product')}
                           alt={product.product_name}
                           className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0"
                         />
@@ -96,6 +96,9 @@ export const ProductTable = ({
                           <p className="font-extrabold text-gray-900 line-clamp-1 max-w-[200px]">{product.product_name}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">ID: #{product.id}</p>
                           <p className="text-[10px] text-gray-400">{product.category_name || 'Chưa có danh mục'}</p>
+                          {product.variants && product.variants.length > 0 && (
+                            <span className="text-[9px] text-blue-400 font-semibold">{product.variants.length} biến thể</span>
+                          )}
                         </div>
                       </div>
                     </td>

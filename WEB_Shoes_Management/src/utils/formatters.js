@@ -112,20 +112,47 @@ export const getVariantImageUrl = (variant, placeholder = null) => {
 export const getOrderItemImage = (item, placeholder = 'https://placehold.co/100x100?text=Product') => {
   if (!item) return placeholder
 
-  // Ưu tiên ảnh từ variant
   if (item.variant_image) {
-    const url = getVariantImageUrl(item.variant_image)
-    if (url !== placeholder) return url
+    // Nếu variant_image đã là object có secure_url
+    if (item.variant_image.secure_url) {
+      return item.variant_image.secure_url
+    }
+    // Nếu variant_image là string JSON
+    if (typeof item.variant_image === 'string') {
+      try {
+        const parsed = JSON.parse(item.variant_image)
+        if (parsed && parsed.secure_url) {
+          return parsed.secure_url
+        }
+      } catch (e) {
+        // Bỏ qua
+      }
+    }
   }
 
-  // Fallback sang product_images
+  if (item.product_images && Array.isArray(item.product_images) && item.product_images.length > 0) {
+    const firstImage = item.product_images[0]
+    if (firstImage && firstImage.secure_url) {
+      return firstImage.secure_url
+    }
+  }
+
   if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-    return getImageUrl(item.images[0], placeholder)
+    const firstImage = item.images[0]
+    if (firstImage && firstImage.secure_url) {
+      return firstImage.secure_url
+    }
   }
 
-  // Fallback sang product_images (nếu là string JSON)
-  if (item.product_images) {
-    return getImageUrl(item.product_images, placeholder)
+  if (item.product_images && typeof item.product_images === 'string') {
+    try {
+      const parsed = JSON.parse(item.product_images)
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].secure_url) {
+        return parsed[0].secure_url
+      }
+    } catch (e) {
+      // Bỏ qua
+    }
   }
 
   return placeholder

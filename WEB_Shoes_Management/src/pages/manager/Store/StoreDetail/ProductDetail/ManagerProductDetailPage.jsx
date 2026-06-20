@@ -5,10 +5,10 @@ import { toast } from 'react-toastify'
 import {
   FiArrowLeft, FiPackage, FiStar, FiClock, FiEye,
   FiAlertCircle, FiUsers, FiGrid, FiCheckCircle,
-  FiXCircle, FiDollarSign
+  FiXCircle, FiDollarSign, FiImage
 } from 'react-icons/fi'
 import { FaBan } from 'react-icons/fa'
-import { formatPrice, formatDateTime, getImageUrl } from '~/utils/formatters'
+import { formatPrice, formatDateTime, getImageUrl, getFirstVariantImage } from '~/utils/formatters'
 import { managerProductApiService } from '~/services/manager/managerProductApiService'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
@@ -100,7 +100,52 @@ export const ManagerProductDetailPage = () => {
   const isPending = product?.status === PRODUCT_MODERATION_STATUS.PENDING ||
                     product?.status === PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL
   const isActive = product?.status === PRODUCT_MODERATION_STATUS.APPROVED
-  const images = product?.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []
+
+  const getImagesFromVariants = () => {
+    const images = []
+    if (product?.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            if (imageData && imageData.secure_url) {
+              // Kiểm tra trùng lặp
+              const exists = images.some(img => img.secure_url === imageData.secure_url)
+              if (!exists) {
+                images.push({
+                  secure_url: imageData.secure_url,
+                  public_id: imageData.public_id,
+                  variantId: variant.id,
+                  size: variant.size,
+                  color: variant.color
+                })
+              }
+            }
+          } catch (e) {
+            continue
+          }
+        }
+      }
+    }
+    return images
+  }
+
+  const displayImages = getImagesFromVariants()
+
+  // Nếu không có ảnh từ variants, dùng product.images
+  const fallbackImages = product?.images ? (typeof product.images === 'string' ? JSON.parse(product.images) : product.images) : []
+  const finalImages = displayImages.length > 0 ? displayImages : fallbackImages
+
+  // Lấy thông tin variant cho ảnh đang chọn
+  const getSelectedVariantInfo = () => {
+    if (!finalImages[selectedImage]?.variantId) return null
+    return product?.variants?.find(v => v.id === finalImages[selectedImage].variantId) || null
+  }
+
+  const selectedVariantInfo = getSelectedVariantInfo()
 
   if (loading) {
     return (
@@ -128,12 +173,17 @@ export const ManagerProductDetailPage = () => {
           </motion.button>
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">{product.name}</h1>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className="text-sm text-gray-500">ID: #{product.id}</span>
               {currentStatus && (
                 <span className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${currentStatus.color}`}>
                   <StatusIcon size={10} />
                   {currentStatus.label}
+                </span>
+              )}
+              {product.variants && product.variants.length > 0 && (
+                <span className="text-xs text-blue-500 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full">
+                  {product.variants.length} biến thể
                 </span>
               )}
             </div>
@@ -178,18 +228,66 @@ export const ManagerProductDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left - Images */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-lg">
-            <img src={getImageUrl(images[selectedImage], 'https://placehold.co/600x600?text=No+Image')} alt={product.name} className="w-full h-full object-cover" />
+          <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-lg relative">
+            {finalImages.length > 0 ? (
+              <img
+                src={finalImages[selectedImage]?.secure_url || 'https://placehold.co/600x600?text=No+Image'}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                <FiImage size={48} className="mb-2 opacity-50" />
+                <span className="text-sm font-semibold">Chưa có ảnh</span>
+              </div>
+            )}
+            {/* Hiển thị thông tin variant của ảnh đang chọn */}
+            {selectedVariantInfo && (
+              <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2">
+                <span>Size: {selectedVariantInfo.size}</span>
+                <span className="w-px h-4 bg-white/30" />
+                <span>Màu: {selectedVariantInfo.color}</span>
+              </div>
+            )}
           </div>
-          {images.length > 1 && (
+
+          {/* Thumbnails */}
+          {finalImages.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {images.map((img, idx) => (
-                <button key={idx} onClick={() => setSelectedImage(idx)} className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-brand-primary shadow-md' : 'border-gray-200'}`}>
-                  <img src={getImageUrl(img, 'https://placehold.co/100x100')} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
+              {finalImages.map((img, idx) => {
+                const variantInfo = product?.variants?.find(v => v.id === img.variantId)
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                      selectedImage === idx ? 'border-brand-primary shadow-md' : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <img
+                      src={img.secure_url || 'https://placehold.co/100x100'}
+                      alt={`Ảnh ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {variantInfo && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                        {variantInfo.size}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           )}
+
+          {/* Thông tin số lượng ảnh */}
+          <div className="text-center text-xs text-gray-400 font-semibold">
+            {finalImages.length > 0 ? (
+              <span>Hiển thị {finalImages.length} ảnh {finalImages.some(img => img.variantId) ? 'từ các biến thể' : ''}</span>
+            ) : (
+              <span>Chưa có ảnh nào được thêm</span>
+            )}
+          </div>
         </div>
 
         {/* Right - Info */}
@@ -251,8 +349,48 @@ export const ManagerProductDetailPage = () => {
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="border-b border-gray-100 bg-gray-50"><th className="text-left py-2 px-3 font-semibold text-gray-600">Size</th><th className="text-left py-2 px-3 font-semibold text-gray-600">Màu sắc</th><th className="text-right py-2 px-3 font-semibold text-gray-600">Tồn kho</th></tr></thead>
-                  <tbody>{product.variants.map((variant, idx) => (<tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50"><td className="py-2 px-3 font-semibold">{variant.size}</td><td className="py-2 px-3"><div className="flex items-center gap-2"><div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: variant.color_code || '#cccccc' }} />{variant.color}</div></td><td className="py-2 px-3 text-right font-semibold text-gray-800">{variant.stock}</td></tr>))}</tbody>
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="text-left py-2 px-3 font-semibold text-gray-600">Hình ảnh</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-600">Size</th>
+                      <th className="text-left py-2 px-3 font-semibold text-gray-600">Màu sắc</th>
+                      <th className="text-right py-2 px-3 font-semibold text-gray-600">Tồn kho</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.variants.map((variant, idx) => {
+                      let variantImageUrl = null
+                      if (variant.image) {
+                        try {
+                          const imageData = typeof variant.image === 'string' ? JSON.parse(variant.image) : variant.image
+                          variantImageUrl = imageData?.secure_url || null
+                        } catch (e) {
+                          variantImageUrl = null
+                        }
+                      }
+                      return (
+                        <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="py-2 px-3">
+                            {variantImageUrl ? (
+                              <img src={variantImageUrl} alt={variant.color} className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
+                                <FiImage size={16} className="text-gray-400" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 font-semibold">{variant.size}</td>
+                          <td className="py-2 px-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: variant.color_code || '#cccccc' }} />
+                              {variant.color}
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 text-right font-semibold text-gray-800">{variant.stock}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -260,7 +398,15 @@ export const ManagerProductDetailPage = () => {
         </div>
       </div>
 
-      <ConfirmReasonModal isOpen={modalConfig.isOpen} onClose={() => setModalConfig({ isOpen: false, type: null })} onConfirm={handleModalConfirm} title={modalConfig.title} message={modalConfig.message} placeholder={modalConfig.placeholder} isLoading={isLoading} />
+      <ConfirmReasonModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ isOpen: false, type: null })}
+        onConfirm={handleModalConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        placeholder={modalConfig.placeholder}
+        isLoading={isLoading}
+      />
     </motion.div>
   )
 }
