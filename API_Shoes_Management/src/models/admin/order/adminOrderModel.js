@@ -121,12 +121,13 @@ const getOrderDetailSystem = async (orderId) => {
 
   const itemsQuery = `
     SELECT 
-      oi.id AS item_id, 
+      oi.id AS item_id,   
       oi.variant_id, 
       oi.quantity, 
       oi.price, 
       pv.size, 
       pv.color, 
+      pv.image AS variant_image,
       p.name AS product_name,
       p.images AS product_images
     FROM order_items oi
@@ -135,7 +136,35 @@ const getOrderDetailSystem = async (orderId) => {
     WHERE oi.order_id = ?
   `
   const [items] = await pool.execute(itemsQuery, [orderId])
-  order.items = items
+
+  // Parse variant_image và product_images
+  order.items = items.map(item => {
+    // Parse variant_image nếu là string JSON
+    let parsedVariantImage = item.variant_image
+    if (item.variant_image && typeof item.variant_image === 'string') {
+      try {
+        parsedVariantImage = JSON.parse(item.variant_image)
+      } catch (e) {
+        parsedVariantImage = null
+      }
+    }
+
+    // Parse product_images nếu là string JSON
+    let parsedProductImages = item.product_images
+    if (item.product_images && typeof item.product_images === 'string') {
+      try {
+        parsedProductImages = JSON.parse(item.product_images)
+      } catch (e) {
+        parsedProductImages = []
+      }
+    }
+
+    return {
+      ...item,
+      variant_image: parsedVariantImage,
+      product_images: parsedProductImages
+    }
+  })
 
   return order
 }

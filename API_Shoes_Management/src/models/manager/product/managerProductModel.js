@@ -1,12 +1,25 @@
 import pool from '~/config/db'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constants'
 
-// A. Lấy danh sách sản phẩm toàn sàn kèm phân trang và đa bộ lọc
+// A. Lấy danh sách sản phẩm toàn sàn kèm phân trang và đa bộ lọc (kèm variants)
 const getProductsForManager = async ({ search, categoryId, storeId, status, sortBy, sortOrder, limit, offset }) => {
   let query = `
     SELECT p.id, p.name AS product_name, p.slug, p.price, p.sold, p.is_active, p.status, p.created_at,
            p.rating_avg, p.images, p.reject_reason,
-           s.name AS store_name, c.name AS category_name
+           s.name AS store_name, c.name AS category_name,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
     FROM products p
     JOIN stores s ON p.store_id = s.id
     JOIN categories c ON p.category_id = c.id
@@ -39,11 +52,28 @@ const getProductsForManager = async ({ search, categoryId, storeId, status, sort
   query += ` ORDER BY p.${finalSortBy === 'product_name' ? 'name' : finalSortBy} ${finalSortOrder}`
   query += ' LIMIT ? OFFSET ?'
 
-  // Nạp limit và offset dưới dạng chuỗi đồng bộ
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)
-  return rows
+
+  // Parse variants từ JSON string sang array
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // B. Đếm tổng số sản phẩm thỏa mãn bộ lọc để phân trang chuẩn
@@ -106,7 +136,6 @@ const getProductAndOwnerInfo = async (productId) => {
   return rows[0] || null
 }
 
-// E. Hàm cập nhật trạng thái đơn lẻ (Tự động tính toán hạ/bật cờ hiển thị thương mại)
 // E. Hàm cập nhật trạng thái đơn lẻ (có lưu reject_reason)
 const updateProductModerationStatus = async (productId, status, rejectReason = null) => {
   const isActiveTarget = (status === PRODUCT_MODERATION_STATUS.APPROVED) ? 1 : 0
@@ -152,6 +181,7 @@ const updateProductsStatusBulk = async (productIds, status, rejectReason = null)
   const [result] = await pool.execute(query, queryParams)
   return result.affectedRows
 }
+
 // G. Lấy thông tin chủ các shop phục vụ việc gom nhóm gửi Mail hàng loạt
 const getProductsAndOwnersInfoBulk = async (productIds) => {
   const placeholders = productIds.map(() => '?').join(', ')
@@ -166,7 +196,7 @@ const getProductsAndOwnersInfoBulk = async (productIds) => {
   return rows
 }
 
-// H. Xem chi tiết thông tin sâu của một sản phẩm phục vụ Modal popup xem trước của Manager
+// H. Xem chi tiết thông tin sâu của một sản phẩm phục vụ Modal popup xem trước của Manager (kèm variants)
 const getProductDetailForManager = async (productId) => {
   const query = `
     SELECT 
@@ -183,7 +213,20 @@ const getProductDetailForManager = async (productId) => {
       u.email AS owner_email,
       u.phone AS owner_phone,
       u.created_at AS owner_joined_at,
-      c.name AS category_name
+      c.name AS category_name,
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'size', pv.size,
+            'color', pv.color,
+            'stock', pv.stock,
+            'image', pv.image
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
     FROM products p
     JOIN stores s ON p.store_id = s.id
     JOIN categories c ON p.category_id = c.id
@@ -191,12 +234,32 @@ const getProductDetailForManager = async (productId) => {
     WHERE p.id = ?
   `
   const [rows] = await pool.execute(query, [productId])
-  return rows[0] || null
+
+  if (rows.length === 0) return null
+
+  const row = rows[0]
+  // Parse variants
+  if (row.variants) {
+    try {
+      if (typeof row.variants === 'string') {
+        row.variants = JSON.parse(row.variants)
+      }
+      if (!row.variants) {
+        row.variants = []
+      }
+    } catch (e) {
+      row.variants = []
+    }
+  } else {
+    row.variants = []
+  }
+
+  return row
 }
 
 const getProductVariants = async (productId) => {
   const query = `
-    SELECT id, size, color, stock
+    SELECT id, size, color, stock, image
     FROM product_variants
     WHERE product_id = ?
     ORDER BY size, color
