@@ -5,6 +5,36 @@ import { Link } from 'react-router-dom'
 export const OrderProductList = ({ order = {} }) => {
   const { store_name, store_logo, created_at, applied_voucher, cancel_reason, items = [] } = order
 
+  const getItemImage = (item) => {
+    // Ưu tiên ảnh từ variant_image
+    if (item.variant_image) {
+      // Nếu variant_image là object có secure_url
+      if (item.variant_image.secure_url) {
+        return item.variant_image.secure_url
+      }
+      // Nếu variant_image là string JSON
+      if (typeof item.variant_image === 'string') {
+        try {
+          const parsed = JSON.parse(item.variant_image)
+          if (parsed && parsed.secure_url) {
+            return parsed.secure_url
+          }
+        } catch (e) {
+          // Bỏ qua
+        }
+      }
+    }
+    // Fallback sang product_images (nếu có)
+    if (item.product_images) {
+      return getImageUrl(item.product_images, 'https://placehold.co/100x100?text=Product')
+    }
+    // Fallback sang images (cũ)
+    if (item.images) {
+      return getImageUrl(item.images, 'https://placehold.co/100x100?text=Product')
+    }
+    return 'https://placehold.co/100x100?text=Product'
+  }
+
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-lg">
       {/* Khối Header Cửa hàng */}
@@ -25,20 +55,31 @@ export const OrderProductList = ({ order = {} }) => {
 
       {/* Danh sách sản phẩm */}
       <div className="space-y-4">
-        {items.map(item => (
-          <div key={item.item_id} className="flex gap-4 pb-4 border-b border-gray-50 last:border-0 last:pb-0 transition-all duration-300">
-            <Link to={`/product/${item.slug}`} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 shrink-0">
-              <img src={getImageUrl(item.images)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110 cursor-pointer" />
-            </Link>
-            <div className="flex-1">
-              <Link to={`/product/${item.slug}`} className="font-bold text-sm text-gray-800 hover:text-brand-primary transition-colors duration-300 cursor-pointer">
-                {item.product_name}
+        {items.map(item => {
+          const imageUrl = getItemImage(item)
+          return (
+            <div key={item.item_id} className="flex gap-4 pb-4 border-b border-gray-50 last:border-0 last:pb-0 transition-all duration-300">
+              <Link to={`/product/${item.slug}`} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-100 shrink-0 relative">
+                <img
+                  src={imageUrl}
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110 cursor-pointer"
+                />
+                {item.variant_image && (
+                  <div className="absolute top-0 right-0 bg-brand-primary text-white text-[6px] font-bold px-1 py-0.5 rounded-bl-lg">
+                    VAR
+                  </div>
+                )}
               </Link>
-              <p className="text-xs text-gray-500 mt-1">Size: {item.size} | Màu: {item.color}</p>
-              <p className="text-sm font-bold text-brand-primary mt-1">{formatPrice(item.price)} <span className="text-gray-400 font-normal">x {item.quantity}</span></p>
+              <div className="flex-1">
+                <Link to={`/product/${item.slug}`} className="font-bold text-sm text-gray-800 hover:text-brand-primary transition-colors duration-300 cursor-pointer">
+                  {item.product_name}
+                </Link>
+                <p className="text-xs text-gray-500 mt-1">Size: {item.size} | Màu: {item.color}</p>
+                <p className="text-sm font-bold text-brand-primary mt-1">{formatPrice(item.price)} <span className="text-gray-400 font-normal">x {item.quantity}</span></p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Footer chứa Voucher và Cancel Reason (Chỉ render khi có dữ liệu) */}

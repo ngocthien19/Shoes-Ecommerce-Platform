@@ -13,12 +13,14 @@ import { FiGrid, FiFileText,
   FiCheckCircle, FiXCircle,
   FiAlertCircle, FiInbox
 } from 'react-icons/fi'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export const OrderTrackingPage = () => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [currentTab, setCurrentTab] = useState('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentTabFromUrl = searchParams.get('tab') || 'all'
+  const [currentTab, setCurrentTab] = useState(currentTabFromUrl)
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, limit: 5 })
   const [statusCounts, setStatusCounts] = useState({})
 
@@ -44,35 +46,22 @@ export const OrderTrackingPage = () => {
   }
 
   useEffect(() => {
+    // Đồng bộ tab từ URL khi component mount
+    const tabFromUrl = searchParams.get('tab') || 'all'
+    if (tabFromUrl !== currentTab) {
+      setCurrentTab(tabFromUrl)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     fetchOrders(pagination.currentPage, currentTab)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [pagination.currentPage, currentTab])
 
   const handleTabChange = (value) => {
     setCurrentTab(value)
+    setSearchParams({ tab: value })
     setPagination(prev => ({ ...prev, currentPage: 1 }))
-  }
-
-  const handleCancelOrder = async (orderId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) return
-    try {
-      const res = await orderTrackingApiService.cancelOrder(orderId)
-      toast.success(res.message)
-      fetchOrders(pagination.currentPage, currentTab)
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Lỗi hủy đơn.')
-    }
-  }
-
-  const handleWithdrawCancel = async (orderId) => {
-    if (!window.confirm('Xác nhận rút lại yêu cầu hủy đơn?')) return
-    try {
-      const res = await orderTrackingApiService.withdrawCancelRequest(orderId)
-      toast.success(res.message)
-      fetchOrders(pagination.currentPage, currentTab)
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Lỗi rút yêu cầu.')
-    }
   }
 
   const handleConfirmCancel = async (orderId, reason) => {
