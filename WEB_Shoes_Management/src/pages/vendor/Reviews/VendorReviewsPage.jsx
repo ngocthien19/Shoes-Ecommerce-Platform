@@ -14,8 +14,13 @@ import { ReportModal } from './ReportModal'
 import { RequestReopenModal } from './RequestReopenModal'
 import { Pagination } from '~/components/common/Pagination'
 import { SearchResultsInfo } from './SearchResultsInfo'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorReviewsPage = () => {
+  usePageTitle(
+    'Quản lý đánh giá',
+    'Theo dõi và phản hồi đánh giá từ khách hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

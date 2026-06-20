@@ -12,8 +12,13 @@ import { CategorySearchResultsInfo } from './CategorySearchResultsInfo'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminCategoriesPage = () => {
+  usePageTitle(
+    'Quản lý Danh mục',
+    'Quản lý danh mục sản phẩm đa cấp'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

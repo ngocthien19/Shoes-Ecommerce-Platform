@@ -12,8 +12,13 @@ import { StoreBulkActionPanel } from './StoreBulkActionPanel'
 import { StoreSearchResultsInfo } from './StoreSearchResultsInfo'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerStoresPage = () => {
+  usePageTitle(
+    'Quản lý Cửa hàng',
+    'Phê duyệt và quản lý các cửa hàng trên sàn'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

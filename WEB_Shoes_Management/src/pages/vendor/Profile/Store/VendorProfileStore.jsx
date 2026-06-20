@@ -5,8 +5,13 @@ import { toast } from 'react-toastify'
 import { vendorStoreApiService } from '~/services/vendor/vendorStoreApiService'
 import { getImageUrl } from '~/utils/formatters'
 import { StoreInfoForm } from './StoreInfoForm'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorProfileStore = () => {
+  usePageTitle(
+    'Thông tin cửa hàng',
+    'Quản lý thông tin gian hàng của bạn'
+  )
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(false)
   const [logoPreview, setLogoPreview] = useState(null)

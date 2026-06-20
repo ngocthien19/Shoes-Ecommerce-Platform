@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiHeart, FiHome, FiPlus, FiShoppingCart } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { Tooltip, TooltipContent, TooltipTrigger } from '~/components/ui/tooltip'
@@ -14,31 +14,59 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
   const dispatch = useDispatch()
 
   const [activePickerProductId, setActivePickerProductId] = useState(null)
-  const [selectedSize, setSelectedSize] = useState(null)
-  const [selectedColor, setSelectedColor] = useState(null)
+  // ✅ Fix: dùng object theo product.id thay vì state chung
+  const [selectedVariants, setSelectedVariants] = useState({}) // { [productId]: { size, color } }
+  const [productImages, setProductImages] = useState({})
 
-  const getProductImage = (product) => {
-    // Ưu tiên lấy ảnh từ variants
-    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
-      // Tìm variant có ảnh
+  const getColorDisplay = (color) => {
+    const colorMap = {
+      'Đỏ': '#FF0000', 'Red': '#FF0000',
+      'Xanh Dương': '#0066FF', 'Blue': '#0066FF',
+      'Xanh Lá': '#00CC66', 'Green': '#00CC66',
+      'Đen': '#000000', 'Black': '#000000',
+      'Trắng': '#FFFFFF', 'White': '#FFFFFF',
+      'Vàng': '#FFD700', 'Yellow': '#FFD700',
+      'Tím': '#800080', 'Purple': '#800080',
+      'Hồng': '#FF69B4', 'Pink': '#FF69B4',
+      'Cam': '#FF8C00', 'Orange': '#FF8C00',
+      'Xám': '#808080', 'Gray': '#808080',
+      'Nâu': '#8B4513', 'Brown': '#8B4513'
+    }
+    const match = color.match(/\(([^)]+)\)/)
+    if (match) {
+      const colorName = match[1].trim()
+      return colorMap[colorName] || color.toLowerCase()
+    }
+    return colorMap[color] || color.toLowerCase()
+  }
+
+  const getImageByColor = (product, color) => {
+    if (!color || !product.variants) return null
+    const variant = product.variants.find(v => v.color === color && v.image)
+    if (variant) {
+      try {
+        let imageData = variant.image
+        if (typeof variant.image === 'string') imageData = JSON.parse(variant.image)
+        if (imageData?.secure_url) return imageData.secure_url
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  }
+
+  const getDefaultImage = (product) => {
+    if (product.variants && Array.isArray(product.variants)) {
       for (const variant of product.variants) {
         if (variant.image) {
           try {
             let imageData = variant.image
-            if (typeof variant.image === 'string') {
-              imageData = JSON.parse(variant.image)
-            }
-            if (imageData && imageData.secure_url) {
-              return imageData.secure_url
-            }
-          } catch (e) {
-            continue
-          }
+            if (typeof variant.image === 'string') imageData = JSON.parse(variant.image)
+            if (imageData?.secure_url) return imageData.secure_url
+          } catch (e) { continue }
         }
       }
     }
-
-    // Fallback sang product.images
     if (product.images) {
       try {
         const parsed = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
@@ -51,25 +79,71 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
     return 'https://via.placeholder.com/120'
   }
 
+  const getDefaultColor = (product) => {
+    if (product.variants && Array.isArray(product.variants)) {
+      for (const variant of product.variants) {
+        if (variant.image && variant.color) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') imageData = JSON.parse(variant.image)
+            if (imageData?.secure_url) return variant.color
+          } catch (e) { continue }
+        }
+      }
+    }
+    return null
+  }
+
+  useEffect(() => {
+    const initialImages = {}
+    favoriteProducts.forEach(product => {
+      const defaultColor = getDefaultColor(product)
+      if (defaultColor) {
+        const image = getImageByColor(product, defaultColor)
+        initialImages[product.id] = image || getDefaultImage(product)
+      } else {
+        initialImages[product.id] = getDefaultImage(product)
+      }
+    })
+    setProductImages(initialImages)
+  }, [favoriteProducts])
+
+  // ✅ Helper để lấy selected của từng product
+  const getSelected = (productId) => selectedVariants[productId] || { size: null, color: null }
+
+  // ✅ Helper để set selected của từng product
+  const setSelected = (productId, patch) => {
+    setSelectedVariants(prev => ({
+      ...prev,
+      [productId]: { ...getSelected(productId), ...patch }
+    }))
+  }
+
+  const handleColorSelect = (product, color) => {
+    const image = getImageByColor(product, color)
+    if (image) {
+      setProductImages(prev => ({ ...prev, [product.id]: image }))
+    }
+  }
+
   const handleOpenPicker = (product) => {
     const variants = product.variants || []
     const firstAvailable = variants.find(v => v.stock > 0)
 
     setActivePickerProductId(product.id)
+
     if (firstAvailable) {
-      setSelectedSize(firstAvailable.size)
-      setSelectedColor(firstAvailable.color)
+      setSelected(product.id, { size: firstAvailable.size, color: firstAvailable.color })
+      handleColorSelect(product, firstAvailable.color)
     } else {
-      setSelectedSize(null)
-      setSelectedColor(null)
+      setSelected(product.id, { size: null, color: null })
     }
   }
 
   const handleAddToCartSubmit = async (product) => {
+    const { size: selectedSize, color: selectedColor } = getSelected(product.id)
     const variants = product.variants || []
-    const matchedVariant = variants.find(
-      (v) => v.size === selectedSize && v.color === selectedColor
-    )
+    const matchedVariant = variants.find(v => v.size === selectedSize && v.color === selectedColor)
 
     if (!matchedVariant || matchedVariant.stock <= 0) {
       toast.error('Biến thể bạn chọn hiện đã hết hàng trong hệ thống!')
@@ -116,44 +190,44 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
         {favoriteProducts.map((product) => {
           const rating = Math.round(parseFloat(product.rating_avg || 0))
           const variants = product.variants || []
-          const productImage = getProductImage(product)
+          const currentImage = productImages[product.id] || getDefaultImage(product)
 
           const uniqueSizes = [...new Set(variants.map(v => v.size))]
           const uniqueColors = [...new Set(variants.map(v => v.color))]
 
-          const isColorDisabled = (color) => {
-            if (selectedSize) {
-              const match = variants.find(v => v.size === selectedSize && v.color === color)
-              return !match || match.stock <= 0
-            }
-            return !variants.some(v => v.color === color && v.stock > 0)
-          }
-
-          const isSizeDisabled = (size) => {
-            if (selectedColor) {
-              const match = variants.find(v => v.color === selectedColor && v.size === size)
-              return !match || match.stock <= 0
-            }
-            return !variants.some(v => v.size === size && v.stock > 0)
-          }
+          const colorsWithImage = uniqueColors.filter(color =>
+            getImageByColor(product, color) !== null && variants.some(v => v.color === color && v.stock > 0)
+          )
+          const colorsWithStock = uniqueColors.filter(color =>
+            variants.some(v => v.color === color && v.stock > 0)
+          )
+          const sizesWithStock = uniqueSizes.filter(size =>
+            variants.some(v => v.size === size && v.stock > 0)
+          )
 
           const isPickerOpen = activePickerProductId === product.id
+
+          // ✅ Lấy selected theo từng product
+          const { size: selectedSize, color: selectedColor } = getSelected(product.id)
 
           return (
             <div
               key={product.id}
               className="group bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 items-center transition-all duration-300 hover:shadow-bold hover:-translate-y-0.5 relative overflow-hidden"
             >
-              {/* Hình ảnh sản phẩm */}
-              <Link to={`/product/${product.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 shrink-0 cursor-pointer">
+              <Link to={`/product/${product.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 shrink-0 cursor-pointer relative">
                 <img
-                  src={productImage}
+                  src={currentImage}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+                {colorsWithImage.length > 1 && (
+                  <div className="absolute top-0 right-0 bg-brand-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg">
+                    {colorsWithImage.length}
+                  </div>
+                )}
               </Link>
 
-              {/* Thông tin chi tiết ở giữa */}
               <div className="flex-1 min-w-0 space-y-1 text-left">
                 <Link
                   to={`/product/${product.slug}`}
@@ -161,12 +235,10 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                 >
                   {product.name}
                 </Link>
-
                 <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
                   <FiHome size={13} className="text-brand-secondary" />
                   <span className="truncate">{product.store_name}</span>
                 </div>
-
                 <div className="flex items-center gap-3 text-xs text-gray-400 pt-0.5">
                   <div className="flex items-center text-amber-400 gap-0.5">
                     {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
@@ -177,7 +249,6 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                 </div>
               </div>
 
-              {/* Khối giá & Nút bấm hành động bên phải */}
               <div className="flex flex-col items-end justify-between self-stretch shrink-0 pt-0.5 min-w-[100px]">
                 <div className="flex items-center gap-1">
                   <Tooltip>
@@ -215,19 +286,50 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                 <QuickFavoritePicker
                   product={product}
                   variants={variants}
-                  uniqueSizes={uniqueSizes}
-                  uniqueColors={uniqueColors}
+                  uniqueSizes={sizesWithStock}
+                  uniqueColors={colorsWithStock}
                   selectedSize={selectedSize}
-                  setSelectedSize={setSelectedSize}
+                  setSelectedSize={(size) => {
+                    // Cập nhật state ngay lập tức
+                    setSelectedVariants(prev => {
+                      const current = prev[product.id] || { size: null, color: null }
+                      return {
+                        ...prev,
+                        [product.id]: {
+                          ...current,
+                          size: size
+                        }
+                      }
+                    })
+                  }}
                   selectedColor={selectedColor}
-                  setSelectedColor={setSelectedColor}
-                  isSizeDisabled={isSizeDisabled}
-                  isColorDisabled={isColorDisabled}
-                  onClose={() => setActivePickerProductId(null)}
+                  setSelectedColor={(color) => {
+                    // Cập nhật state ngay lập tức và đổi ảnh
+                    setSelectedVariants(prev => {
+                      const current = prev[product.id] || { size: null, color: null }
+                      return {
+                        ...prev,
+                        [product.id]: {
+                          ...current,
+                          color: color
+                        }
+                      }
+                    })
+                    handleColorSelect(product, color)
+                  }}
+                  onClose={() => {
+                    setActivePickerProductId(null)
+                    setSelectedVariants(prev => {
+                      const current = prev[product.id] || { size: null, color: null }
+                      return {
+                        ...prev,
+                        [product.id]: { size: null, color: null }
+                      }
+                    })
+                  }}
                   onSubmit={handleAddToCartSubmit}
                 />
               )}
-
             </div>
           )
         })}

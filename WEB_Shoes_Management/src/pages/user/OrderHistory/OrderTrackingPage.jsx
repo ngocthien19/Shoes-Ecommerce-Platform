@@ -14,8 +14,10 @@ import { FiGrid, FiFileText,
   FiAlertCircle, FiInbox
 } from 'react-icons/fi'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const OrderTrackingPage = () => {
+  usePageTitle('Theo dõi đơn hàng', 'Quản lý và theo dõi trạng thái đơn hàng của bạn')
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchParams, setSearchParams] = useSearchParams()

@@ -12,6 +12,7 @@ import { formatDateTime, formatRelativeTime, getImageUrl, formatPrice } from '~/
 import { managerStoreApiService } from '~/services/manager/managerStoreApiService'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { StoreProductsList } from './StoreProductsList'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerStoreDetailPage = () => {
   const { id } = useParams()
@@ -26,6 +27,11 @@ export const ManagerStoreDetailPage = () => {
     placeholder: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+
+  usePageTitle(
+    store ? `Cửa hàng ${store.owner_name}` : 'Chi tiết cửa hàng',
+    store ? `Xem chi tiết cửa hàng ${store.owner_name} - ${store.owner_name}` : 'Xem chi tiết cửa hàng'
+  )
 
   const fetchStoreDetail = async () => {
     try {

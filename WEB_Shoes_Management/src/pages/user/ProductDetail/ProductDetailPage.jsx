@@ -8,6 +8,7 @@ import { RelatedProducts } from '~/pages/user/ProductDetail/RelatedProducts'
 import { ProductReview } from '~/pages/user/ProductDetail/ProductReview'
 import { productService } from '~/services/user/productService'
 import { BreadCrumb } from '~/components/user/BreadCrumb'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ProductDetailPage = () => {
   const { slug } = useParams()
@@ -16,6 +17,11 @@ export const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedColor, setSelectedColor] = useState('')
   const galleryRef = useRef(null)
+
+  usePageTitle(
+    product?.name || 'Chi tiết sản phẩm',
+    product?.description || 'Xem chi tiết sản phẩm giày dép tại Shoes Platform'
+  )
 
   useEffect(() => {
     const fetchProduct = async () => {

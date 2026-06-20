@@ -9,6 +9,7 @@ import { StoreStatsCard } from './StoreStatsCard'
 import { StoreOwnerCard } from './StoreOwnerCard'
 import { StoreRevenueChart } from './StoreRevenueChart'
 import { StoreProductsList } from './StoreProductsList'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminStoreDetailPage = () => {
   const { id } = useParams()
@@ -16,6 +17,11 @@ export const AdminStoreDetailPage = () => {
   const [store, setStore] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  usePageTitle(
+    store ? `Cửa hàng ${store.name}` : 'Chi tiết cửa hàng',
+    store ? `Xem chi tiết cửa hàng ${store.name}` : 'Xem chi tiết cửa hàng'
+  )
 
   const fetchStoreDetail = async () => {
     try {

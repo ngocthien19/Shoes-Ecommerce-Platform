@@ -11,6 +11,7 @@ import { formatDateTime, formatRelativeTime } from '~/utils/formatters'
 import { managerReviewApiService } from '~/services/manager/managerReviewApiService'
 import { REVIEW_TYPES } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerReviewDetailPage = () => {
   const { id } = useParams()
@@ -29,6 +30,16 @@ export const ManagerReviewDetailPage = () => {
     message: '',
     placeholder: ''
   })
+
+  const getReviewTitle = () => {
+    const typeLabel = type === REVIEW_TYPES.PRODUCT ? 'Sản phẩm' : 'Cửa hàng'
+    return `Chi tiết đánh giá ${typeLabel} #${id}`
+  }
+
+  usePageTitle(
+    getReviewTitle(),
+    `Xem chi tiết đánh giá ${type === REVIEW_TYPES.PRODUCT ? 'sản phẩm' : 'cửa hàng'}`
+  )
 
   const fetchReviewDetail = async () => {
     try {

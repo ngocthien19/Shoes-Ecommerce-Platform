@@ -6,8 +6,13 @@ import { FiBox, FiGrid } from 'react-icons/fi'
 import { adminAttributeApiService } from '~/services/admin/adminAttributeApiService'
 import { AttributeOverviewWidgets } from './AttributeOverviewWidgets'
 import { AttributeTable } from './AttributeTable'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminAttributesPage = () => {
+  usePageTitle(
+    'Quản lý Biến thể',
+    'Quản lý kích cỡ và màu sắc toàn hệ thống'
+  )
   const [sizes, setSizes] = useState([])
   const [colors, setColors] = useState([])
   const [loading, setLoading] = useState(true)

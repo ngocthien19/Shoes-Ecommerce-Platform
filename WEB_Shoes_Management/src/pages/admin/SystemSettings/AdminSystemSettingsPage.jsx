@@ -6,8 +6,13 @@ import { FiSettings } from 'react-icons/fi'
 import { adminSystemSettingApiService } from '~/services/admin/adminSystemSettingApiService'
 import { SystemSettingsOverview } from './SystemSettingsOverview'
 import { SystemSettingsForm } from './SystemSettingsForm'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminSystemSettingsPage = () => {
+  usePageTitle(
+    'Cài đặt hệ thống',
+    'Quản lý cấu hình vận hành toàn hệ thống'
+  )
   const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
 

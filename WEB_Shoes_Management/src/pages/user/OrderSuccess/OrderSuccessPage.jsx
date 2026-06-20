@@ -6,8 +6,10 @@ import { useDispatch } from 'react-redux'
 import { setCartCount } from '~/redux/user/cartSlice'
 import { cartApiService } from '~/services/user/cartService'
 import { motion } from 'framer-motion'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const OrderSuccessPage = () => {
+  usePageTitle('Đặt hàng thành công', 'Cảm ơn bạn đã mua sắm tại Shoes Platform')
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const dispatch = useDispatch()

@@ -7,11 +7,17 @@ import { adminCategoryApiService } from '~/services/admin/adminCategoryApiServic
 import { CategoryFormHeader } from './CategoryFormHeader'
 import { CategoryFormFields } from './CategoryFormFields'
 import { CategoryFormAvatar } from './CategoryFormAvatar'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const CategoryFormPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEditMode = Boolean(id)
+
+  usePageTitle(
+    isEditMode ? 'Chỉnh sửa danh mục' : 'Thêm danh mục mới',
+    isEditMode ? 'Cập nhật thông tin danh mục sản phẩm' : 'Tạo danh mục sản phẩm mới'
+  )
 
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)

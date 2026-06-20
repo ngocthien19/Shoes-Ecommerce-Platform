@@ -13,8 +13,13 @@ import { StoreSearchResultsInfo } from './StoreSearchResultsInfo'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminStoresPage = () => {
+  usePageTitle(
+    'Quản lý Cửa hàng',
+    'Quản lý toàn bộ cửa hàng trên sàn'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

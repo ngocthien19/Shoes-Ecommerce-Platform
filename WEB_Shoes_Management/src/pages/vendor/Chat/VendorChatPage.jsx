@@ -9,10 +9,15 @@ import { DEV_API_URL } from '~/utils/constant'
 import { formatLastActive, formatRelativeTime } from '~/utils/formatters'
 import { VendorConversationList } from './VendorConversationList'
 import { VendorChatArea } from './VendorChatArea'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 let socket = null
 
 export const VendorChatPage = () => {
+  usePageTitle(
+    'Tin nhắn - Hỗ trợ khách hàng',
+    'Quản lý tin nhắn và hỗ trợ khách hàng của cửa hàng'
+  )
   const [conversations, setConversations] = useState([])
   const [activeChat, setActiveChat] = useState(null)
   const [messages, setMessages] = useState([])

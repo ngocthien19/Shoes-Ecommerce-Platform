@@ -13,8 +13,13 @@ import { ProductSearchResultsInfo } from './ProductSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorProductsPage = () => {
+  usePageTitle(
+    'Kho hàng của bạn',
+    'Quản lý toàn bộ danh sách và biến thể tồn kho giày dép'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

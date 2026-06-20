@@ -7,6 +7,7 @@ import { Pagination } from '~/components/common/Pagination'
 import { ProductCard } from '~/components/user/ProductCard'
 import { productService } from '~/services/user/productService'
 import { FiX, FiZap } from 'react-icons/fi'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,6 +16,19 @@ export const ProductsPage = () => {
   const [products, setProducts] = useState([])
   const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 1, currentPage: 1 })
   const [loading, setLoading] = useState(false)
+
+  const searchQuery = searchParams.get('search') || ''
+  const totalItems = pagination.totalItems || 0
+  const pageTitle = searchQuery
+    ? `"${searchQuery}" (${totalItems} sản phẩm)`
+    : `Tất cả sản phẩm (${totalItems} sản phẩm)`
+
+  usePageTitle(
+    pageTitle,
+    searchQuery
+      ? `Kết quả tìm kiếm cho "${searchQuery}" tại Shoes Platform`
+      : 'Khám phá bộ sưu tập giày dép đa dạng tại Shoes Platform'
+  )
 
   // KHỞI TẠO STATE TỪ URL
   const [filters, setFilters] = useState({
@@ -118,7 +132,8 @@ export const ProductsPage = () => {
     })
   }
 
-  const hasActiveFilters = filters.categories.length > 0 || filters.sizes.length > 0 ||
+  const hasActiveFilters = filters.search || filters.categories.length > 0 ||
+                           filters.sizes.length > 0 ||
                            filters.colors.length > 0 || filters.ratings.length > 0 ||
                            filters.prices.length > 0 || filters.isDiscounted
 
@@ -198,6 +213,23 @@ export const ProductsPage = () => {
                   <span className="text-gray-500 mr-2 font-medium">Đang lọc:</span>
 
                   <AnimatePresence>
+                    {filters.search && (
+                      <motion.span
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold border border-blue-200"
+                      >
+          Tìm kiếm: {filters.search}
+                        <FiX
+                          className="cursor-pointer hover:text-blue-800 hover:scale-125 transition-transform"
+                          onClick={() => {
+                            setFilters({ ...filters, search: '', page: 1 })
+                          }}
+                        />
+                      </motion.span>
+                    )}
                     {filters.categories.map(cat => (
                       <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} key={cat} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
                         Danh mục: {cat} <FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => handleRemoveArrayFilter('categories', cat)} />

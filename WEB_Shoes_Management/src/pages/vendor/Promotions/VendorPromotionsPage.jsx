@@ -13,8 +13,13 @@ import { PromotionBulkActionPanel } from './PromotionBulkActionPanel'
 import { PromotionSearchResultsInfo } from './PromotionSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ConfirmDeleteModalPromotion } from '~/components/common/ConfirmDeleteModalPromotion'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorPromotionsPage = () => {
+  usePageTitle(
+    'Chương trình khuyến mãi',
+    'Tạo và quản lý mã giảm giá cho khách hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

@@ -11,11 +11,16 @@ import { attributeService } from '~/services/user/attributeService'
 
 import { BasicInfoSection } from './BasicInfoSection'
 import { VariantsSection } from './VariantsSection'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ProductFormPage = () => {
   const { id } = useParams()
   const isEditMode = Boolean(id)
   const navigate = useNavigate()
+  usePageTitle(
+    isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới',
+    isEditMode ? 'Cập nhật thông tin sản phẩm' : 'Tạo sản phẩm mới và cấu hình biến thể'
+  )
 
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState([])

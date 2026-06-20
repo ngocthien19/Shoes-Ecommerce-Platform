@@ -9,10 +9,16 @@ import { reviewService } from '~/services/user/reviewService'
 
 import { StoreReviewSection } from './StoreReviewSection'
 import { ProductReviewSection } from './ProductReviewSection'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ReviewOrderPage = () => {
   const { orderId } = useParams()
   const navigate = useNavigate()
+
+  usePageTitle(
+    `Đánh giá đơn hàng #${orderId}`,
+    `Đánh giá sản phẩm và cửa hàng cho đơn hàng #${orderId}`
+  )
 
   const [order, setOrder] = useState(null)
   const [loadingOrder, setLoadingOrder] = useState(true)

@@ -10,11 +10,17 @@ import { ROLE_ID } from '~/utils/constant'
 import { UserFormHeader } from './UserFormHeader'
 import { UserFormFields } from './UserFormFields'
 import { UserFormAvatar } from './UserFormAvatar'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const UserFormPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEditMode = Boolean(id)
+
+  usePageTitle(
+    isEditMode ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới',
+    isEditMode ? 'Cập nhật thông tin người dùng' : 'Tạo tài khoản người dùng mới'
+  )
 
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)

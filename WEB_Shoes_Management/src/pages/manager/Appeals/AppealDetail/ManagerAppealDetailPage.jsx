@@ -11,6 +11,7 @@ import { formatDateTime, formatRelativeTime, getImageUrl } from '~/utils/formatt
 import { managerAppealApiService } from '~/services/manager/managerAppealApiService'
 import { APPEAL_STATUS } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerAppealDetailPage = () => {
   const { id } = useParams()
@@ -27,6 +28,11 @@ export const ManagerAppealDetailPage = () => {
     message: '',
     placeholder: ''
   })
+
+  usePageTitle(
+    appeal ? `Đơn cứu xét #${appeal.id} - ${appeal.store_name}` : 'Chi tiết đơn cứu xét',
+    appeal ? `Xem chi tiết đơn cứu xét #${appeal.id} của cửa hàng ${appeal.store_name}` : 'Xem chi tiết đơn cứu xét cửa hàng'
+  )
 
   const fetchAppealDetail = async () => {
     try {

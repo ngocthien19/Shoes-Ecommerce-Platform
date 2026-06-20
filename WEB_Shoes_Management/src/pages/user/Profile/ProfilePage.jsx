@@ -10,12 +10,26 @@ import { ProfileSidebar } from './ProfileSidebar'
 import { ProfileTabsContent } from './ProfileTabsContent'
 import { toast } from 'react-toastify'
 import { getImageUrl } from '~/utils/formatters'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ProfilePage = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
+  const getTabTitle = () => {
+    switch (activeTab) {
+    case 'profile': return 'Thông tin cá nhân'
+    case 'favorites': return 'Sản phẩm yêu thích'
+    case 'password': return 'Đổi mật khẩu'
+    default: return 'Hồ sơ cá nhân'
+    }
+  }
+
+  usePageTitle(
+    getTabTitle(),
+    `Quản lý ${getTabTitle().toLowerCase()} của bạn tại Shoes Platform`
+  )
 
   const [favoriteProducts, setFavoriteProducts] = useState([])
 

@@ -7,11 +7,16 @@ import { StoreReview } from './StoreReview'
 import { storeService } from '~/services/user/storeService'
 import { toast } from 'react-toastify'
 import { FiStar } from 'react-icons/fi'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 
 export const StoreDetailPage = () => {
   const { id } = useParams()
   const [store, setStore] = useState(null)
+  usePageTitle(
+    store?.name ? `Cửa hàng ${store.name}` : 'Chi tiết cửa hàng',
+    store?.bio || 'Xem thông tin cửa hàng và sản phẩm tại Shoes Platform'
+  )
 
   // State cho Sản phẩm
   const [products, setProducts] = useState([])

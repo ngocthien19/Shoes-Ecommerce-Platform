@@ -11,6 +11,7 @@ import { adminPayoutApiService } from '~/services/admin/adminPayoutApiService'
 import { formatDateTime, formatPrice, getImageUrl } from '~/utils/formatters' // 🆕 Thêm getImageUrl
 import { PAYOUT_STATUS } from '~/utils/constant'
 import { ProcessPayoutModal } from '../ProcessPayoutModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminPayoutDetailPage = () => {
   const { id } = useParams()
@@ -19,6 +20,11 @@ export const AdminPayoutDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  usePageTitle(
+    payout ? `Yêu cầu rút tiền #${payout.id}` : 'Chi tiết yêu cầu rút tiền',
+    payout ? `Xem chi tiết yêu cầu rút tiền #${payout.id} của ${payout.store_name}` : 'Xem chi tiết yêu cầu rút tiền'
+  )
 
   const fetchPayoutDetail = async () => {
     try {

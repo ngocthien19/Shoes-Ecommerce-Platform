@@ -10,6 +10,7 @@ import { updateUserFields } from '~/redux/user/userSlice'
 import { getImageUrl } from '~/utils/formatters'
 import { VendorProfileInfo } from './VendorProfileInfo'
 import { VendorPasswordChange } from './VendorPasswordChange'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorProfileAccount = () => {
   const [searchParams] = useSearchParams()
@@ -22,6 +23,13 @@ export const VendorProfileAccount = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'password' ? 'password' : 'profile')
   const [previewAvatar, setPreviewAvatar] = useState(null)
   const [selectedFile, setSelectedFile] = useState(null)
+
+  usePageTitle(
+    activeTab === 'password' ? 'Đổi mật khẩu' : 'Thông tin cá nhân',
+    activeTab === 'password'
+      ? 'Cập nhật mật khẩu tài khoản của bạn'
+      : 'Quản lý thông tin cá nhân và tài khoản của bạn'
+  )
 
   // Khởi tạo user từ Redux khi component mount
   useEffect(() => {
