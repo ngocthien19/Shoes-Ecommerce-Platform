@@ -1,5 +1,6 @@
 import { FiUser, FiShoppingBag, FiHeart, FiLock, FiLogOut } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
+import { Avatar } from '~/components/common/Avatar'
 
 export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatarUrl }) => {
   const navigate = useNavigate()
@@ -9,7 +10,13 @@ export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatar
       {/* Khối Thông tin tóm tắt người dùng */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm flex items-center gap-4">
         <div className="w-14 h-14 bg-gray-100 rounded-full overflow-hidden border border-gray-200 shrink-0">
-          <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          <Avatar
+            user={user}
+            src={avatarUrl}
+            size="w-full h-full"
+            textSize="text-lg"
+            rounded="rounded-full"
+          />
         </div>
         <div className="min-w-0">
           <h2 className="font-bold text-brand-secondary text-lg leading-tight truncate">{user?.fullname}</h2>
@@ -28,7 +35,7 @@ export const ProfileSidebar = ({ user, activeTab, setActiveTab, onLogout, avatar
           <FiUser size={18} /> <span>Thông tin cá nhân</span>
         </button>
 
-        {/* Lịch sử đơn hàng (Giữ nguyên chuyển trang vì đây là link riêng) */}
+        {/* Lịch sử đơn hàng */}
         <button
           onClick={() => navigate('/orders')}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-brand-primary transition-all cursor-pointer"
