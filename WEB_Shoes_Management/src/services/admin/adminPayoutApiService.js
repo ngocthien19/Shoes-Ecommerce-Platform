@@ -8,6 +8,7 @@ export const adminPayoutApiService = {
     if (filters.page) params.append('page', filters.page)
     if (filters.limit) params.append('limit', filters.limit)
     if (filters.status) params.append('status', filters.status)
+    if (filters.search) params.append('search', filters.search)
 
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/admin/payouts?${params.toString()}`)
     return response.data

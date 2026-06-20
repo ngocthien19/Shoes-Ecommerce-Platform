@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ProductGallery } from '~/pages/user/ProductDetail/ProductGallery'
@@ -14,16 +14,30 @@ export const ProductDetailPage = () => {
   const [product, setProduct] = useState(null)
   const [storeId, setStoreId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedColor, setSelectedColor] = useState('')
+  const galleryRef = useRef(null)
 
   useEffect(() => {
     const fetchProduct = async () => {
       const productData = await productService.getProductDetail(slug)
       setProduct(productData)
       setStoreId(productData.store_id)
+
+      // Set màu đầu tiên từ variants
+      if (productData.variants && productData.variants.length > 0) {
+        const firstVariant = productData.variants[0]
+        setSelectedColor(firstVariant.color || '')
+      }
+
       setLoading(false)
     }
     fetchProduct()
   }, [slug])
+
+  // Hàm nhận màu từ Gallery và cập nhật lại ProductInfo
+  const handleColorChangeFromGallery = (color) => {
+    setSelectedColor(color)
+  }
 
   if (loading) {
     return (
@@ -71,7 +85,12 @@ export const ProductDetailPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
             >
-              <ProductGallery images={product.images} productName={product.name} />
+              <ProductGallery
+                images={product.images}
+                productName={product.name}
+                variants={product.variants}
+                onColorChange={handleColorChangeFromGallery}
+              />
             </motion.div>
 
             {/* Cột phải: Thông tin */}
@@ -81,12 +100,15 @@ export const ProductDetailPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.45, delay: 0.15, ease: 'easeOut' }}
             >
-              <ProductInfo product={product} />
+              <ProductInfo
+                product={product}
+                onColorChangeFromGallery={selectedColor}
+              />
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Các section bên dưới  */}
+        {/* Các section bên dưới */}
         <StoreInfo storeId={storeId} />
         <ProductReview product={product} />
         <RelatedProducts products={product.relatedProducts} />
