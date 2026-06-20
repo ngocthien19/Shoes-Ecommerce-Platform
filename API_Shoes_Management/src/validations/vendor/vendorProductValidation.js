@@ -40,8 +40,7 @@ const validateUpdateProduct = async (req, res, next) => {
     categoryId: Joi.number().integer().positive().required(),
     name: Joi.string().min(3).max(150).trim().required(),
     description: Joi.string().max(2000).trim().optional().allow('', null),
-    price: Joi.number().positive().min(1000).required(),
-    oldImages: Joi.string().optional().allow('', null)
+    price: Joi.number().positive().min(1000).required()
   })
 
   try {
