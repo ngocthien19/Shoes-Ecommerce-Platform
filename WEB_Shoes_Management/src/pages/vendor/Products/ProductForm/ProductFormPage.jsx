@@ -202,27 +202,32 @@ export const ProductFormPage = () => {
       return
     }
 
-    // Xử lý ảnh variant
+    // Xử lý ảnh variant - lấy file để upload
     let imageData = null
     if (variant.imageFile) {
-      // Nếu có file ảnh mới, chuyển thành base64 hoặc upload
-      // Ở đây tạm thời lưu preview
-      imageData = variant.imagePreview
+    // Nếu có file ảnh mới, gửi file lên server (FormData sẽ xử lý)
+      imageData = variant.imageFile
     } else if (variant.image) {
-      // Giữ nguyên ảnh cũ
+    // Giữ nguyên ảnh cũ
       imageData = variant.image
     }
 
     if (variant.id) {
-      // Cập nhật biến thể đã có trong DB
+    // Cập nhật biến thể đã có trong DB
       try {
         setLoading(true)
-        await vendorProductApiService.updateVariant(id, variant.id, {
-          size: variant.size,
-          color: variant.color || null,
-          stock: variant.stock,
-          image: imageData
-        })
+
+        // Tạo FormData để gửi file ảnh
+        const formData = new FormData()
+        formData.append('size', variant.size)
+        formData.append('color', variant.color || '')
+        formData.append('stock', variant.stock)
+        if (imageData instanceof File) {
+          formData.append('image', imageData)
+        }
+
+        await vendorProductApiService.updateVariant(id, variant.id, formData)
+
         toast.success('Cập nhật biến thể thành công!')
         setEditingVariantIndex(null)
         setIsAddingVariant(false)
@@ -233,7 +238,7 @@ export const ProductFormPage = () => {
         setLoading(false)
       }
     } else {
-      // Biến thể mới - lưu vào form
+    // Biến thể mới - lưu vào form (sẽ được tạo khi submit)
       if (imageData) {
         setValue(`variants.${index}.image`, imageData)
       }
@@ -296,12 +301,20 @@ export const ProductFormPage = () => {
       if (isEditMode) {
         await vendorProductApiService.updateProduct(id, formData)
 
+        // Tạo các variant mới (không có id)
         if (data.variants && data.variants.length > 0) {
           const newVariants = data.variants.filter(variant => !variant.id)
 
           if (newVariants.length > 0) {
             for (const variant of newVariants) {
-              await vendorProductApiService.createVariant(id, variant)
+              const variantFormData = new FormData()
+              variantFormData.append('size', variant.size)
+              variantFormData.append('color', variant.color || '')
+              variantFormData.append('stock', variant.stock)
+              if (variant.imageFile) {
+                variantFormData.append('image', variant.imageFile)
+              }
+              await vendorProductApiService.createVariant(id, variantFormData)
             }
           }
         }
@@ -316,7 +329,14 @@ export const ProductFormPage = () => {
 
         if (data.variants && data.variants.length > 0 && newProductId) {
           for (const variant of data.variants) {
-            await vendorProductApiService.createVariant(newProductId, variant)
+            const variantFormData = new FormData()
+            variantFormData.append('size', variant.size)
+            variantFormData.append('color', variant.color || '')
+            variantFormData.append('stock', variant.stock)
+            if (variant.imageFile) {
+              variantFormData.append('image', variant.imageFile)
+            }
+            await vendorProductApiService.createVariant(newProductId, variantFormData)
           }
         }
 

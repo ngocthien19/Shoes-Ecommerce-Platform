@@ -155,10 +155,13 @@ export const VariantsSection = ({
     )
   }
 
-  // Component hiển thị form sửa biến thể (chế độ edit)
+  // Component hiển thị form sửa biến thể (chế độ edit) - Có icon lưu riêng
   const VariantEdit = ({ index }) => {
     const variant = watch(`variants.${index}`)
     const imageUrl = getVariantImageUrl(variant || {})
+
+    // Kiểm tra xem variant đã có dữ liệu hợp lệ chưa
+    const isValid = variant?.size && variant?.stock !== undefined && variant?.stock !== null && variant?.stock >= 0
 
     return (
       <div className="flex flex-wrap md:flex-nowrap items-start gap-4 p-5 bg-brand-primary/5 rounded-xl border border-brand-primary/30">
@@ -281,8 +284,30 @@ export const VariantsSection = ({
           )}
         </div>
 
-        {/* Nút Hủy */}
-        <div className="w-full md:w-auto flex items-end pb-1.5">
+        {/* Nút hành động trong chế độ edit - có icon lưu riêng */}
+        <div className="w-full md:w-auto flex items-end gap-1.5 pb-1.5">
+          {/* Nút Lưu (✓) - chỉ active khi dữ liệu hợp lệ */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => onUpdateVariant(index)}
+                disabled={!isValid}
+                className={`p-2.5 rounded-xl transition-all duration-200 cursor-pointer shadow-sm ${
+                  isValid
+                    ? 'bg-green-500 text-white hover:bg-green-600'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <FiCheck size={16} />
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent>Lưu biến thể</TooltipContent>
+          </Tooltip>
+
+          {/* Nút Hủy (✕) */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.button
@@ -295,7 +320,7 @@ export const VariantsSection = ({
                 <FiX size={16} />
               </motion.button>
             </TooltipTrigger>
-            <TooltipContent>Hủy</TooltipContent>
+            <TooltipContent>Hủy chỉnh sửa</TooltipContent>
           </Tooltip>
         </div>
       </div>
@@ -368,26 +393,6 @@ export const VariantsSection = ({
             )}
           </AnimatePresence>
         </div>
-
-        {/* Nút Lưu thay đổi khi đang chỉnh sửa */}
-        {editingIndex !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-end pt-4 border-t border-gray-100"
-          >
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              type="button"
-              onClick={() => onUpdateVariant(editingIndex)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer shadow-md shadow-green-500/20"
-            >
-              <FiCheck size={16} />
-              Lưu thay đổi
-            </motion.button>
-          </motion.div>
-        )}
       </motion.div>
 
       <ConfirmDeleteModal
