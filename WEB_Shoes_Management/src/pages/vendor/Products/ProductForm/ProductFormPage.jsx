@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useForm, FormProvider } from 'react-hook-form'
+import { useForm, FormProvider, useFieldArray } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { FiSave, FiArrowLeft, FiCheck } from 'react-icons/fi'
 import { motion } from 'framer-motion'
@@ -25,8 +25,23 @@ export const ProductFormPage = () => {
   const [imageFiles, setImageFiles] = useState([])
   const [existingImages, setExistingImages] = useState([])
 
+  const [editingVariantIndex, setEditingVariantIndex] = useState(null)
+  const [isAddingVariant, setIsAddingVariant] = useState(false)
+
   const methods = useForm({
-    defaultValues: { name: '', categoryId: '', price: '', description: '', variants: [] }
+    defaultValues: {
+      name: '',
+      categoryId: '',
+      price: '',
+      description: '',
+      variants: []
+    }
+  })
+
+  const { control, getValues, reset, setValue } = methods
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'variants'
   })
 
   const flattenCategories = (categories, level = 0) => {
@@ -55,6 +70,43 @@ export const ProductFormPage = () => {
     return null
   }
 
+  // Hàm reload dữ liệu sản phẩm
+  const reloadProductData = async () => {
+    if (!isEditMode || !id) return
+
+    try {
+      setLoading(true)
+      const data = await vendorProductApiService.getProductDetail(id)
+
+      reset({
+        name: data.name,
+        categoryId: data.category_id,
+        price: data.price,
+        description: data.description,
+        variants: data.variants || []
+      })
+
+      let parsedImages = []
+      if (typeof data.images === 'string') {
+        try {
+          parsedImages = JSON.parse(data.images)
+        } catch {
+          parsedImages = []
+        }
+      } else if (Array.isArray(data.images)) {
+        parsedImages = data.images
+      } else if (data.images) {
+        parsedImages = [data.images]
+      }
+
+      setExistingImages(Array.isArray(parsedImages) ? parsedImages : [parsedImages])
+    } catch (error) {
+      toast.error('Không thể tải lại dữ liệu sản phẩm')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     Promise.all([
       categoryService.getAllCategories(),
@@ -72,7 +124,7 @@ export const ProductFormPage = () => {
       vendorProductApiService.getProductDetail(id).then(data => {
         const category = findCategoryById(categories, data.category_id)
 
-        methods.reset({
+        reset({
           name: data.name,
           categoryId: data.category_id,
           price: data.price,
@@ -100,7 +152,7 @@ export const ProductFormPage = () => {
         navigate('/vendor/products')
       }).finally(() => setLoading(false))
     }
-  }, [id, isEditMode, methods, navigate, categories])
+  }, [id, isEditMode, reset, navigate, categories])
 
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files)
@@ -113,6 +165,120 @@ export const ProductFormPage = () => {
 
   const handleRemoveOldImage = (indexToRemove) => {
     setExistingImages(prev => prev.filter((_, idx) => idx !== indexToRemove))
+  }
+
+  // Bắt đầu thêm biến thể mới
+  const handleAddVariant = () => {
+    append({
+      size: '',
+      color: '',
+      stock: 0,
+      image: null,
+      imageFile: null,
+      imagePreview: null
+    })
+    setIsAddingVariant(true)
+    setEditingVariantIndex(fields.length)
+  }
+
+  // Bắt đầu sửa biến thể
+  const handleEditVariant = (index) => {
+    setEditingVariantIndex(index)
+    setIsAddingVariant(false)
+  }
+
+  // Lưu biến thể (cập nhật)
+  const handleUpdateVariant = async (index) => {
+    const variants = getValues('variants')
+    const variant = variants[index]
+
+    // Kiểm tra dữ liệu hợp lệ
+    if (!variant.size) {
+      toast.error('Vui lòng chọn kích cỡ (Size)')
+      return
+    }
+    if (variant.stock === undefined || variant.stock === null || variant.stock < 0) {
+      toast.error('Vui lòng nhập số lượng tồn kho hợp lệ')
+      return
+    }
+
+    // Xử lý ảnh variant
+    let imageData = null
+    if (variant.imageFile) {
+      // Nếu có file ảnh mới, chuyển thành base64 hoặc upload
+      // Ở đây tạm thời lưu preview
+      imageData = variant.imagePreview
+    } else if (variant.image) {
+      // Giữ nguyên ảnh cũ
+      imageData = variant.image
+    }
+
+    if (variant.id) {
+      // Cập nhật biến thể đã có trong DB
+      try {
+        setLoading(true)
+        await vendorProductApiService.updateVariant(id, variant.id, {
+          size: variant.size,
+          color: variant.color || null,
+          stock: variant.stock,
+          image: imageData
+        })
+        toast.success('Cập nhật biến thể thành công!')
+        setEditingVariantIndex(null)
+        setIsAddingVariant(false)
+        await reloadProductData()
+      } catch (error) {
+        toast.error(error.message || 'Cập nhật biến thể thất bại!')
+      } finally {
+        setLoading(false)
+      }
+    } else {
+      // Biến thể mới - lưu vào form
+      if (imageData) {
+        setValue(`variants.${index}.image`, imageData)
+      }
+      setEditingVariantIndex(null)
+      setIsAddingVariant(false)
+      toast.success('Biến thể đã được thêm vào danh sách!')
+    }
+  }
+
+  // Hủy chỉnh sửa biến thể
+  const handleCancelEditVariant = () => {
+    const variants = getValues('variants')
+
+    // Nếu đang thêm mới và không có dữ liệu thì xóa luôn
+    if (isAddingVariant && variants.length > 0) {
+      const lastVariant = variants[variants.length - 1]
+      if (!lastVariant.size && !lastVariant.color && (lastVariant.stock === 0 || !lastVariant.stock)) {
+        remove(variants.length - 1)
+      }
+    }
+
+    setEditingVariantIndex(null)
+    setIsAddingVariant(false)
+  }
+
+  // Xóa biến thể
+  const handleDeleteVariant = async (index) => {
+    const variants = getValues('variants')
+    const variant = variants[index]
+
+    if (variant.id) {
+      try {
+        setLoading(true)
+        await vendorProductApiService.deleteVariant(id, variant.id)
+        toast.success('Xóa biến thể thành công!')
+        await reloadProductData()
+      } catch (error) {
+        toast.error(error.message || 'Xóa biến thể thất bại!')
+      } finally {
+        setLoading(false)
+      }
+    } else {
+      remove(index)
+      toast.success('Đã xóa biến thể khỏi danh sách!')
+    }
   }
 
   const onSubmit = async (data) => {
@@ -166,8 +332,6 @@ export const ProductFormPage = () => {
 
   return (
     <div className="space-y-6 pb-10">
-
-      {/* HEADER: Trái là Title, Phải là Info Text */}
       <motion.div
         initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -186,7 +350,6 @@ export const ProductFormPage = () => {
           </div>
         </div>
 
-        {/* Text hiển thị góc phải trên */}
         <div className="hidden md:flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl border border-green-100">
           <FiCheck size={16} />
           <span className="text-xs font-bold">{isEditMode ? 'Đang cập nhật thông tin' : 'Thiết lập thông tin và cấu hình biến thể'}</span>
@@ -203,7 +366,6 @@ export const ProductFormPage = () => {
       {!loading && (
         <FormProvider {...methods}>
           <form className="space-y-6 flex flex-col">
-
             <BasicInfoSection
               categories={flatCategories}
               imageFiles={imageFiles}
@@ -213,8 +375,18 @@ export const ProductFormPage = () => {
               onRemoveOldImage={handleRemoveOldImage}
             />
 
-            {/* Khối Biến thể */}
-            <VariantsSection attributes={attributes} />
+            <VariantsSection
+              attributes={attributes}
+              fields={fields}
+              remove={remove}
+              editingIndex={editingVariantIndex}
+              isAddingVariant={isAddingVariant}
+              onAddVariant={handleAddVariant}
+              onEditVariant={handleEditVariant}
+              onUpdateVariant={handleUpdateVariant}
+              onDeleteVariant={handleDeleteVariant}
+              onCancelEdit={handleCancelEditVariant}
+            />
 
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
