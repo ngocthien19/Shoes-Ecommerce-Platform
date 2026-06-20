@@ -1,12 +1,42 @@
 import { FiBox, FiCamera, FiX, FiCheckCircle, FiMessageSquare, FiImage } from 'react-icons/fi'
 import { Controller } from 'react-hook-form'
 import { StarRating } from './StarRating'
-import { getImageUrl } from '~/utils/formatters'
+import { getImageUrl, getVariantImageUrl } from '~/utils/formatters'
 import { Textarea } from '~/components/ui/textarea'
 import { toast } from 'react-toastify'
 
 export const ProductReviewSection = ({ items, control, register, errors, watch, setValue }) => {
   const images = watch('productImages') || []
+
+  const getItemImage = (item) => {
+    // Ưu tiên ảnh từ variant_image
+    if (item.variant_image) {
+      // Nếu variant_image là object có secure_url
+      if (item.variant_image.secure_url) {
+        return item.variant_image.secure_url
+      }
+      // Nếu variant_image là string JSON
+      if (typeof item.variant_image === 'string') {
+        try {
+          const parsed = JSON.parse(item.variant_image)
+          if (parsed && parsed.secure_url) {
+            return parsed.secure_url
+          }
+        } catch (e) {
+          // Bỏ qua
+        }
+      }
+    }
+    // Fallback sang product_images (nếu có)
+    if (item.product_images) {
+      return getImageUrl(item.product_images, 'https://placehold.co/100x100?text=Product')
+    }
+    // Fallback sang images (cũ)
+    if (item.images) {
+      return getImageUrl(item.images, 'https://placehold.co/100x100?text=Product')
+    }
+    return 'https://placehold.co/100x100?text=Product'
+  }
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
@@ -45,16 +75,30 @@ export const ProductReviewSection = ({ items, control, register, errors, watch, 
       </div>
 
       <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 mb-6 max-h-48 overflow-y-auto space-y-3 custom-scrollbar">
-        {items?.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-50 shadow-sm">
-            <img src={getImageUrl(item.images)} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0 border border-gray-100" />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-xs text-gray-800 line-clamp-1">{item.product_name}</p>
-              <p className="text-[10px] text-gray-500">Phân loại: {item.color} | Size: {item.size}</p>
+        {items?.map((item, idx) => {
+          const imageUrl = getItemImage(item)
+          return (
+            <div key={idx} className="flex items-center gap-3 bg-white p-2 rounded-xl border border-gray-50 shadow-sm">
+              <div className="relative">
+                <img
+                  src={imageUrl}
+                  alt={item.product_name}
+                  className="w-12 h-12 rounded-lg object-cover shrink-0 border border-gray-100"
+                />
+                {item.variant_image && (
+                  <div className="absolute top-0 right-0 bg-brand-primary text-white text-[6px] font-bold px-1 py-0.5 rounded-bl-lg">
+                    VAR
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-xs text-gray-800 line-clamp-1">{item.product_name}</p>
+                <p className="text-[10px] text-gray-500">Phân loại: {item.color} | Size: {item.size}</p>
+              </div>
+              <FiCheckCircle className="ml-auto text-green-500 mr-2 shrink-0" size={16} />
             </div>
-            <FiCheckCircle className="ml-auto text-green-500 mr-2 shrink-0" size={16} />
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="space-y-6">

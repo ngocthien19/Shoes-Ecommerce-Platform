@@ -141,7 +141,7 @@ export const ProductsPage = () => {
   }
 
   return (
-    <div className="bg-brand-bg min-h-screen flex flex-col">
+    <div className="pb-10 bg-brand-bg min-h-screen flex flex-col">
       <main className="app-container py-8 flex-1">
         <BreadCrumb items={[{ label: 'Trang chủ', link: '/' }, { label: 'Tất cả sản phẩm', link: '/products' }]} />
 
