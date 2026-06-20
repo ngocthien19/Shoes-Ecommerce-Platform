@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiHeart, FiMinus, FiPlus, FiShoppingCart, FiTruck, FiRefreshCcw, FiZap } from 'react-icons/fi'
+import { FiHeart, FiMinus, FiPlus, FiShoppingCart, FiTruck, FiRefreshCcw, FiZap, FiStar } from 'react-icons/fi'
 import { formatPrice, formatSold, calculateFinalPrice } from '~/utils/formatters'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
@@ -21,7 +21,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
 }
 
-export const ProductInfo = ({ product }) => {
+export const ProductInfo = ({ product, onColorChangeFromGallery }) => {
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -99,6 +99,13 @@ export const ProductInfo = ({ product }) => {
   const availableSizes = variants.filter(v => v.color === selectedColor)
   const currentVariant = variants.find(v => v.color === selectedColor && v.size === selectedSize)
 
+  // Khi chọn màu từ gallery, cập nhật selectedColor
+  useEffect(() => {
+    if (onColorChangeFromGallery && onColorChangeFromGallery !== selectedColor) {
+      setSelectedColor(onColorChangeFromGallery)
+    }
+  }, [onColorChangeFromGallery])
+
   useEffect(() => {
     if (availableSizes.length > 0) {
       setSelectedSize(availableSizes[0].size)
@@ -110,6 +117,32 @@ export const ProductInfo = ({ product }) => {
     const stock = currentVariant?.stock || 0
     if (type === 'minus' && quantity > 1) setQuantity(prev => prev - 1)
     if (type === 'plus' && quantity < stock) setQuantity(prev => prev + 1)
+  }
+
+  // Khi chọn màu, thông báo lên gallery để đổi ảnh
+  const handleColorSelect = (color) => {
+    setSelectedColor(color)
+    // Thông báo lên component cha để đổi ảnh
+    if (onColorChangeFromGallery) {
+      // Tìm ảnh của màu này để gửi lên
+      const variantWithImage = variants.find(v => v.color === color && v.image)
+      if (variantWithImage) {
+        let imageData = variantWithImage.image
+        if (typeof variantWithImage.image === 'string') {
+          try {
+            imageData = JSON.parse(variantWithImage.image)
+          } catch (e) {
+            imageData = null
+          }
+        }
+        if (imageData && imageData.secure_url) {
+          // Gọi callback để đổi ảnh
+          if (window.productGalleryRef) {
+            window.productGalleryRef(imageData.secure_url, color)
+          }
+        }
+      }
+    }
   }
 
   return (
@@ -128,7 +161,13 @@ export const ProductInfo = ({ product }) => {
 
         <div className="flex items-center gap-4 text-sm text-gray-500 divide-x divide-gray-200">
           <div className="flex items-center gap-1 text-yellow-400 pr-4">
-            {'★'.repeat(Math.round(product.rating_avg || 0))}{'☆'.repeat(5 - Math.round(product.rating_avg || 0))}
+            {[...Array(5)].map((_, i) => (
+              <FiStar
+                key={i}
+                className={`${i < Math.round(product.rating_avg || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                size={16}
+              />
+            ))}
             <span className="text-gray-900 font-semibold ml-1">{product.rating_avg}</span>
           </div>
           <div className="px-4">{product.view_count || 0} Lượt xem</div>
@@ -194,7 +233,7 @@ export const ProductInfo = ({ product }) => {
             {uniqueColors.map(color => (
               <motion.button
                 key={color}
-                onClick={() => setSelectedColor(color)}
+                onClick={() => handleColorSelect(color)}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 className={`px-4 py-2 border-2 rounded-lg text-sm font-semibold transition-all duration-300 cursor-pointer
@@ -244,7 +283,7 @@ export const ProductInfo = ({ product }) => {
         <motion.div className="flex items-center gap-6 mt-2" variants={itemVariants}>
           <h3 className="font-bold text-sm text-gray-800 uppercase">Danh mục</h3>
           <Link
-            to={`/products/${product.category_slug}`}
+            to={`/products?categories=${product.category_slug}`}
             className="px-4 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:border-brand-primary hover:text-brand-primary transition-all duration-300"
           >
             {product.category_name}

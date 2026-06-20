@@ -1,4 +1,3 @@
-// src/pages/user/Profile/Tabs/TabFavorites.jsx
 import { useState } from 'react'
 import { FiHeart, FiHome, FiPlus, FiShoppingCart } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
@@ -18,15 +17,38 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
 
-  const getProductImgUrl = (imagesField) => {
-    if (!imagesField) return 'https://via.placeholder.com/120'
-    try {
-      const parsed = typeof imagesField === 'string' ? JSON.parse(imagesField) : imagesField
-      const imgArray = Array.isArray(parsed) ? parsed : [parsed]
-      return imgArray[0]?.secure_url || 'https://via.placeholder.com/120'
-    } catch {
-      return imagesField[0]?.secure_url || 'https://via.placeholder.com/120'
+  const getProductImage = (product) => {
+    // Ưu tiên lấy ảnh từ variants
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      // Tìm variant có ảnh
+      for (const variant of product.variants) {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            if (imageData && imageData.secure_url) {
+              return imageData.secure_url
+            }
+          } catch (e) {
+            continue
+          }
+        }
+      }
     }
+
+    // Fallback sang product.images
+    if (product.images) {
+      try {
+        const parsed = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+        const imgArray = Array.isArray(parsed) ? parsed : [parsed]
+        return imgArray[0]?.secure_url || 'https://via.placeholder.com/120'
+      } catch {
+        return 'https://via.placeholder.com/120'
+      }
+    }
+    return 'https://via.placeholder.com/120'
   }
 
   const handleOpenPicker = (product) => {
@@ -94,6 +116,7 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
         {favoriteProducts.map((product) => {
           const rating = Math.round(parseFloat(product.rating_avg || 0))
           const variants = product.variants || []
+          const productImage = getProductImage(product)
 
           const uniqueSizes = [...new Set(variants.map(v => v.size))]
           const uniqueColors = [...new Set(variants.map(v => v.color))]
@@ -124,7 +147,7 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
               {/* Hình ảnh sản phẩm */}
               <Link to={`/product/${product.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 shrink-0 cursor-pointer">
                 <img
-                  src={getProductImgUrl(product.images)}
+                  src={productImage}
                   alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />

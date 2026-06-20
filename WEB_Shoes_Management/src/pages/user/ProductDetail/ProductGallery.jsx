@@ -1,20 +1,71 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export const ProductGallery = ({ images, productName }) => {
-  const safeImages = images?.length > 0 ? images : [
-    { secure_url: 'https://placehold.co/600x600/f6f9fc/a0aabf?text=Chưa+có+ảnh+1' },
-    { secure_url: 'https://placehold.co/600x600/f6f9fc/a0aabf?text=Chưa+có+ảnh+2' },
-    { secure_url: 'https://placehold.co/600x600/f6f9fc/a0aabf?text=Chưa+có+ảnh+3' },
-    { secure_url: 'https://placehold.co/600x600/f6f9fc/a0aabf?text=Chưa+có+ảnh+4' }
+export const ProductGallery = ({ images, productName, variants = [], onColorChange }) => {
+  // Lấy tất cả ảnh từ variants
+  const getVariantImages = () => {
+    const variantImages = []
+    if (variants && Array.isArray(variants)) {
+      variants.forEach(variant => {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            if (imageData && imageData.secure_url) {
+              // Kiểm tra trùng lặp
+              const exists = variantImages.some(img => img.secure_url === imageData.secure_url)
+              if (!exists) {
+                variantImages.push({
+                  secure_url: imageData.secure_url,
+                  public_id: imageData.public_id,
+                  color: variant.color,
+                  size: variant.size,
+                  variantId: variant.id
+                })
+              }
+            }
+          } catch (e) {
+            console.error('Lỗi parse ảnh variant:', e)
+          }
+        }
+      })
+    }
+    return variantImages
+  }
+
+  const variantImages = getVariantImages()
+
+  // Fallback sang product.images nếu không có ảnh từ variants
+  const fallbackImages = images?.length > 0 ? images : [
+    { secure_url: 'https://placehold.co/600x600/f6f9fc/a0aabf?text=Chưa+có+ảnh' }
   ]
 
-  const [activeImg, setActiveImg] = useState(safeImages[0].secure_url)
+  const displayImages = variantImages.length > 0 ? variantImages : fallbackImages
+
+  const [activeImg, setActiveImg] = useState(displayImages[0]?.secure_url || fallbackImages[0]?.secure_url)
   const [activeIdx, setActiveIdx] = useState(0)
+
+  // Khi variants thay đổi, cập nhật ảnh đầu tiên
+  useEffect(() => {
+    if (displayImages.length > 0) {
+      setActiveImg(displayImages[0].secure_url)
+      setActiveIdx(0)
+      // Thông báo màu sắc cho component cha
+      if (onColorChange && displayImages[0].color) {
+        onColorChange(displayImages[0].color)
+      }
+    }
+  }, [variants])
 
   const handleSelect = (img, idx) => {
     setActiveImg(img.secure_url)
     setActiveIdx(idx)
+    // Khi chọn ảnh, thông báo màu sắc tương ứng
+    if (onColorChange && img.color) {
+      onColorChange(img.color)
+    }
   }
 
   return (
@@ -32,6 +83,11 @@ export const ProductGallery = ({ images, productName }) => {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
           />
         </AnimatePresence>
+        {displayImages[activeIdx]?.color && (
+          <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+            Màu: {displayImages[activeIdx].color}
+          </div>
+        )}
       </div>
 
       <motion.div
@@ -42,7 +98,7 @@ export const ProductGallery = ({ images, productName }) => {
           visible: { transition: { staggerChildren: 0.06 } }
         }}
       >
-        {safeImages.map((img, idx) => (
+        {displayImages.map((img, idx) => (
           <motion.button
             key={idx}
             onClick={() => handleSelect(img, idx)}
@@ -53,10 +109,15 @@ export const ProductGallery = ({ images, productName }) => {
             transition={{ duration: 0.3 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
-            className={`shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors duration-200 cursor-pointer
-              ${activeIdx === idx ? 'border-brand-primary' : 'border-transparent hover:border-gray-200'}`}
+            className={`relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors duration-200 cursor-pointer
+              ${activeIdx === idx ? 'border-brand-primary shadow-md' : 'border-transparent hover:border-gray-200'}`}
           >
             <img src={img.secure_url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+            {img.color && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                {img.color}
+              </div>
+            )}
           </motion.button>
         ))}
       </motion.div>
