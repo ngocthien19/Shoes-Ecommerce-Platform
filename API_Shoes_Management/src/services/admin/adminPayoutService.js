@@ -3,7 +3,7 @@ import { PAYOUT_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import { notificationService } from '~/services/notification/notificationService'
 import { EmailProvider } from '~/providers/EmailProvider'
 
-// 1. Logic bốc danh sách đơn rút tiền kèm phân trang
+// 1. Logic bốc danh sách đơn rút tiền kèm phân trang và tìm kiếm
 const getPayoutList = async (filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
@@ -11,6 +11,7 @@ const getPayoutList = async (filters) => {
 
   const filterParams = {
     status: filters.status || null,
+    search: filters.search || null,
     limit: String(limit),
     offset: String(offset)
   }
