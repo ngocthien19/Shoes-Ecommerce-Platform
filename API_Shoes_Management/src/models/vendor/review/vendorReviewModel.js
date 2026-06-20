@@ -7,12 +7,25 @@ const getStoreByOwnerId = async (ownerId) => {
   return rows[0]
 }
 
-// 1. Lấy danh sách Đánh giá sản phẩm (Có Phân trang, Tìm kiếm comment, Lọc sao)
+// 1. Lấy danh sách Đánh giá sản phẩm (Có Phân trang, Tìm kiếm comment, Lọc sao) - Kèm ảnh từ variants
 const getProductReviews = async (storeId, { search, rating, isActive, isReported, limit, offset }) => {
   let query = `
     SELECT pr.id, pr.user_id, u.fullname, u.avatar, pr.product_id, p.name AS product_name, 
            p.images AS product_images, pr.order_id, pr.rating, pr.comment, pr.images, 
-           pr.is_active, pr.is_reported, pr.report_reason, pr.created_at
+           pr.is_active, pr.is_reported, pr.report_reason, pr.created_at,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
     FROM product_reviews pr
     JOIN products p ON pr.product_id = p.id
     JOIN users u ON pr.user_id = u.id
@@ -41,7 +54,25 @@ const getProductReviews = async (storeId, { search, rating, isActive, isReported
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)
-  return rows
+
+  // Parse variants từ JSON string sang array
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // Đếm tổng số đánh giá sản phẩm
@@ -136,27 +167,60 @@ const countStoreReviews = async (storeId, { search, rating, isActive, isReported
   return rows[0].total
 }
 
-// 3. Xem chi tiết một đánh giá sản phẩm
+// 3. Xem chi tiết một đánh giá sản phẩm - Kèm ảnh từ variants
 const getProductReviewDetail = async (reviewId, storeId) => {
   const query = `
-      SELECT pr.*, u.fullname, u.email, u.avatar, p.name AS product_name, p.images AS product_images
-      FROM product_reviews pr
-      JOIN products p ON pr.product_id = p.id
-      JOIN users u ON pr.user_id = u.id
-      WHERE pr.id = ? AND p.store_id = ?
-    `
+    SELECT pr.*, u.fullname, u.email, u.avatar, p.name AS product_name, p.images AS product_images,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
+    FROM product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    JOIN users u ON pr.user_id = u.id
+    WHERE pr.id = ? AND p.store_id = ?
+  `
   const [rows] = await pool.execute(query, [reviewId, storeId])
-  return rows[0] || null
+
+  if (rows.length === 0) return null
+
+  const row = rows[0]
+  // Parse variants
+  if (row.variants) {
+    try {
+      if (typeof row.variants === 'string') {
+        row.variants = JSON.parse(row.variants)
+      }
+      if (!row.variants) {
+        row.variants = []
+      }
+    } catch (e) {
+      row.variants = []
+    }
+  } else {
+    row.variants = []
+  }
+
+  return row
 }
 
 // 4. Xem chi tiết một đánh giá cửa hàng
 const getStoreReviewDetail = async (reviewId, storeId) => {
   const query = `
-      SELECT sr.*, u.fullname, u.email, u.avatar
-      FROM store_reviews sr
-      JOIN users u ON sr.user_id = u.id
-      WHERE sr.id = ? AND sr.store_id = ?
-    `
+    SELECT sr.*, u.fullname, u.email, u.avatar
+    FROM store_reviews sr
+    JOIN users u ON sr.user_id = u.id
+    WHERE sr.id = ? AND sr.store_id = ?
+  `
   const [rows] = await pool.execute(query, [reviewId, storeId])
   return rows[0] || null
 }
@@ -164,11 +228,11 @@ const getStoreReviewDetail = async (reviewId, storeId) => {
 // 5. Gửi báo cáo vi phạm đối với Đánh giá sản phẩm
 const reportProductReview = async (reviewId, storeId, reportReason) => {
   const query = `
-      UPDATE product_reviews pr
-      JOIN products p ON pr.product_id = p.id
-      SET pr.is_reported = TRUE, pr.report_reason = ?
-      WHERE pr.id = ? AND p.store_id = ?
-    `
+    UPDATE product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    SET pr.is_reported = TRUE, pr.report_reason = ?
+    WHERE pr.id = ? AND p.store_id = ?
+  `
   const [result] = await pool.execute(query, [reportReason, reviewId, storeId])
   return result.affectedRows > 0
 }
@@ -176,10 +240,10 @@ const reportProductReview = async (reviewId, storeId, reportReason) => {
 // 6. Gửi báo cáo vi phạm đối với Đánh giá cửa hàng
 const reportStoreReview = async (reviewId, storeId, reportReason) => {
   const query = `
-      UPDATE store_reviews 
-      SET is_reported = TRUE, report_reason = ?
-      WHERE id = ? AND store_id = ?
-    `
+    UPDATE store_reviews 
+    SET is_reported = TRUE, report_reason = ?
+    WHERE id = ? AND store_id = ?
+  `
   const [result] = await pool.execute(query, [reportReason, reviewId, storeId])
   return result.affectedRows > 0
 }
@@ -288,11 +352,11 @@ const getReviewsOverviewStats = async (storeId) => {
 const checkMultipleProductReviewsOwnership = async (reviewIds, storeId) => {
   if (!reviewIds || reviewIds.length === 0) return false
   const query = `
-      SELECT COUNT(*) AS validCount 
-      FROM product_reviews pr
-      JOIN products p ON pr.product_id = p.id
-      WHERE pr.id IN (?) AND p.store_id = ?
-    `
+    SELECT COUNT(*) AS validCount 
+    FROM product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    WHERE pr.id IN (?) AND p.store_id = ?
+  `
   const [rows] = await pool.query(query, [reviewIds, storeId])
   return rows[0].validCount === reviewIds.length
 }
@@ -300,11 +364,11 @@ const checkMultipleProductReviewsOwnership = async (reviewIds, storeId) => {
 // 9. Báo cáo vi phạm HÀNG LOẠT đối với Đánh giá sản phẩm
 const reportProductReviewsBulk = async (reviewIds, storeId, reportReason) => {
   const query = `
-      UPDATE product_reviews pr
-      JOIN products p ON pr.product_id = p.id
-      SET pr.is_reported = TRUE, pr.report_reason = ?
-      WHERE pr.id IN (?) AND p.store_id = ?
-    `
+    UPDATE product_reviews pr
+    JOIN products p ON pr.product_id = p.id
+    SET pr.is_reported = TRUE, pr.report_reason = ?
+    WHERE pr.id IN (?) AND p.store_id = ?
+  `
   const [result] = await pool.query(query, [reportReason, reviewIds, storeId])
   return result.affectedRows
 }
@@ -349,18 +413,49 @@ const requestStoreReviewReopenBulk = async (reviewIds, storeId, reason) => {
   return result.affectedRows
 }
 
-// 14. Lấy thông tin chi tiết nhiều đánh giá sản phẩm cùng lúc
+// 14. Lấy thông tin chi tiết nhiều đánh giá sản phẩm cùng lúc - Kèm ảnh từ variants
 const getMultipleProductReviewsInfo = async (reviewIds, storeId) => {
   if (!reviewIds || reviewIds.length === 0) return []
   const placeholders = reviewIds.map(() => '?').join(',')
   const query = `
-    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images
+    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
     FROM product_reviews pr
     JOIN products p ON pr.product_id = p.id
     WHERE pr.id IN (${placeholders}) AND p.store_id = ?
   `
   const [rows] = await pool.execute(query, [...reviewIds, storeId])
-  return rows
+
+  // Parse variants cho từng row
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // 15. Lấy thông tin chi tiết nhiều đánh giá cửa hàng cùng lúc
@@ -376,18 +471,49 @@ const getMultipleStoreReviewsInfo = async (reviewIds, storeId) => {
   return rows
 }
 
-// 16. Lấy thông tin chi tiết nhiều đánh giá sản phẩm đang bị ẩn (để gửi yêu cầu mở lại)
+// 16. Lấy thông tin chi tiết nhiều đánh giá sản phẩm đang bị ẩn (để gửi yêu cầu mở lại) - Kèm ảnh từ variants
 const getMultipleInactiveProductReviewsInfo = async (reviewIds, storeId) => {
   if (!reviewIds || reviewIds.length === 0) return []
   const placeholders = reviewIds.map(() => '?').join(',')
   const query = `
-    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images, pr.is_active
+    SELECT pr.id, pr.comment, pr.rating, pr.product_id, p.name AS product_name, pr.images, pr.is_active,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
     FROM product_reviews pr
     JOIN products p ON pr.product_id = p.id
     WHERE pr.id IN (${placeholders}) AND p.store_id = ? AND pr.is_active = FALSE
   `
   const [rows] = await pool.execute(query, [...reviewIds, storeId])
-  return rows
+
+  // Parse variants cho từng row
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // 17. Lấy thông tin chi tiết nhiều đánh giá cửa hàng đang bị ẩn (để gửi yêu cầu mở lại)

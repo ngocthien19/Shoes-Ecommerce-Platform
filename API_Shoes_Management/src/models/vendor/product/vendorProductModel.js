@@ -143,13 +143,26 @@ const deleteVariant = async (variantId) => {
   return result.affectedRows
 }
 
-// 8. Lấy danh sách sản phẩm cửa hàng (N nạp thêm p.status vào mảng SELECT để hiển thị thẻ trạng thái)
+// 8. Lấy danh sách sản phẩm cửa hàng
 const getVendorProductsWithFilters = async (storeId, { search, categoryId, isActive, minPrice, maxPrice, sortBy, limit, offset }) => {
   let query = `
     SELECT 
       p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, 
       p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at, p.reject_reason,
-      c.name AS category_name
+      c.name AS category_name,
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'size', pv.size,
+            'color', pv.color,
+            'stock', pv.stock,
+            'image', pv.image
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.store_id = ?
@@ -190,7 +203,27 @@ const getVendorProductsWithFilters = async (storeId, { search, categoryId, isAct
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)
-  return rows
+
+  // Parse variants từ JSON string sang array
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        // Nếu variants là string JSON thì parse
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        // Nếu variants là null hoặc undefined thì set thành array rỗng
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // 9. Đếm tổng số lượng sản phẩm thỏa điều kiện lọc để tính tổng số trang

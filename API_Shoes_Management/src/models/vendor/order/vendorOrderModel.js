@@ -91,12 +91,12 @@ const countVendorOrders = async (storeId, { status, searchOrderId, paymentMethod
   return rows[0].total
 }
 
-// Lấy chi tiết các mặt hàng giày trong đơn hàng từ bảng order_items và product_variants (kèm ảnh)
+// Lấy chi tiết các mặt hàng giày trong đơn hàng từ bảng order_items và product_variants (kèm ảnh từ variants)
 const getOrderItemsByStore = async (orderId) => {
   const query = `
     SELECT oi.id, oi.variant_id, p.name AS product_name, 
-           p.images, p.slug,
-           oi.quantity, oi.price, v.size, v.color
+           p.images AS product_images, p.slug,
+           oi.quantity, oi.price, v.size, v.color, v.image AS variant_image
     FROM order_items oi
     JOIN product_variants v ON oi.variant_id = v.id
     JOIN products p ON v.product_id = p.id
@@ -104,17 +104,36 @@ const getOrderItemsByStore = async (orderId) => {
   `
   const [rows] = await pool.execute(query, [orderId])
 
-  // Parse images JSON cho từng sản phẩm
+  // Parse images cho từng sản phẩm và xử lý ảnh từ variants
   const itemsWithParsedImages = rows.map(item => {
     let parsedImages = []
+
+    // Parse variant_image nếu có
+    let parsedVariantImage = null
+    if (item.variant_image) {
+      try {
+        parsedVariantImage = typeof item.variant_image === 'string'
+          ? JSON.parse(item.variant_image)
+          : item.variant_image
+      } catch (e) {
+        parsedVariantImage = null
+      }
+    }
+
+    // Parse product_images
     try {
-      parsedImages = typeof item.images === 'string'
-        ? JSON.parse(item.images)
-        : (Array.isArray(item.images) ? item.images : [])
+      parsedImages = typeof item.product_images === 'string'
+        ? JSON.parse(item.product_images)
+        : (Array.isArray(item.product_images) ? item.product_images : [])
     } catch (e) {
       parsedImages = []
     }
-    return { ...item, images: parsedImages }
+
+    return {
+      ...item,
+      images: parsedImages,
+      variant_image: parsedVariantImage // Giữ nguyên cấu trúc object JSON
+    }
   })
 
   return itemsWithParsedImages
@@ -201,7 +220,7 @@ const updateOrderStatusBulk = async (orderIds, status, storeId) => {
   return result.affectedRows
 }
 
-// Lấy chi tiết đơn hàng theo ID (kèm thông tin người nhận và ảnh sản phẩm)
+// Lấy chi tiết đơn hàng theo ID (kèm thông tin người nhận và ảnh sản phẩm từ variants)
 const getVendorOrderDetail = async (orderId, storeId) => {
   // Lấy thông tin đơn hàng
   const orderQuery = `
@@ -217,7 +236,7 @@ const getVendorOrderDetail = async (orderId, storeId) => {
 
   const order = orderRows[0]
 
-  // Lấy danh sách sản phẩm trong đơn
+  // Lấy danh sách sản phẩm trong đơn (đã bao gồm ảnh từ variants)
   order.items = await getOrderItemsByStore(orderId)
 
   return order

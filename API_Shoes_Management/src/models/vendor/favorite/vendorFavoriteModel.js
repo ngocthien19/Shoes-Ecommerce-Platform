@@ -11,7 +11,20 @@ const getMostFavoritedProducts = async (storeId, { search, categoryId, isActive,
   let query = `
     SELECT p.id, p.name, p.slug, p.price, p.sold, p.rating_avg, p.images, p.is_active, p.category_id,
            c.name AS category_name,
-           COUNT(f.product_id) AS total_favorites
+           COUNT(f.product_id) AS total_favorites,
+           (
+             SELECT JSON_ARRAYAGG(
+               JSON_OBJECT(
+                 'id', pv.id,
+                 'size', pv.size,
+                 'color', pv.color,
+                 'stock', pv.stock,
+                 'image', pv.image
+               )
+             )
+             FROM product_variants pv
+             WHERE pv.product_id = p.id
+           ) AS variants
     FROM products p
     LEFT JOIN favorites f ON p.id = f.product_id
     LEFT JOIN categories c ON p.category_id = c.id
@@ -48,7 +61,25 @@ const getMostFavoritedProducts = async (storeId, { search, categoryId, isActive,
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)
-  return rows
+
+  // Parse variants từ JSON string sang array
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // 2. Đếm tổng số dòng thỏa mãn bộ lọc để phân trang chuẩn
