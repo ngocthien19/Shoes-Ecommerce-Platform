@@ -9,10 +9,10 @@ const router = express.Router()
 router.use(authGuard.isAuthorized)
 
 // 1. Đăng ký sản phẩm mới
-router.post('/add', CloudinaryProvider.uploadProductFields, vendorProductValidation.validateCreateProductBody, vendorProductController.createProduct)
+router.post('/add', vendorProductValidation.validateCreateProductBody, vendorProductController.createProduct)
 
 // 2. Chỉnh sửa sản phẩm
-router.put('/update/:id', CloudinaryProvider.uploadProductFields, vendorProductValidation.validateUpdateProduct, vendorProductController.updateProduct)
+router.put('/update/:id', vendorProductValidation.validateUpdateProduct, vendorProductController.updateProduct)
 
 // 3. Xóa cứng đơn lẻ
 router.delete('/delete/:id', vendorProductValidation.validateProductIdParam, vendorProductController.deleteProduct)
