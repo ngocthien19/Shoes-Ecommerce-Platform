@@ -237,9 +237,11 @@ export const ProductFormPage = () => {
       // 1. Cập nhật product
         await vendorProductApiService.updateProduct(id, payload)
 
-        // 2. Xử lý variants mới (có ảnh)
+        // 2. CHỈ xử lý variants MỚI (chưa có id)
         if (data.variants && data.variants.length > 0) {
+        // Lọc ra các variant chưa có id (mới thêm)
           const newVariants = data.variants.filter(variant => !variant.id)
+
           if (newVariants.length > 0) {
             for (const variant of newVariants) {
               const variantFormData = new FormData()
@@ -257,11 +259,11 @@ export const ProductFormPage = () => {
         toast.success('Cập nhật sản phẩm thành công!')
         navigate('/vendor/products')
       } else {
-      // 1. Tạo product mới
+      // Tạo product mới
         const resProduct = await vendorProductApiService.createProduct(payload)
         const newProductId = resProduct.insertId
 
-        // 2. Tạo variants (có ảnh)
+        // Tạo variants (tất cả đều là mới)
         if (data.variants && data.variants.length > 0 && newProductId) {
           for (const variant of data.variants) {
             const variantFormData = new FormData()
