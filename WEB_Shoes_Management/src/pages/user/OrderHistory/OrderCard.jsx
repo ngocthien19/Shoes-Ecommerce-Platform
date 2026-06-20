@@ -1,4 +1,4 @@
-import { formatPrice } from '~/utils/formatters'
+import { formatPrice, getImageUrl } from '~/utils/formatters'
 import { FiMapPin, FiCalendar, FiTag, FiAlertCircle, FiHome } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { ORDER_STATUS } from '~/utils/constant'
@@ -22,6 +22,19 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
     case ORDER_STATUS.CANCEL_REQUESTED: return <span className="text-orange-500 font-bold bg-orange-50 px-3 py-1 rounded-full text-xs">ĐANG YÊU CẦU HỦY</span>
     default: return null
     }
+  }
+
+  // Hàm lấy ảnh từ item (ưu tiên variant_image)
+  const getItemImage = (item) => {
+    // Ưu tiên ảnh từ variant_image
+    if (item.variant_image && item.variant_image.secure_url) {
+      return item.variant_image.secure_url
+    }
+    // Fallback sang product_images
+    if (item.product_images) {
+      return getImageUrl(item.product_images, 'https://placehold.co/100x100?text=Product')
+    }
+    return 'https://placehold.co/100x100?text=Product'
   }
 
   const totalAmount = Number(order.total_amount) || 0
@@ -63,35 +76,43 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
       <div className="p-5 flex flex-col lg:flex-row gap-6">
         {/* Danh sách sản phẩm (Bên trái) */}
         <div className="flex-1 space-y-4 border-b lg:border-b-0 lg:border-r border-gray-100 pb-4 lg:pb-0 lg:pr-6">
-          {order.items.map((item, idx) => (
-            <div key={idx} className="flex gap-4 group">
-              <Link
-                to={`/product/${item.slug}`}
-                className="shrink-0 overflow-hidden rounded-xl border border-gray-100 w-20 h-20 block"
-              >
-                <motion.img
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  src={item.images?.[0]?.url || item.images?.[0]?.secure_url}
-                  alt={item.product_name}
-                  className="w-full h-full object-cover cursor-pointer"
-                />
-              </Link>
-
-              <div className="flex-1">
-                <Link to={`/product/${item.slug}`}>
-                  <h4 className="font-bold text-gray-800 text-sm line-clamp-2 transition-colors duration-300 ease-in-out hover:text-brand-primary cursor-pointer">
-                    {item.product_name}
-                  </h4>
+          {order.items.map((item, idx) => {
+            const imageUrl = getItemImage(item)
+            return (
+              <div key={idx} className="flex gap-4 group">
+                <Link
+                  to={`/product/${item.slug}`}
+                  className="shrink-0 overflow-hidden rounded-xl border border-gray-100 w-20 h-20 block relative"
+                >
+                  <motion.img
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    src={imageUrl}
+                    alt={item.product_name}
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                  {item.variant_image && (
+                    <div className="absolute top-0 right-0 bg-brand-primary text-white text-[6px] font-bold px-1 py-0.5 rounded-bl-lg">
+                      VAR
+                    </div>
+                  )}
                 </Link>
 
-                <p className="text-xs text-gray-500 mt-1">Phân loại: {item.color} / Size {item.size}</p>
-                <div className="mt-2 text-sm font-bold text-brand-primary">
-                  {formatPrice(item.price)} <span className="text-gray-400 text-xs font-normal">x{item.quantity}</span>
+                <div className="flex-1">
+                  <Link to={`/product/${item.slug}`}>
+                    <h4 className="font-bold text-gray-800 text-sm line-clamp-2 transition-colors duration-300 ease-in-out hover:text-brand-primary cursor-pointer">
+                      {item.product_name}
+                    </h4>
+                  </Link>
+
+                  <p className="text-xs text-gray-500 mt-1">Phân loại: {item.color} / Size {item.size}</p>
+                  <div className="mt-2 text-sm font-bold text-brand-primary">
+                    {formatPrice(item.price)} <span className="text-gray-400 text-xs font-normal">x{item.quantity}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
           {order.applied_voucher && (
             <div className="inline-flex items-center gap-1.5 mt-2 bg-green-50 text-green-600 text-[11px] font-bold px-2 py-1 rounded border border-green-100">
               <FiTag size={12} />

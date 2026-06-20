@@ -146,7 +146,6 @@ export const CartPage = () => {
       ...prev,
       [storeId]: { code, discountValue }
     }))
-    toast.success('Đã áp dụng mã của cửa hàng thành công!')
   }
 
   const selectedCartObjects = cartItems.filter(item => selectedItems.includes(item.variant_id))
