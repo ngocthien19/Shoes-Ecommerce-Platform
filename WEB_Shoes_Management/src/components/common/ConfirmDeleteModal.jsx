@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiTrash2, FiX, FiAlertTriangle } from 'react-icons/fi'
+import { FiTrash2, FiX, FiAlertTriangle, FiBox } from 'react-icons/fi'
 import { getImageUrl } from '~/utils/formatters'
 
 export const ConfirmDeleteModal = ({
@@ -8,7 +8,8 @@ export const ConfirmDeleteModal = ({
   onConfirm,
   title = 'Xác nhận xóa',
   message = 'Bạn có chắc chắn muốn xóa mục này khỏi danh sách không?',
-  productInfo = null
+  productInfo = null,
+  isLoading = false
 }) => {
   return (
     <AnimatePresence>
@@ -36,7 +37,8 @@ export const ConfirmDeleteModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-full hover:bg-gray-50"
+              disabled={isLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-full hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiX size={18} />
             </button>
@@ -55,23 +57,44 @@ export const ConfirmDeleteModal = ({
             {/* ── KHỐI HIỂN THỊ TRỰC QUAN SẢN PHẨM SẮP BỊ XÓA ── */}
             {productInfo && (
               <div className="flex gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3 mb-5 text-left items-center animate-fadeIn">
+                {/* Icon hoặc hình ảnh */}
                 <div className="w-14 h-14 bg-white border border-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-                  <img
-                    src={getImageUrl(productInfo.images)}
-                    alt={productInfo.product_name || productInfo.name}
-                    className="w-full h-full object-cover"
-                  />
+                  {productInfo.images ? (
+                    <img
+                      src={getImageUrl(productInfo.images)}
+                      alt={productInfo.product_name || productInfo.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <FiBox size={24} className="text-gray-300" />
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0 space-y-0.5">
                   <h4 className="font-bold text-gray-800 text-xs truncate">
-                    {productInfo.product_name || productInfo.name}
+                    {productInfo.product_name || productInfo.name || 'Biến thể sản phẩm'}
                   </h4>
-                  {(productInfo.size || productInfo.color) && (
-                    <p className="text-[10px] text-gray-400 font-medium">
-                      {productInfo.size && <span>Size: <strong className="text-gray-600 mr-2">{productInfo.size}</strong></span>}
-                      {productInfo.color && <span>Màu: <strong className="text-gray-600">{productInfo.color}</strong></span>}
-                    </p>
-                  )}
+
+                  {/* Hiển thị thông tin size, color, stock */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {productInfo.size && (
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-semibold">
+                        Size: {productInfo.size}
+                      </span>
+                    )}
+                    {productInfo.color && (
+                      <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded-md font-semibold">
+                        Màu: {productInfo.color}
+                      </span>
+                    )}
+                    {productInfo.stock !== undefined && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
+                        productInfo.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                        Tồn: {productInfo.stock}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -81,17 +104,28 @@ export const ConfirmDeleteModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                disabled={isLoading}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
                 onClick={onConfirm}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <FiTrash2 size={13} />
-                <span>Xác nhận xóa</span>
+                {isLoading ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  <>
+                    <FiTrash2 size={13} />
+                    <span>Xác nhận xóa</span>
+                  </>
+                )}
               </button>
             </div>
 

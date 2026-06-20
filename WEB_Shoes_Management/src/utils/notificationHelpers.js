@@ -88,7 +88,7 @@ export const getLinkByType = (notification, userRole) => {
     case NOTIFICATION_TYPES.ORDER_DELIVERED:
     case NOTIFICATION_TYPES.ORDER_CANCELLED:
     case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
-      return reference_id ? `/orders/detail/${reference_id}` : '/orders'
+      return reference_id ? `/orders/${reference_id}` : '/orders'
     default:
       return null
     }

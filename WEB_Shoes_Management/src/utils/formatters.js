@@ -58,6 +58,43 @@ export const getImageUrl = (imageField, placeholder) => {
   return target?.secure_url || placeholder
 }
 
+export const getVariantImageUrl = (variant) => {
+  if (!variant) return null
+
+  // Ưu tiên ảnh preview (khi đang upload)
+  if (variant.imagePreview) return variant.imagePreview
+
+  // Ảnh đã lưu trong DB
+  if (variant.image) {
+    try {
+      const parsed = typeof variant.image === 'string' ? JSON.parse(variant.image) : variant.image
+
+      // Nếu là array
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0]?.secure_url || parsed[0]?.url || parsed[0]?.path || null
+      }
+
+      // Nếu là object
+      if (typeof parsed === 'object') {
+        return parsed.secure_url || parsed.url || parsed.path || null
+      }
+
+      // Nếu là string (URL trực tiếp)
+      if (typeof parsed === 'string') {
+        return parsed
+      }
+    } catch (e) {
+      // Nếu không parse được, có thể là URL trực tiếp
+      if (typeof variant.image === 'string' && variant.image.startsWith('http')) {
+        return variant.image
+      }
+      return null
+    }
+  }
+
+  return null
+}
+
 export const formatLastActive = (lastActive) => {
   if (!lastActive) return 'Không hoạt động'
 

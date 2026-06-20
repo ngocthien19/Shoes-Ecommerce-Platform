@@ -157,7 +157,7 @@ export const BasicInfoSection = ({ categories, imageFiles, existingImages, onIma
                 <FiUploadCloud size={24} />
               </div>
               <p className="text-sm font-bold text-gray-600 group-hover:text-brand-primary">Nhấn để tải ảnh lên</p>
-              <p className="text-[11px] font-medium text-gray-400 mt-1">Hỗ trợ JPG, PNG (Tối đa 5MB)</p>
+              <p className="text-[11px] font-medium text-gray-400 mt-1">Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB)</p>
             </div>
           </div>
 
