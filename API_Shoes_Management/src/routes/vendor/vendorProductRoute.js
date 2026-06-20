@@ -18,35 +18,51 @@ router.put('/update/:id', CloudinaryProvider.uploadProductFields, vendorProductV
 router.delete('/delete/:id', vendorProductValidation.validateProductIdParam, vendorProductController.deleteProduct)
 
 // 4. Thêm biến thể kho (size, màu, số lượng)
-router.post('/add/:id/variants', vendorProductValidation.validateCreateVariantBody, vendorProductController.createVariant)
+router.post(
+  '/add/:id/variants',
+  CloudinaryProvider.uploadVariantImage,
+  vendorProductValidation.validateCreateVariantBody,
+  vendorProductController.createVariant
+)
 
-router.put('/:productId/variants/:variantId',
+// 5. Cập nhật biến thể
+router.put(
+  '/:productId/variants/:variantId',
+  CloudinaryProvider.uploadVariantImage,
   vendorProductValidation.validateUpdateVariantBody,
   vendorProductController.updateVariant
 )
 
-// Xóa biến thể
-router.delete('/:productId/variants/:variantId',
+// 6. Xóa biến thể
+router.delete(
+  '/:productId/variants/:variantId',
   vendorProductValidation.validateVariantIdParam,
   vendorProductController.deleteVariant
 )
 
-// 5. Tải danh sách sản phẩm có bộ lọc và phân trang
+// 7. Lấy danh sách biến thể của sản phẩm
+router.get(
+  '/:productId/variants',
+  vendorProductValidation.validateProductIdParam,
+  vendorProductController.getVariantsByProductId
+)
+
+// 8. Tải danh sách sản phẩm có bộ lọc và phân trang
 router.get('/', vendorProductValidation.validateGetProductsFilters, vendorProductController.getVendorProducts)
 
-// 6. Xem chi tiết 1 sản phẩm phục vụ edit
+// 9. Xem chi tiết 1 sản phẩm phục vụ edit
 router.get('/detail/:id', vendorProductValidation.validateProductIdParam, vendorProductController.getProductDetail)
 
-// 7. Bật/Tắt ẩn hiện 1 sản phẩm đơn lẻ
+// 10. Bật/Tắt ẩn hiện 1 sản phẩm đơn lẻ
 router.patch('/:id/toggle-active', vendorProductValidation.validateToggleActiveSingleBody, vendorProductController.toggleProductActiveSingle)
 
-// 8. Tạm ẩn/Hiện hàng loạt sản phẩm từ Checkbox
+// 11. Tạm ẩn/Hiện hàng loạt sản phẩm từ Checkbox
 router.patch('/toggle-active-bulk', vendorProductValidation.validateToggleActiveBulkBody, vendorProductController.toggleProductsActiveBulk)
 
-// 9. Xóa cứng hàng loạt sản phẩm từ Checkbox
+// 12. Xóa cứng hàng loạt sản phẩm từ Checkbox
 router.delete('/delete-bulk', vendorProductValidation.validateProductIdsBulkBody, vendorProductController.deleteProductsBulk)
 
-// 10. Gửi yêu cầu gỡ phạt duyệt lại cho loạt giày bị Banned
+// 13. Gửi yêu cầu gỡ phạt duyệt lại cho loạt giày bị Banned
 router.patch('/request-reapproval-bulk', vendorProductValidation.validateProductIdsBulkBody, vendorProductController.requestProductsReapprovalBulk)
 
 export const vendorProductRouter = router
