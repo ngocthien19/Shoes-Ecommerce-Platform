@@ -1,4 +1,4 @@
-import { getImageUrl, formatPrice } from '~/utils/formatters'
+import { getImageUrl, formatPrice, getFirstVariantImage } from '~/utils/formatters'
 import { FiUsers, FiHeart } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 
@@ -24,17 +24,36 @@ export const FavoriteTable = ({ products, onViewUsers }) => {
               </tr>
             ) : (
               products.map((p) => {
-                let imagesArray = []
-                try { imagesArray = typeof p.images === 'string' ? JSON.parse(p.images) : p.images } catch (e) { imagesArray = [] }
+                let imageUrl = getFirstVariantImage(p)
+
+                if (!imageUrl || imageUrl === 'https://placehold.co/100x100?text=No+Image') {
+                  let imagesArray = []
+                  try {
+                    imagesArray = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+                  } catch (e) {
+                    imagesArray = []
+                  }
+                  imageUrl = getImageUrl(imagesArray?.[0], 'https://placehold.co/100x100?text=Giay')
+                }
 
                 return (
                   <tr key={p.id} className="hover:bg-brand-primary/5 transition-colors duration-200">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-4">
-                        <img src={getImageUrl(imagesArray?.[0])} alt={p.name} className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-sm" />
+                        <img
+                          src={imageUrl}
+                          alt={p.name}
+                          className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-sm"
+                        />
                         <div className="flex flex-col max-w-[220px]">
                           <span className="font-extrabold text-gray-900 truncate" title={p.name}>{p.name}</span>
                           <span className="text-[11px] text-gray-400 mt-0.5">Mã SP: #{p.id}</span>
+                          {/* Hiển thị số lượng variants nếu có */}
+                          {p.variants && p.variants.length > 0 && (
+                            <span className="text-[10px] text-blue-400 font-semibold mt-0.5">
+                              {p.variants.length} biến thể
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>

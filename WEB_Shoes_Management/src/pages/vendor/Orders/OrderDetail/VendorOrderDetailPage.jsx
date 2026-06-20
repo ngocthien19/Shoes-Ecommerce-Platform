@@ -10,7 +10,7 @@ import { toast } from 'react-toastify'
 
 import { vendorOrderApiService } from '~/services/vendor/vendorOrderApiService'
 import { formatPrice } from '~/utils/formatters'
-import { getImageUrl } from '~/utils/formatters'
+import { getImageUrl, getOrderItemImage } from '~/utils/formatters'
 import { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS } from '~/utils/constant'
 import { CancelRequestModal } from '../CancelRequestModal'
 
@@ -234,37 +234,47 @@ export const VendorOrderDetailPage = () => {
               <FiPackage className="text-brand-primary" /> Sản phẩm đã đặt
             </h3>
             <div className="space-y-3">
-              {order.items?.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-200">
-                  <img
-                    src={getImageUrl(item.images?.[0], 'https://placehold.co/80x80?text=Product')}
-                    alt={item.name}
-                    className="w-16 h-16 rounded-xl object-cover border border-gray-200"
-                  />
-                  <div className="flex-1">
-                    <p className="font-extrabold text-gray-800">{item.name}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      {item.size && (
-                        <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-md">
-                          Size: {item.size}
-                        </span>
-                      )}
-                      {item.color && (
-                        <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-md">
-                          Màu: {item.color}
-                        </span>
-                      )}
+              {order.items?.map((item, idx) => {
+                // Lấy ảnh từ order item (ưu tiên variant_image)
+                const imageUrl = getOrderItemImage(item)
+
+                return (
+                  <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:shadow-md transition-all duration-200">
+                    <img
+                      src={imageUrl}
+                      alt={item.product_name}
+                      className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+                    />
+                    <div className="flex-1">
+                      <p className="font-extrabold text-gray-800">{item.product_name}</p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        {item.size && (
+                          <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-md border border-gray-100">
+                  Size: {item.size}
+                          </span>
+                        )}
+                        {item.color && (
+                          <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-0.5 rounded-md border border-gray-100">
+                  Màu: {item.color}
+                          </span>
+                        )}
+                        {item.variant_image && item.variant_image.secure_url && (
+                          <span className="text-xs font-semibold text-green-500 bg-green-50 px-2 py-0.5 rounded-md border border-green-100">
+                  Có ảnh phân loại
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-extrabold text-brand-primary">{formatPrice(item.price)}</p>
+                      <p className="text-xs text-gray-400">x{item.quantity}</p>
+                      <p className="text-xs font-bold text-gray-600 mt-1">
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-extrabold text-brand-primary">{formatPrice(item.price)}</p>
-                    <p className="text-xs text-gray-400">x{item.quantity}</p>
-                    <p className="text-xs font-bold text-gray-600 mt-1">
-                      {formatPrice(item.price * item.quantity)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </motion.div>
         </div>

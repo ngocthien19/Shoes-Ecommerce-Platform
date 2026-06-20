@@ -58,6 +58,110 @@ export const getImageUrl = (imageField, placeholder) => {
   return target?.secure_url || placeholder
 }
 
+export const getFirstVariantImage = (product, placeholder = 'https://placehold.co/100x100?text=No+Image') => {
+  if (!product) return placeholder
+
+  // Nếu product có variants và là array
+  if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+    for (const variant of product.variants) {
+      if (variant.image) {
+        try {
+          let imageData = variant.image
+          if (typeof variant.image === 'string') {
+            imageData = JSON.parse(variant.image)
+          }
+          if (imageData && imageData.secure_url) {
+            return imageData.secure_url
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+  }
+  return placeholder
+}
+
+
+export const getVariantImageUrl = (variant, placeholder = null) => {
+  if (!variant) return placeholder
+
+  // Nếu variant có image
+  if (variant.image) {
+    try {
+      let imageData = variant.image
+
+      // Nếu là string JSON thì parse
+      if (typeof variant.image === 'string') {
+        imageData = JSON.parse(variant.image)
+      }
+
+      // Nếu có secure_url thì trả về
+      if (imageData && imageData.secure_url) {
+        return imageData.secure_url
+      }
+    } catch (e) {
+      console.error('Lỗi parse ảnh variant:', e)
+      return placeholder
+    }
+  }
+
+  return placeholder
+}
+
+export const getOrderItemImage = (item, placeholder = 'https://placehold.co/100x100?text=Product') => {
+  if (!item) return placeholder
+
+  // Ưu tiên ảnh từ variant
+  if (item.variant_image) {
+    const url = getVariantImageUrl(item.variant_image)
+    if (url !== placeholder) return url
+  }
+
+  // Fallback sang product_images
+  if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+    return getImageUrl(item.images[0], placeholder)
+  }
+
+  // Fallback sang product_images (nếu là string JSON)
+  if (item.product_images) {
+    return getImageUrl(item.product_images, placeholder)
+  }
+
+  return placeholder
+}
+
+export const getReviewImage = (review, placeholder = 'https://placehold.co/100x100?text=Product') => {
+  if (!review) return placeholder
+
+  // Nếu review có variants (từ product)
+  if (review.variants && Array.isArray(review.variants) && review.variants.length > 0) {
+    for (const variant of review.variants) {
+      if (variant.image) {
+        try {
+          let imageData = variant.image
+          if (typeof variant.image === 'string') {
+            imageData = JSON.parse(variant.image)
+          }
+          if (imageData && imageData.secure_url) {
+            return imageData.secure_url
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+  }
+
+  // Fallback sang product_images
+  if (review.product_images) {
+    return getImageUrl(review.product_images, placeholder)
+  }
+
+  return placeholder
+}
+
+
 export const formatLastActive = (lastActive) => {
   if (!lastActive) return 'Không hoạt động'
 

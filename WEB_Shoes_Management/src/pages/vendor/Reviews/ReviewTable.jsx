@@ -1,6 +1,6 @@
 import { FiStar, FiEye, FiFlag, FiCheckCircle, FiXCircle, FiMessageSquare } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
-import { getImageUrl } from '~/utils/formatters'
+import { getImageUrl, getReviewImage } from '~/utils/formatters'
 import { Link } from 'react-router-dom'
 
 export const ReviewTable = ({
@@ -89,7 +89,7 @@ export const ReviewTable = ({
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
                           <img
-                            src={getImageUrl(review.product_images?.[0], 'https://placehold.co/40x40?text=Product')}
+                            src={getReviewImage(review, 'https://placehold.co/40x40?text=Product')}
                             alt={review.product_name}
                             className="w-8 h-8 rounded-lg object-cover border border-gray-100"
                           />

@@ -205,7 +205,8 @@ export const ReviewDetailPage = () => {
           product={{
             id: review.product_id,
             name: review.product_name,
-            image: review.product_images?.[0]
+            product_images: review.product_images,
+            variants: review.variants || []
           }}
         />
       )}

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { FiAward, FiPackage, FiTrendingUp } from 'react-icons/fi'
-import { formatPrice, getImageUrl } from '~/utils/formatters'
-import { Link } from 'react-router-dom' // Thêm import
+import { formatPrice, getImageUrl, getFirstVariantImage } from '~/utils/formatters'
+import { Link } from 'react-router-dom'
 
 const MEDALS = [
   { color: '#F59E0B', bg: 'from-yellow-400 to-amber-500', glow: 'shadow-amber-200', label: 'Gold' },
@@ -37,7 +37,7 @@ export const TopProductsList = ({ products }) => {
     </div>
   )
 
-  const maxRevenue = Math.max(...products.map(p => p.totalRevenue))
+  const maxRevenue = Math.max(...products.map(p => p.total_revenue))
 
   const container = {
     hidden: { opacity: 0 },
@@ -47,6 +47,31 @@ export const TopProductsList = ({ products }) => {
   const itemVariant = {
     hidden: { opacity: 0, x: -16 },
     show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 280, damping: 22 } }
+  }
+
+  // Hàm lấy ảnh từ variants
+  const getProductImage = (product) => {
+    // Ưu tiên lấy ảnh từ variants
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            if (imageData && imageData.secure_url) {
+              return imageData.secure_url
+            }
+          } catch (e) {
+            continue
+          }
+        }
+      }
+    }
+
+    // Fallback sang product.images
+    return getImageUrl(product.images, 'https://placehold.co/100x100?text=Product')
   }
 
   return (
@@ -76,7 +101,9 @@ export const TopProductsList = ({ products }) => {
         className="overflow-y-auto max-h-[420px] divide-y divide-gray-50 custom-scrollbar"
       >
         {products.map((product, idx) => {
-          const pct = Math.round((product.totalRevenue / maxRevenue) * 100)
+          const pct = Math.round((product.total_revenue / maxRevenue) * 100)
+          const imageUrl = getProductImage(product)
+
           return (
             <Link
               key={product.id}
@@ -93,10 +120,16 @@ export const TopProductsList = ({ products }) => {
                 {/* Image */}
                 <div className="relative shrink-0">
                   <img
-                    src={getImageUrl(product.imageUrl, 'https://placehold.co/100x100?text=Product')}
+                    src={imageUrl}
                     alt={product.name}
                     className="w-11 h-11 rounded-xl object-cover border border-gray-100 shadow-sm group-hover:scale-105 transition-transform duration-200"
                   />
+                  {/* Badge số biến thể */}
+                  {product.variants && product.variants.length > 1 && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm">
+                      {product.variants.length}
+                    </div>
+                  )}
                 </div>
 
                 {/* Info + bar */}
@@ -106,7 +139,7 @@ export const TopProductsList = ({ products }) => {
                   </h4>
                   <div className="flex items-center gap-2 mt-0.5 mb-2">
                     <FiTrendingUp size={10} className="text-gray-400" />
-                    <span className="text-xs text-gray-400">Đã bán <span className="font-bold text-gray-600">{product.totalSold}</span> sp</span>
+                    <span className="text-xs text-gray-400">Đã bán <span className="font-bold text-gray-600">{product.total_sold}</span> sp</span>
                   </div>
                   {/* Revenue bar */}
                   <div className="h-1 bg-gray-100 rounded-full overflow-hidden w-full">
@@ -121,7 +154,7 @@ export const TopProductsList = ({ products }) => {
 
                 {/* Revenue */}
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-extrabold text-brand-primary">{formatPrice(product.totalRevenue)}</p>
+                  <p className="text-sm font-extrabold text-brand-primary">{formatPrice(product.total_revenue)}</p>
                   <p className="text-[10px] font-semibold text-gray-400 mt-0.5">{pct}% top</p>
                 </div>
               </motion.div>
