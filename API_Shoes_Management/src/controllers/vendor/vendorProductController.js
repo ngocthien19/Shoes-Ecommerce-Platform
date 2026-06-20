@@ -93,7 +93,13 @@ const createVariant = async (req, res) => {
     const { size, color, stock } = req.body
 
     // Lấy ảnh từ multer (nếu có)
-    const variantImage = extractVariantImage(req.file)
+    let variantImage = null
+    if (req.file) {
+      variantImage = {
+        public_id: req.file.filename,
+        secure_url: req.file.path
+      }
+    }
 
     const result = await vendorProductService.createVariant(
       userId,
