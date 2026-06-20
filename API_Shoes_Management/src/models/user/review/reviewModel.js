@@ -20,6 +20,54 @@ const getReviewsByProductSlug = async (slug) => {
   return rows
 }
 
+const getOrderItemsWithVariants = async (orderId) => {
+  const query = `
+    SELECT 
+      oi.id AS item_id,
+      oi.quantity,
+      oi.price,
+      pv.size,
+      pv.color,
+      pv.image AS variant_image,
+      p.id AS product_id,
+      p.name AS product_name,
+      p.slug,
+      p.images AS product_images
+    FROM order_items oi
+    INNER JOIN product_variants pv ON oi.variant_id = pv.id
+    INNER JOIN products p ON pv.product_id = p.id
+    WHERE oi.order_id = ?
+  `
+  const [rows] = await pool.execute(query, [orderId])
+
+  // Parse variant_image và product_images
+  return rows.map(item => {
+    let parsedVariantImage = item.variant_image
+    if (item.variant_image && typeof item.variant_image === 'string') {
+      try {
+        parsedVariantImage = JSON.parse(item.variant_image)
+      } catch (e) {
+        parsedVariantImage = null
+      }
+    }
+
+    let parsedProductImages = item.product_images
+    if (item.product_images && typeof item.product_images === 'string') {
+      try {
+        parsedProductImages = JSON.parse(item.product_images)
+      } catch (e) {
+        parsedProductImages = []
+      }
+    }
+
+    return {
+      ...item,
+      variant_image: parsedVariantImage,
+      product_images: parsedProductImages
+    }
+  })
+}
+
 const getOrderForReview = async (orderId, userId) => {
   const query = 'SELECT id, status, store_id FROM orders WHERE id = ? AND user_id = ?'
   const [rows] = await pool.execute(query, [orderId, userId])
@@ -82,5 +130,6 @@ export const reviewModel = {
   createProductReview,
   updateProductRatingAvg,
   createStoreReview,
-  updateStoreRatingAvg
+  updateStoreRatingAvg,
+  getOrderItemsWithVariants
 }
