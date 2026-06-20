@@ -21,7 +21,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
 }
 
-export const ProductInfo = ({ product, onColorChangeFromGallery }) => {
+export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }) => {
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -122,26 +122,9 @@ export const ProductInfo = ({ product, onColorChangeFromGallery }) => {
   // Khi chọn màu, thông báo lên gallery để đổi ảnh
   const handleColorSelect = (color) => {
     setSelectedColor(color)
-    // Thông báo lên component cha để đổi ảnh
-    if (onColorChangeFromGallery) {
-      // Tìm ảnh của màu này để gửi lên
-      const variantWithImage = variants.find(v => v.color === color && v.image)
-      if (variantWithImage) {
-        let imageData = variantWithImage.image
-        if (typeof variantWithImage.image === 'string') {
-          try {
-            imageData = JSON.parse(variantWithImage.image)
-          } catch (e) {
-            imageData = null
-          }
-        }
-        if (imageData && imageData.secure_url) {
-          // Gọi callback để đổi ảnh
-          if (window.productGalleryRef) {
-            window.productGalleryRef(imageData.secure_url, color)
-          }
-        }
-      }
+    // Gọi callback để đổi ảnh bên gallery
+    if (onColorSelect) {
+      onColorSelect(color)
     }
   }
 

@@ -34,9 +34,16 @@ export const ProductDetailPage = () => {
     fetchProduct()
   }, [slug])
 
-  // Hàm nhận màu từ Gallery và cập nhật lại ProductInfo
   const handleColorChangeFromGallery = (color) => {
     setSelectedColor(color)
+  }
+
+  const handleColorSelectFromInfo = (color) => {
+    setSelectedColor(color)
+    // Gọi hàm để đổi ảnh trong Gallery
+    if (galleryRef.current && galleryRef.current.changeColor) {
+      galleryRef.current.changeColor(color)
+    }
   }
 
   if (loading) {
@@ -86,10 +93,12 @@ export const ProductDetailPage = () => {
               transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
             >
               <ProductGallery
+                ref={galleryRef}
                 images={product.images}
                 productName={product.name}
                 variants={product.variants}
                 onColorChange={handleColorChangeFromGallery}
+                selectedColor={selectedColor}
               />
             </motion.div>
 
@@ -103,6 +112,7 @@ export const ProductDetailPage = () => {
               <ProductInfo
                 product={product}
                 onColorChangeFromGallery={selectedColor}
+                onColorSelect={handleColorSelectFromInfo}
               />
             </motion.div>
           </div>

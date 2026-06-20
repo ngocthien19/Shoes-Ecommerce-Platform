@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export const ProductGallery = ({ images, productName, variants = [], onColorChange }) => {
+export const ProductGallery = forwardRef(({ images, productName, variants = [], onColorChange, selectedColor }, ref) => {
   // Lấy tất cả ảnh từ variants
   const getVariantImages = () => {
     const variantImages = []
@@ -47,22 +47,61 @@ export const ProductGallery = ({ images, productName, variants = [], onColorChan
   const [activeImg, setActiveImg] = useState(displayImages[0]?.secure_url || fallbackImages[0]?.secure_url)
   const [activeIdx, setActiveIdx] = useState(0)
 
+  // Hàm đổi ảnh theo màu
+  const changeColor = (color) => {
+    if (!color) return
+    const index = displayImages.findIndex(img => img.color === color)
+    if (index !== -1) {
+      setActiveImg(displayImages[index].secure_url)
+      setActiveIdx(index)
+      if (onColorChange) {
+        onColorChange(color)
+      }
+    }
+  }
+
+  // Expose method cho component cha
+  useImperativeHandle(ref, () => ({
+    changeColor
+  }))
+
   // Khi variants thay đổi, cập nhật ảnh đầu tiên
   useEffect(() => {
     if (displayImages.length > 0) {
+      // Nếu có selectedColor từ cha, ưu tiên hiển thị màu đó
+      if (selectedColor) {
+        const index = displayImages.findIndex(img => img.color === selectedColor)
+        if (index !== -1) {
+          setActiveImg(displayImages[index].secure_url)
+          setActiveIdx(index)
+          if (onColorChange) {
+            onColorChange(selectedColor)
+          }
+          return
+        }
+      }
       setActiveImg(displayImages[0].secure_url)
       setActiveIdx(0)
-      // Thông báo màu sắc cho component cha
       if (onColorChange && displayImages[0].color) {
         onColorChange(displayImages[0].color)
       }
     }
-  }, [variants])
+  }, [variants, selectedColor])
+
+  // Khi selectedColor thay đổi từ bên ngoài, cập nhật ảnh
+  useEffect(() => {
+    if (selectedColor) {
+      const index = displayImages.findIndex(img => img.color === selectedColor)
+      if (index !== -1 && index !== activeIdx) {
+        setActiveImg(displayImages[index].secure_url)
+        setActiveIdx(index)
+      }
+    }
+  }, [selectedColor])
 
   const handleSelect = (img, idx) => {
     setActiveImg(img.secure_url)
     setActiveIdx(idx)
-    // Khi chọn ảnh, thông báo màu sắc tương ứng
     if (onColorChange && img.color) {
       onColorChange(img.color)
     }
@@ -123,4 +162,4 @@ export const ProductGallery = ({ images, productName, variants = [], onColorChan
       </motion.div>
     </div>
   )
-}
+})
