@@ -11,6 +11,43 @@ export const ConfirmDeleteModal = ({
   productInfo = null,
   isLoading = false
 }) => {
+  const getProductImage = (info) => {
+    if (!info) return null
+
+    // Ưu tiên ảnh từ variant_image
+    if (info.variant_image) {
+      // Nếu variant_image là object có secure_url
+      if (info.variant_image.secure_url) {
+        return info.variant_image.secure_url
+      }
+      // Nếu variant_image là string JSON
+      if (typeof info.variant_image === 'string') {
+        try {
+          const parsed = JSON.parse(info.variant_image)
+          if (parsed && parsed.secure_url) {
+            return parsed.secure_url
+          }
+        } catch (e) {
+          // Bỏ qua
+        }
+      }
+    }
+
+    // Fallback sang images
+    if (info.images) {
+      return getImageUrl(info.images, null)
+    }
+
+    // Fallback sang product_images
+    if (info.product_images) {
+      return getImageUrl(info.product_images, null)
+    }
+
+    return null
+  }
+
+  const imageUrl = getProductImage(productInfo)
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -58,13 +95,20 @@ export const ConfirmDeleteModal = ({
             {productInfo && (
               <div className="flex gap-3 bg-gray-50 border border-gray-100 rounded-xl p-3 mb-5 text-left items-center animate-fadeIn">
                 {/* Icon hoặc hình ảnh */}
-                <div className="w-14 h-14 bg-white border border-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-                  {productInfo.images ? (
-                    <img
-                      src={getImageUrl(productInfo.images)}
-                      alt={productInfo.product_name || productInfo.name}
-                      className="w-full h-full object-cover"
-                    />
+                <div className="w-14 h-14 bg-white border border-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center relative">
+                  {imageUrl ? (
+                    <>
+                      <img
+                        src={imageUrl}
+                        alt={productInfo.product_name || productInfo.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {productInfo.variant_image && (
+                        <div className="absolute top-0 right-0 bg-brand-primary text-white text-[6px] font-bold px-1 py-0.5 rounded-bl-lg">
+                          VAR
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <FiBox size={24} className="text-gray-300" />
                   )}

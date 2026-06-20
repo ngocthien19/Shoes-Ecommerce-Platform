@@ -260,7 +260,7 @@ export const ManagerProductDetailPage = () => {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                    className={`cursor-pointer relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
                       selectedImage === idx ? 'border-brand-primary shadow-md' : 'border-gray-200 hover:border-gray-400'
                     }`}
                   >

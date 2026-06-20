@@ -9,6 +9,36 @@ export const WithdrawCancelModal = ({ isOpen, onClose, onConfirm, order }) => {
     onConfirm(order.order_id)
   }
 
+  const getItemImage = (item) => {
+    // Ưu tiên ảnh từ variant_image
+    if (item.variant_image) {
+      // Nếu variant_image là object có secure_url
+      if (item.variant_image.secure_url) {
+        return item.variant_image.secure_url
+      }
+      // Nếu variant_image là string JSON
+      if (typeof item.variant_image === 'string') {
+        try {
+          const parsed = JSON.parse(item.variant_image)
+          if (parsed && parsed.secure_url) {
+            return parsed.secure_url
+          }
+        } catch (e) {
+          // Bỏ qua
+        }
+      }
+    }
+    // Fallback sang product_images (nếu có)
+    if (item.product_images) {
+      return getImageUrl(item.product_images, 'https://placehold.co/100x100?text=Product')
+    }
+    // Fallback sang images (cũ)
+    if (item.images) {
+      return getImageUrl(item.images, 'https://placehold.co/100x100?text=Product')
+    }
+    return 'https://placehold.co/100x100?text=Product'
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -57,20 +87,35 @@ export const WithdrawCancelModal = ({ isOpen, onClose, onConfirm, order }) => {
 
               {/* Hiển thị tóm tắt sản phẩm để khách hàng đối soát */}
               <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 max-h-36 overflow-y-auto space-y-3">
-                {order.items?.map((item, idx) => (
-                  <div key={idx} className="flex gap-3 items-center">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-white">
-                      <img src={getImageUrl(item.images)} alt="" className="w-full h-full object-cover" />
+                {order.items?.map((item, idx) => {
+                  const imageUrl = getItemImage(item)
+                  return (
+                    <div key={idx} className="flex gap-3 items-center">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-gray-200 bg-white relative">
+                        <img
+                          src={imageUrl}
+                          alt={item.product_name}
+                          className="w-full h-full object-cover"
+                        />
+                        {item.variant_image && (
+                          <div className="absolute top-0 right-0 bg-brand-primary text-white text-[6px] font-bold px-1 py-0.5 rounded-bl-lg">
+                            VAR
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-800 text-xs truncate">{item.product_name}</h4>
+                        <p className="text-[10px] text-gray-400">Size: {item.size} | Màu: {item.color}</p>
+                        {item.variant_image && (
+                          <p className="text-[8px] text-green-500 font-semibold mt-0.5">✓ Ảnh phân loại</p>
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-gray-500">
+                        x{item.quantity}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-gray-800 text-xs truncate">{item.product_name}</h4>
-                      <p className="text-[10px] text-gray-400">Size: {item.size} | Màu: {item.color}</p>
-                    </div>
-                    <div className="text-xs font-bold text-gray-500">
-                      x{item.quantity}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
