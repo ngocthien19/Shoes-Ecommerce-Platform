@@ -121,7 +121,7 @@ const getOrderDetailSystem = async (orderId) => {
 
   const itemsQuery = `
     SELECT 
-      oi.id AS item_id,   
+      oi.id AS item_id, 
       oi.variant_id, 
       oi.quantity, 
       oi.price, 
@@ -129,7 +129,21 @@ const getOrderDetailSystem = async (orderId) => {
       pv.color, 
       pv.image AS variant_image,
       p.name AS product_name,
-      p.images AS product_images
+      p.images AS product_images,
+      -- Lấy tất cả variants của sản phẩm để FE match ảnh
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv2.id,
+            'size', pv2.size,
+            'color', pv2.color,
+            'stock', pv2.stock,
+            'image', pv2.image
+          )
+        )
+        FROM product_variants pv2
+        WHERE pv2.product_id = p.id
+      ) AS all_variants
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
@@ -137,9 +151,9 @@ const getOrderDetailSystem = async (orderId) => {
   `
   const [items] = await pool.execute(itemsQuery, [orderId])
 
-  // Parse variant_image và product_images
+  // Parse dữ liệu cho từng item
   order.items = items.map(item => {
-    // Parse variant_image nếu là string JSON
+    // Parse variant_image
     let parsedVariantImage = item.variant_image
     if (item.variant_image && typeof item.variant_image === 'string') {
       try {
@@ -149,7 +163,7 @@ const getOrderDetailSystem = async (orderId) => {
       }
     }
 
-    // Parse product_images nếu là string JSON
+    // Parse product_images
     let parsedProductImages = item.product_images
     if (item.product_images && typeof item.product_images === 'string') {
       try {
@@ -159,10 +173,33 @@ const getOrderDetailSystem = async (orderId) => {
       }
     }
 
+    let allVariants = []
+    if (item.all_variants) {
+      try {
+        allVariants = typeof item.all_variants === 'string'
+          ? JSON.parse(item.all_variants)
+          : item.all_variants
+        // Parse image trong từng variant
+        allVariants = allVariants.map(variant => {
+          if (variant.image && typeof variant.image === 'string') {
+            try {
+              variant.image = JSON.parse(variant.image)
+            } catch (e) {
+              variant.image = null
+            }
+          }
+          return variant
+        })
+      } catch (e) {
+        allVariants = []
+      }
+    }
+
     return {
       ...item,
       variant_image: parsedVariantImage,
-      product_images: parsedProductImages
+      product_images: parsedProductImages,
+      all_variants: allVariants
     }
   })
 
