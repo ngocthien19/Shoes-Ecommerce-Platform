@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/dropdown-menu'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
-import { getVariantImageUrl } from '~/utils/formatters'
+import { getVariantImageUrl, getImageUrl } from '~/utils/formatters'
 
 export const VariantsSection = ({
   attributes,
@@ -51,7 +51,8 @@ export const VariantsSection = ({
       name: `Biến thể ${variant.size || ''} ${variant.color || ''}`,
       size: variant.size,
       color: variant.color,
-      stock: variant.stock
+      stock: variant.stock,
+      images: variant.image
     })
     setDeleteModalOpen(true)
   }
@@ -71,10 +72,28 @@ export const VariantsSection = ({
     setDeletingVariantInfo(null)
   }
 
+  const getVariantDisplayImage = (variant) => {
+    if (!variant) return null
+
+    // Ưu tiên imagePreview (khi đang upload file mới)
+    if (variant.imagePreview) {
+      return variant.imagePreview
+    }
+
+    // Nếu có image từ API (đã lưu)
+    if (variant.image) {
+      // Dùng getVariantImageUrl để lấy URL
+      const url = getVariantImageUrl(variant)
+      if (url) return url
+    }
+
+    return null
+  }
+
   // Component hiển thị thông tin biến thể (chế độ xem)
   const VariantDisplay = ({ variant, index }) => {
     const hasId = Boolean(variant.id)
-    const imageUrl = getVariantImageUrl(variant)
+    const imageUrl = getVariantDisplayImage(variant)
 
     return (
       <div className="flex flex-wrap md:flex-nowrap items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -155,10 +174,10 @@ export const VariantsSection = ({
     )
   }
 
-  // Component hiển thị form sửa biến thể (chế độ edit) - Có icon lưu riêng
+  // Component hiển thị form sửa biến thể (chế độ edit)
   const VariantEdit = ({ index }) => {
     const variant = watch(`variants.${index}`)
-    const imageUrl = getVariantImageUrl(variant || {})
+    const imageUrl = getVariantDisplayImage(variant)
 
     // Kiểm tra xem variant đã có dữ liệu hợp lệ chưa
     const isValid = variant?.size && variant?.stock !== undefined && variant?.stock !== null && variant?.stock >= 0
@@ -284,9 +303,8 @@ export const VariantsSection = ({
           )}
         </div>
 
-        {/* Nút hành động trong chế độ edit - có icon lưu riêng */}
+        {/* Nút hành động trong chế độ edit */}
         <div className="w-full md:w-auto flex items-end gap-1.5 pb-1.5">
-          {/* Nút Lưu (✓) - chỉ active khi dữ liệu hợp lệ */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.button
@@ -307,7 +325,6 @@ export const VariantsSection = ({
             <TooltipContent>Lưu biến thể</TooltipContent>
           </Tooltip>
 
-          {/* Nút Hủy (✕) */}
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.button
@@ -367,7 +384,7 @@ export const VariantsSection = ({
               >
                 <FiLayers size={36} className="mb-3 opacity-40" />
                 <p className="text-sm font-bold">Chưa có phân loại nào được thêm.</p>
-                <p className="text-xs text-gray-400 mt-1">Nhấn "Thêm phân loại" để bắt đầu</p>
+                <p className="text-xs text-gray-400 mt-1">Nhấn Thêm phân loại để bắt đầu</p>
               </motion.div>
             ) : (
               fields.map((item, index) => {
