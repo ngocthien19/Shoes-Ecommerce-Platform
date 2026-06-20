@@ -68,19 +68,31 @@ const hardDeleteProduct = async (productId) => {
 }
 
 // 7. Thêm biến thể mới (Size, Màu, Số lượng tồn kho) vào bảng product_variants
-const createVariant = async ({ productId, size, color, stock }) => {
+const createVariant = async ({ productId, size, color, stock, image }) => {
   const query = `
-    INSERT INTO product_variants (product_id, size, color, stock)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO product_variants (product_id, size, color, stock, image)
+    VALUES (?, ?, ?, ?, ?)
   `
-  const [result] = await pool.execute(query, [productId, size, color, stock])
+  const [result] = await pool.execute(query, [
+    productId,
+    size,
+    color,
+    stock,
+    image ? JSON.stringify(image) : null
+  ])
   return result
 }
 
 const getVariantById = async (variantId) => {
-  const query = 'SELECT id, product_id, size, color, stock FROM product_variants WHERE id = ?'
+  const query = 'SELECT id, product_id, size, color, stock, image FROM product_variants WHERE id = ?'
   const [rows] = await pool.execute(query, [variantId])
   return rows[0] || null
+}
+
+const getVariantsByProductId = async (productId) => {
+  const query = 'SELECT id, size, color, stock, image FROM product_variants WHERE product_id = ?'
+  const [rows] = await pool.execute(query, [productId])
+  return rows
 }
 
 const checkVariantInCart = async (variantId) => {
@@ -89,13 +101,19 @@ const checkVariantInCart = async (variantId) => {
   return rows[0].count > 0
 }
 
-const updateVariant = async (variantId, { size, color, stock }) => {
+const updateVariant = async (variantId, { size, color, stock, image }) => {
   const query = `
     UPDATE product_variants 
-    SET size = ?, color = ?, stock = ?
+    SET size = ?, color = ?, stock = ?, image = ?
     WHERE id = ?
   `
-  const [result] = await pool.execute(query, [size, color, stock, variantId])
+  const [result] = await pool.execute(query, [
+    size,
+    color,
+    stock,
+    image ? JSON.stringify(image) : null,
+    variantId
+  ])
   return result.affectedRows
 }
 
@@ -191,7 +209,7 @@ const getProductDetailWithVariants = async (productId, storeId) => {
   const [pRows] = await pool.execute(pQuery, [productId, storeId])
   if (pRows.length === 0) return null
 
-  const vQuery = 'SELECT id, size, color, stock FROM product_variants WHERE product_id = ?'
+  const vQuery = 'SELECT id, size, color, stock, image FROM product_variants WHERE product_id = ?'
   const [vRows] = await pool.execute(vQuery, [productId])
 
   return {
@@ -278,6 +296,72 @@ const updateProductStatus = async (productId, status) => {
   return result
 }
 
+const addImageToProduct = async (productId, image) => {
+  // Lấy images hiện tại
+  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ?', [productId])
+  let currentImages = []
+
+  if (rows[0]?.images) {
+    try {
+      currentImages = JSON.parse(rows[0].images)
+    } catch {
+      currentImages = []
+    }
+  }
+
+  // Kiểm tra xem ảnh đã tồn tại chưa (so sánh secure_url)
+  const exists = currentImages.some(img => img.secure_url === image.secure_url)
+
+  if (!exists) {
+    currentImages.push(image)
+    const query = 'UPDATE products SET images = ? WHERE id = ?'
+    await pool.execute(query, [JSON.stringify(currentImages), productId])
+  }
+
+  return currentImages
+}
+
+const removeImageFromProduct = async (productId, image) => {
+  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ?', [productId])
+  let currentImages = []
+
+  if (rows[0]?.images) {
+    try {
+      currentImages = JSON.parse(rows[0].images)
+    } catch {
+      currentImages = []
+    }
+  }
+
+  // Lọc bỏ ảnh cần xóa
+  const filteredImages = currentImages.filter(img => img.secure_url !== image.secure_url)
+
+  const query = 'UPDATE products SET images = ? WHERE id = ?'
+  await pool.execute(query, [JSON.stringify(filteredImages), productId])
+
+  return filteredImages
+}
+
+const checkImageUsedByOtherVariant = async (productId, image, excludeVariantId) => {
+  const query = 'SELECT id, image FROM product_variants WHERE product_id = ? AND id != ?'
+  const [rows] = await pool.execute(query, [productId, excludeVariantId])
+
+  for (const row of rows) {
+    if (!row.image) continue
+    let variantImage = null
+    try {
+      variantImage = typeof row.image === 'string' ? JSON.parse(row.image) : row.image
+    } catch {
+      variantImage = row.image
+    }
+
+    if (variantImage && variantImage.secure_url === image.secure_url) {
+      return true
+    }
+  }
+  return false
+}
+
 export const vendorProductModel = {
   getStoreByOwnerId,
   checkProductOwnership,
@@ -290,6 +374,7 @@ export const vendorProductModel = {
   checkVariantInCart,
   updateVariant,
   deleteVariant,
+  getVariantsByProductId,
   getVendorProductsWithFilters,
   countVendorProductsWithFilters,
   getProductDetailWithVariants,
@@ -299,5 +384,8 @@ export const vendorProductModel = {
   getMultipleProductImages,
   hardDeleteProductsBulk,
   requestProductsReapprovalBulk,
-  updateProductStatus
+  updateProductStatus,
+  addImageToProduct,
+  removeImageFromProduct,
+  checkImageUsedByOtherVariant
 }

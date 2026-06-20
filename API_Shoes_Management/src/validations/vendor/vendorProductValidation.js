@@ -89,7 +89,8 @@ const validateCreateVariantBody = async (req, res, next) => {
     stock: Joi.number().integer().min(0).required().messages({
       'number.min': 'Số lượng hàng tồn kho (stock) không được nhỏ hơn 0.',
       'any.required': 'Số lượng hàng tồn kho là thông tin bắt buộc.'
-    })
+    }),
+    image: Joi.any().optional().allow(null)
   })
 
   try {
@@ -206,7 +207,8 @@ const validateUpdateVariantBody = async (req, res, next) => {
     stock: Joi.number().integer().min(0).required().messages({
       'number.min': 'Số lượng tồn kho không được nhỏ hơn 0.',
       'any.required': 'Số lượng tồn kho là bắt buộc.'
-    })
+    }),
+    image: Joi.any().optional().allow(null)
   })
 
   try {

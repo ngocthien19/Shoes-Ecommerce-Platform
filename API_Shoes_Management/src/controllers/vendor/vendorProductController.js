@@ -10,6 +10,11 @@ const extractImagesFromReqFiles = (reqFiles) => {
   return imagesArray
 }
 
+const extractVariantImage = (reqFile) => {
+  if (!reqFile) return null
+  return { public_id: reqFile.filename, secure_url: reqFile.path }
+}
+
 const createProduct = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
@@ -84,14 +89,22 @@ const deleteProduct = async (req, res) => {
 const createVariant = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
-    const { id } = req.params
+    const { id } = req.params // productId
     const { size, color, stock } = req.body
 
-    const result = await vendorProductService.createVariant(userId, Number(id), {
-      size,
-      color: color || null,
-      stock: Number(stock)
-    })
+    // Lấy ảnh từ multer (nếu có)
+    const variantImage = extractVariantImage(req.file)
+
+    const result = await vendorProductService.createVariant(
+      userId,
+      Number(id),
+      {
+        size,
+        color: color || null,
+        stock: Number(stock),
+        image: variantImage
+      }
+    )
     return res.status(201).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi khi thêm biến thể kho: ${error.message}` })
@@ -104,6 +117,9 @@ const updateVariant = async (req, res) => {
     const { productId, variantId } = req.params
     const { size, color, stock } = req.body
 
+    // Lấy ảnh mới từ multer (nếu có)
+    const newImage = extractVariantImage(req.file)
+
     const result = await vendorProductService.updateVariant(
       userId,
       Number(productId),
@@ -111,7 +127,8 @@ const updateVariant = async (req, res) => {
       {
         size,
         color: color || null,
-        stock: Number(stock)
+        stock: Number(stock),
+        image: newImage // Ảnh mới hoặc null
       }
     )
     return res.status(200).json(result)
@@ -133,6 +150,18 @@ const deleteVariant = async (req, res) => {
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi khi xóa biến thể: ${error.message}` })
+  }
+}
+
+const getVariantsByProductId = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const { productId } = req.params
+
+    const result = await vendorProductService.getVariantsByProductId(userId, Number(productId))
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi khi tải danh sách biến thể: ${error.message}` })
   }
 }
 
@@ -214,6 +243,7 @@ export const vendorProductController = {
   createVariant,
   updateVariant,
   deleteVariant,
+  getVariantsByProductId,
   getVendorProducts,
   getProductDetail,
   toggleProductsActiveBulk,

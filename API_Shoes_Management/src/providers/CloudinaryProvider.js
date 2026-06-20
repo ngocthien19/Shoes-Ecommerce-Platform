@@ -35,7 +35,7 @@ const storeStorage = new CloudinaryStorage({
 })
 const uploadStore = multer({
   storage: storeStorage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB cho banner chất lượng cao
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
 // Product Vendor
@@ -50,6 +50,20 @@ const productStorage = new CloudinaryStorage({
 const uploadProduct = multer({
   storage: productStorage,
   limits: { fileSize: 5 * 1024 * 1024 }
+})
+
+// cho variant (ảnh riêng của từng biến thể)
+const variantStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'shoes_store_products/variants',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }]
+  }
+})
+const uploadVariant = multer({
+  storage: variantStorage,
+  limits: { fileSize: 3 * 1024 * 1024 } // 3MB cho ảnh variant
 })
 
 // 4. Cấu hình lưu trữ hình ảnh Feedback Đánh giá từ Khách hàng
@@ -77,7 +91,7 @@ const appealStorage = new CloudinaryStorage({
 })
 const uploadAppeal = multer({
   storage: appealStorage,
-  limits: { fileSize: 3 * 1024 * 1024 } // Giới hạn 3MB mỗi ảnh bằng chứng
+  limits: { fileSize: 3 * 1024 * 1024 }
 })
 
 // 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm (Nếu có)
@@ -105,7 +119,7 @@ const chatStorage = new CloudinaryStorage({
 })
 const uploadChat = multer({
   storage: chatStorage,
-  limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB/ảnh
+  limits: { fileSize: 10 * 1024 * 1024 }
 })
 
 export const CloudinaryProvider = {
@@ -116,6 +130,7 @@ export const CloudinaryProvider = {
     { name: 'banner', maxCount: 1 }
   ]),
   uploadProductFields: uploadProduct.array('images', 10),
+  uploadVariantImage: uploadVariant.single('image'),
   uploadReviewFields: uploadReview.array('reviewImages', 10),
   uploadAppealFields: uploadAppeal.array('evidenceImages', 5),
   streamUploadCategory: uploadCategory.single('categoryImage'),
