@@ -25,7 +25,8 @@ const getFlashSaleProducts = async (limit = 8) => {
             'id', pv.id, 
             'size', pv.size, 
             'color', pv.color, 
-            'stock', pv.stock
+            'stock', pv.stock,
+            'image', pv.image
           )
         )
         FROM product_variants pv
@@ -69,7 +70,8 @@ const getTopSellingProducts = async (limit = 8) => {
             'id', pv.id, 
             'size', pv.size, 
             'color', pv.color, 
-            'stock', pv.stock
+            'stock', pv.stock,
+            'image', pv.image
           )
         )
         FROM product_variants pv
@@ -108,7 +110,8 @@ const getLatestProducts = async (limit = 8) => {
             'id', pv.id, 
             'size', pv.size, 
             'color', pv.color, 
-            'stock', pv.stock
+            'stock', pv.stock,
+            'image', pv.image
           )
         )
         FROM product_variants pv
@@ -173,7 +176,7 @@ const getProductBySlug = async (slug) => {
 }
 
 const getProductVariants = async (productId) => {
-  const query = 'SELECT id, size, color, stock FROM product_variants WHERE product_id = ?'
+  const query = 'SELECT id, size, color, stock, image FROM product_variants WHERE product_id = ?'
   const [rows] = await pool.execute(query, [productId])
   return rows
 }
@@ -207,7 +210,8 @@ const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
             'id', pv.id, 
             'size', pv.size, 
             'color', pv.color, 
-            'stock', pv.stock
+            'stock', pv.stock,
+            'image', pv.image
           )
         )
         FROM product_variants pv
@@ -265,7 +269,8 @@ const searchAndFilterProducts = async (filters) => {
             'id', pv.id, 
             'size', pv.size, 
             'color', pv.color, 
-            'stock', pv.stock
+            'stock', pv.stock,
+            'image', pv.image
           )
         )
         FROM product_variants pv
@@ -385,7 +390,32 @@ const searchAndFilterProducts = async (filters) => {
   const finalParams = [...params, String(limit), String(offset)]
   const [products] = await pool.execute(queryData, finalParams)
 
-  return { products, total }
+  // Parse variants từ JSON string sang array
+  const parsedProducts = products.map(product => {
+    if (product.variants) {
+      try {
+        product.variants = typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants
+        // Parse image trong từng variant
+        product.variants = product.variants.map(variant => {
+          if (variant.image && typeof variant.image === 'string') {
+            try {
+              variant.image = JSON.parse(variant.image)
+            } catch (e) {
+              variant.image = null
+            }
+          }
+          return variant
+        })
+      } catch (e) {
+        product.variants = []
+      }
+    } else {
+      product.variants = []
+    }
+    return product
+  })
+
+  return { products: parsedProducts, total }
 }
 
 const getEmptyCartRecommendations = async (limit = 8) => {
@@ -399,8 +429,17 @@ const getEmptyCartRecommendations = async (limit = 8) => {
         ORDER BY pr.discount_value DESC LIMIT 1
       ) AS discount_percentage,
       (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', pv.id, 'size', pv.size, 'color', pv.color, 'stock', pv.stock))
-        FROM product_variants pv WHERE pv.product_id = p.id
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock,
+            'image', pv.image
+          )
+        )
+        FROM product_variants pv 
+        WHERE pv.product_id = p.id
       ) AS variants
     FROM products p 
     WHERE p.is_active = TRUE 
@@ -409,7 +448,30 @@ const getEmptyCartRecommendations = async (limit = 8) => {
     LIMIT ?
   `
   const [rows] = await pool.execute(query, [PRODUCT_MODERATION_STATUS.APPROVED, String(limit)])
-  return rows
+
+  // Parse variants
+  return rows.map(product => {
+    if (product.variants) {
+      try {
+        product.variants = typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants
+        product.variants = product.variants.map(variant => {
+          if (variant.image && typeof variant.image === 'string') {
+            try {
+              variant.image = JSON.parse(variant.image)
+            } catch (e) {
+              variant.image = null
+            }
+          }
+          return variant
+        })
+      } catch (e) {
+        product.variants = []
+      }
+    } else {
+      product.variants = []
+    }
+    return product
+  })
 }
 
 const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 8) => {
@@ -423,8 +485,17 @@ const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 
         ORDER BY pr.discount_value DESC LIMIT 1
       ) AS discount_percentage,
       (
-        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', pv.id, 'size', pv.size, 'color', pv.color, 'stock', pv.stock))
-        FROM product_variants pv WHERE pv.product_id = p.id
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id, 
+            'size', pv.size, 
+            'color', pv.color, 
+            'stock', pv.stock,
+            'image', pv.image
+          )
+        )
+        FROM product_variants pv 
+        WHERE pv.product_id = p.id
       ) AS variants
     FROM products p 
     WHERE p.is_active = TRUE 
@@ -443,7 +514,30 @@ const getPostCheckoutRecommendations = async (categoryIds, excludedIds, limit = 
   params.push(Number(limit))
 
   const [rows] = await pool.query(query, params)
-  return rows
+
+  // Parse variants
+  return rows.map(product => {
+    if (product.variants) {
+      try {
+        product.variants = typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants
+        product.variants = product.variants.map(variant => {
+          if (variant.image && typeof variant.image === 'string') {
+            try {
+              variant.image = JSON.parse(variant.image)
+            } catch (e) {
+              variant.image = null
+            }
+          }
+          return variant
+        })
+      } catch (e) {
+        product.variants = []
+      }
+    } else {
+      product.variants = []
+    }
+    return product
+  })
 }
 
 export const productModel = {
