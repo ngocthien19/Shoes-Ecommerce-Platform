@@ -30,6 +30,17 @@ export const CartItemList = ({
     return groups
   }, {})
 
+  const getCartItemImage = (item) => {
+    if (item.variant_image) {
+      // Nếu variant_image là object có secure_url
+      if (item.variant_image.secure_url) {
+        return item.variant_image.secure_url
+      }
+    }
+    // Fallback sang product_images
+    return getImageUrl(item.product_images, 'https://placehold.co/100x100?text=Product')
+  }
+
   return (
     <div className="space-y-6">
       {/* Thanh công cụ Chọn tất cả */}
@@ -104,6 +115,8 @@ export const CartItemList = ({
 
                 const totalFinalPrice = Math.max(0, totalBasePrice - backendDiscountAmount - voucherDiscountValue)
 
+                const imageUrl = getCartItemImage(item)
+
                 return (
                   <div key={item.cart_id} className="flex gap-4 items-center relative group transition-all duration-300 ease-in-out hover:bg-gray-50/50 p-2 -mx-2 rounded-xl">
                     <input
@@ -113,8 +126,13 @@ export const CartItemList = ({
                       className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary cursor-pointer accent-brand-primary shrink-0"
                     />
 
-                    <Link to={`/product/${item.product_slug}`} className="w-20 h-20 bg-white rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center cursor-pointer shadow-sm">
-                      <img src={getImageUrl(item.images)} alt={item.product_name} className="w-full h-full object-cover" />
+                    <Link to={`/product/${item.product_slug}`} className="w-20 h-20 bg-white rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center cursor-pointer shadow-sm relative">
+                      <img src={imageUrl} alt={item.product_name} className="w-full h-full object-cover" />
+                      {item.variant_image && (
+                        <div className="absolute top-0 right-0 bg-brand-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg">
+                          VAR
+                        </div>
+                      )}
                     </Link>
 
                     <div className="flex-1 min-w-0 text-left space-y-1">
