@@ -27,8 +27,9 @@ export const AdminPayoutsPage = () => {
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10
   const status = searchParams.get('status') || null
+  const search = searchParams.get('search') || null
 
-  const activeFilters = { page, limit, status }
+  const activeFilters = { page, limit, status, search }
 
   const fetchPayouts = async () => {
     try {
@@ -58,6 +59,10 @@ export const AdminPayoutsPage = () => {
   }
 
   const handleResetFilters = () => setSearchParams({})
+
+  const handleSearch = (searchValue) => {
+    handleFilterChange('search', searchValue || null)
+  }
 
   // Xử lý mở modal xử lý
   const handleProcessPayout = (payout) => {
@@ -97,6 +102,7 @@ export const AdminPayoutsPage = () => {
   const getActiveFiltersCount = () => {
     let count = 0
     if (status) count++
+    if (search) count++
     return count
   }
 
@@ -130,6 +136,7 @@ export const AdminPayoutsPage = () => {
         filters={activeFilters}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
+        onSearch={handleSearch}
       />
 
       {/* Search Results Info */}
@@ -139,6 +146,7 @@ export const AdminPayoutsPage = () => {
           currentPage={data.pagination.currentPage}
           limit={data.pagination.limit}
           activeFiltersCount={activeFiltersCount}
+          searchQuery={search}
         />
       )}
 
