@@ -202,16 +202,6 @@ export const ProductFormPage = () => {
       return
     }
 
-    // Xử lý ảnh variant - lấy file để upload
-    let imageData = null
-    if (variant.imageFile) {
-    // Nếu có file ảnh mới, gửi file lên server (FormData sẽ xử lý)
-      imageData = variant.imageFile
-    } else if (variant.image) {
-    // Giữ nguyên ảnh cũ
-      imageData = variant.image
-    }
-
     if (variant.id) {
     // Cập nhật biến thể đã có trong DB
       try {
@@ -222,8 +212,9 @@ export const ProductFormPage = () => {
         formData.append('size', variant.size)
         formData.append('color', variant.color || '')
         formData.append('stock', variant.stock)
-        if (imageData instanceof File) {
-          formData.append('image', imageData)
+
+        if (variant.imageFile instanceof File) {
+          formData.append('image', variant.imageFile)
         }
 
         await vendorProductApiService.updateVariant(id, variant.id, formData)
@@ -238,9 +229,8 @@ export const ProductFormPage = () => {
         setLoading(false)
       }
     } else {
-    // Biến thể mới - lưu vào form (sẽ được tạo khi submit)
-      if (imageData) {
-        setValue(`variants.${index}.image`, imageData)
+      if (variant.imageFile) {
+        setValue(`variants.${index}.imageFile`, variant.imageFile)
       }
       setEditingVariantIndex(null)
       setIsAddingVariant(false)
@@ -333,7 +323,7 @@ export const ProductFormPage = () => {
             variantFormData.append('size', variant.size)
             variantFormData.append('color', variant.color || '')
             variantFormData.append('stock', variant.stock)
-            if (variant.imageFile) {
+            if (variant.imageFile instanceof File) {
               variantFormData.append('image', variant.imageFile)
             }
             await vendorProductApiService.createVariant(newProductId, variantFormData)
