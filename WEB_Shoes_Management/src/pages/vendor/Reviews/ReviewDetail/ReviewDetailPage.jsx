@@ -15,6 +15,7 @@ import { ReviewContentCard } from './ReviewContentCard'
 import { SystemStatusCard } from './SystemStatusCard'
 import { TimelineCard } from './TimelineCard'
 import { ReportReasonCard } from './ReportReasonCard'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ReviewDetailPage = () => {
   const { id } = useParams()
@@ -26,6 +27,17 @@ export const ReviewDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
+
+  const getReviewTitle = () => {
+    if (!review) return 'Chi tiết đánh giá'
+    const type = reviewType === REVIEW_TYPES.PRODUCT ? 'Sản phẩm' : 'Cửa hàng'
+    return `Đánh giá ${type} #${review.id}`
+  }
+
+  usePageTitle(
+    getReviewTitle(),
+    review ? `Xem chi tiết đánh giá ${reviewType === REVIEW_TYPES.PRODUCT ? 'sản phẩm' : 'cửa hàng'}` : 'Xem chi tiết đánh giá'
+  )
 
   // Modal states
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)

@@ -12,6 +12,7 @@ import { OrderStoreInfo } from './OrderStoreInfo'
 import { OrderSummaryCard } from './OrderSummaryCard'
 import { OrderCancelReason } from './OrderCancelReason'
 import { OrderProductList } from './OrderProductList'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminOrderDetailPage = () => {
   const { orderId } = useParams()
@@ -20,6 +21,11 @@ export const AdminOrderDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [forceCancelModal, setForceCancelModal] = useState({ isOpen: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  usePageTitle(
+    'Chi tiết đơn hàng',
+    order ? `Xem chi tiết đơn hàng #${order.order_id}` : 'Xem chi tiết đơn hàng'
+  )
 
   const fetchOrderDetail = async () => {
     try {

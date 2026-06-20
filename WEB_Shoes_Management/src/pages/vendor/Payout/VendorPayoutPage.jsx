@@ -10,8 +10,13 @@ import { PayoutModal } from './PayoutModal'
 import { PayoutHistoryTable } from './PayoutHistoryTable'
 import { Pagination } from '~/components/common/Pagination'
 import { PAYOUT_STATUS } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorPayoutPage = () => {
+  usePageTitle(
+    'Tài chính & Rút tiền',
+    'Quản lý số dư và yêu cầu rút tiền về tài khoản ngân hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

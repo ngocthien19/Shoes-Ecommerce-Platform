@@ -12,8 +12,13 @@ import { AppealSearchResultsInfo } from './AppealSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { APPEAL_STATUS } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerAppealsPage = () => {
+  usePageTitle(
+    'Cứu xét cửa hàng',
+    'Quản lý đơn khiếu nại xin khôi phục cửa hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

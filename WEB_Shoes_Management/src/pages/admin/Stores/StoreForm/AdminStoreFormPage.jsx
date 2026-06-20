@@ -10,6 +10,7 @@ import { StoreFormHeader } from './StoreFormHeader'
 import { StoreFormFields } from './StoreFormFields'
 import { StoreFormImages } from './StoreFormImages'
 import { ROLE_ID } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminStoreFormPage = () => {
   const navigate = useNavigate()
@@ -20,6 +21,11 @@ export const AdminStoreFormPage = () => {
   const [logoPreview, setLogoPreview] = useState(null)
   const [bannerFile, setBannerFile] = useState(null)
   const [bannerPreview, setBannerPreview] = useState(null)
+
+  usePageTitle(
+    'Thêm cửa hàng mới',
+    'Tạo cửa hàng mới cho người dùng trên hệ thống'
+  )
 
   const methods = useForm({
     defaultValues: {

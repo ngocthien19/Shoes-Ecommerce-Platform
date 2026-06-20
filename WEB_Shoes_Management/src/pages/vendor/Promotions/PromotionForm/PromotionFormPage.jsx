@@ -6,12 +6,18 @@ import { motion } from 'framer-motion'
 import { FiSave, FiArrowLeft, FiTag, FiPercent, FiDollarSign, FiCalendar, FiInfo, FiCheck } from 'react-icons/fi'
 
 import { vendorPromotionApiService } from '~/services/vendor/vendorPromotionApiService'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const PromotionFormPage = () => {
   const { id } = useParams()
   const isEditMode = Boolean(id)
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+
+  usePageTitle(
+    isEditMode ? 'Chỉnh sửa khuyến mãi' : 'Thêm khuyến mãi mới',
+    isEditMode ? 'Cập nhật chương trình khuyến mãi' : 'Tạo chương trình khuyến mãi mới'
+  )
 
   // Lấy ngày hôm nay theo định dạng YYYY-MM-DD
   const getTodayDate = () => {

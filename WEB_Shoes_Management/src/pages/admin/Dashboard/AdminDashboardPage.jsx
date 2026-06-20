@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '~/components/ui/dropdown-menu'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 const filterOptions = [
   { value: ANALYTICS_TYPES.TODAY, label: 'Hôm nay' },
@@ -28,6 +29,10 @@ const filterOptions = [
 ]
 
 export const AdminDashboardPage = () => {
+  usePageTitle(
+    'Tổng quan tài chính',
+    'Xem thống kê doanh thu, hoa hồng và top cửa hàng trên toàn sàn'
+  )
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filterType, setFilterType] = useState(ANALYTICS_TYPES.ONE_MONTH)

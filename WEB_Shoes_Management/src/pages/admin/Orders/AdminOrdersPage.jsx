@@ -11,8 +11,13 @@ import { OrderTable } from './OrderTable'
 import { OrderSearchResultsInfo } from './OrderSearchResultsInfo'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminOrdersPage = () => {
+  usePageTitle(
+    'Quản lý Đơn hàng',
+    'Quản lý toàn bộ đơn hàng trên sàn'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

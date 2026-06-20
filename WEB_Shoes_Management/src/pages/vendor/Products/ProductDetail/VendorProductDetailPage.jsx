@@ -9,12 +9,18 @@ import { ProductMetricsGrid } from './ProductMetricsGrid'
 import { ProductMainInfo } from './ProductMainInfo'
 import { ProductVariantsTable } from './ProductVariantsTable'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorProductDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  usePageTitle(
+    product ? `Chi tiết sản phẩm ${product.name}` : 'Chi tiết sản phẩm',
+    product ? `Xem chi tiết sản phẩm ${product.name} - ${product.category_name}` : 'Xem chi tiết sản phẩm'
+  )
 
   useEffect(() => {
     setLoading(true)

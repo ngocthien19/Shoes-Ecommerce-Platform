@@ -11,8 +11,13 @@ import { OrderTable } from './OrderTable'
 import { OrderBulkActionPanel } from './OrderBulkActionPanel'
 import { OrderSearchResultsInfo } from './OrderSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorOrdersPage = () => {
+  usePageTitle(
+    'Quản lý đơn hàng',
+    'Theo dõi và xử lý đơn hàng từ khách hàng của cửa hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

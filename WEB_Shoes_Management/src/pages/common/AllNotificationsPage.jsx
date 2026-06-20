@@ -6,8 +6,13 @@ import { NotificationSidebar } from './NotificationSidebar'
 import { NotificationDetail } from './NotificationDetail'
 import { useNotifications } from '~/hooks/useNotifications'
 import { ROLE_ID } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AllNotificationsPage = () => {
+  usePageTitle(
+    'Thông báo',
+    'Xem tất cả thông báo của bạn trên Shoes Platform'
+  )
   const user = useSelector((state) => state.user.userInfo)
   const userRole = user?.roleId
   const [showDetail, setShowDetail] = useState(false)

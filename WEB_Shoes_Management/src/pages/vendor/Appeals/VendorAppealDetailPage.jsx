@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { formatDateTime, formatRelativeTime, getImageUrl } from '~/utils/formatters'
 import { vendorAppealApiService } from '~/services/vendor/vendorAppealApiService'
+import { usePageTitle } from '~/hooks/usePageTitle'
 import { APPEAL_STATUS } from '~/utils/constant'
 
 export const VendorAppealDetailPage = () => {
@@ -17,6 +18,11 @@ export const VendorAppealDetailPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  usePageTitle(
+    appeal ? `Đơn cứu xét #${appeal.id}` : 'Chi tiết đơn cứu xét',
+    appeal ? `Xem chi tiết đơn cứu xét #${appeal.id} của cửa hàng ${appeal.store_name}` : 'Xem chi tiết đơn cứu xét'
+  )
 
   const fetchAppealDetail = async () => {
     try {

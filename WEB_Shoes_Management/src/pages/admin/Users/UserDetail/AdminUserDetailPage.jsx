@@ -8,6 +8,7 @@ import { UserDetailHeader } from './UserDetailHeader'
 import { UserInfoCard } from './UserInfoCard'
 import { UserOrdersCard } from './UserOrdersCard'
 import { UserStoreCard } from './UserStoreCard'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminUserDetailPage = () => {
   const { id } = useParams()
@@ -15,6 +16,11 @@ export const AdminUserDetailPage = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  usePageTitle(
+    user ? `Người dùng ${user.fullname}` : 'Chi tiết người dùng',
+    user ? `Xem chi tiết người dùng ${user.fullname}` : 'Xem chi tiết người dùng'
+  )
 
   const fetchUserDetail = async () => {
     try {

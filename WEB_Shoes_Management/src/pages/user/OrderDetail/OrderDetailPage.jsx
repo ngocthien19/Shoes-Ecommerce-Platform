@@ -8,12 +8,18 @@ import { OrderProductList } from './OrderProductList'
 import { OrderShippingInfo } from './OrderShippingInfo'
 import { OrderPaymentSummary } from './OrderPaymentSummary'
 import { ORDER_STATUS } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const OrderDetailPage = () => {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  usePageTitle(
+    `Đơn hàng #${orderId}`,
+    `Xem chi tiết đơn hàng #${orderId}`
+  )
 
   useEffect(() => {
     const fetchDetail = async () => {

@@ -13,6 +13,7 @@ import { ReviewBulkActionPanel } from './ReviewBulkActionPanel'
 import { ReviewSearchResultsInfo } from './ReviewSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { REVIEW_TYPES } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerReviewsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -24,6 +25,19 @@ export const ManagerReviewsPage = () => {
 
   // Lấy active tab từ URL hoặc mặc định là 'product'
   const activeTab = searchParams.get('type') || REVIEW_TYPES.PRODUCT
+
+  const getTabLabel = () => {
+    const tabMap = {
+      [REVIEW_TYPES.PRODUCT]: 'Sản phẩm',
+      [REVIEW_TYPES.STORE]: 'Cửa hàng'
+    }
+    return tabMap[activeTab] || 'Sản phẩm'
+  }
+
+  usePageTitle(
+    `Quản lý khiếu nại đánh giá ${getTabLabel()}`,
+    `Phân xử các đánh giá ${getTabLabel().toLowerCase()} bị tố cáo vi phạm`
+  )
 
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10

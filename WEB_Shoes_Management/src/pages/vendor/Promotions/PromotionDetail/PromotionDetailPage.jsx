@@ -6,12 +6,18 @@ import { toast } from 'react-toastify'
 
 import { vendorPromotionApiService } from '~/services/vendor/vendorPromotionApiService'
 import { formatPrice } from '~/utils/formatters'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const PromotionDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [promotion, setPromotion] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  usePageTitle(
+    promotion ? `Khuyến mãi: ${promotion.name}` : 'Chi tiết khuyến mãi',
+    promotion ? `Xem chi tiết chương trình khuyến mãi ${promotion.name}` : 'Xem chi tiết chương trình khuyến mãi'
+  )
 
   useEffect(() => {
     setLoading(true)

@@ -14,8 +14,13 @@ import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { Pagination } from '~/components/common/Pagination'
 import { ROLE_ID } from '~/utils/constant'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminUsersPage = () => {
+  usePageTitle(
+    'Quản lý Người dùng',
+    'Quản lý tài khoản thành viên toàn hệ thống'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

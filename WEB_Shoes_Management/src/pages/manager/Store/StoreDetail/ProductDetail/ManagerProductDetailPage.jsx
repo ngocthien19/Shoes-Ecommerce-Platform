@@ -12,6 +12,7 @@ import { formatPrice, formatDateTime, getImageUrl, getFirstVariantImage } from '
 import { managerProductApiService } from '~/services/manager/managerProductApiService'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerProductDetailPage = () => {
   const { id } = useParams()
@@ -27,6 +28,11 @@ export const ManagerProductDetailPage = () => {
     placeholder: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+
+  usePageTitle(
+    product ? `Chi tiết sản phẩm ${product.name}` : 'Chi tiết sản phẩm',
+    product ? `Xem chi tiết sản phẩm ${product.name} - ${product.category_name}` : 'Xem chi tiết sản phẩm'
+  )
 
   const fetchProductDetail = async () => {
     try {

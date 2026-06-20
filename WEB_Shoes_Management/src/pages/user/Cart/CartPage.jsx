@@ -14,8 +14,10 @@ import { CheckoutForm } from './CheckoutForm'
 import { CartSummary } from './CartSummary'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { RecommendedProducts } from '~/components/user/RecommendedProducts'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const CartPage = () => {
+  usePageTitle('Giỏ hàng', 'Xem và quản lý giỏ hàng của bạn tại Shoes Platform')
   const dispatch = useDispatch()
   const userInfo = useSelector((state) => state.user.userInfo)
 

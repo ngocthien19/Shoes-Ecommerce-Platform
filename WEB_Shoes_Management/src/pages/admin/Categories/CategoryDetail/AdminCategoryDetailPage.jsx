@@ -11,6 +11,7 @@ import { adminCategoryApiService } from '~/services/admin/adminCategoryApiServic
 import { getImageUrl, formatDateTime } from '~/utils/formatters'
 import { ConfirmDeleteModal } from '~/components/common/ConfirmDeleteModal'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminCategoryDetailPage = () => {
   const { id } = useParams()
@@ -18,6 +19,11 @@ export const AdminCategoryDetailPage = () => {
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
+  usePageTitle(
+    category ? `Danh mục ${category.name}` : 'Chi tiết danh mục',
+    category ? `Xem chi tiết danh mục ${category.name}` : 'Xem chi tiết danh mục'
+  )
 
   // State cho toggle modal
   const [toggleModal, setToggleModal] = useState({

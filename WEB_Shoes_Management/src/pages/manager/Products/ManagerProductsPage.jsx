@@ -14,8 +14,13 @@ import { ProductBulkActionPanel } from './ProductBulkActionPanel'
 import { ProductSearchResultsInfo } from './ProductSearchResultsInfo'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ManagerProductsPage = () => {
+  usePageTitle(
+    'Quản lý Sản phẩm',
+    'Kiểm duyệt và quản lý sản phẩm trên toàn sàn'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

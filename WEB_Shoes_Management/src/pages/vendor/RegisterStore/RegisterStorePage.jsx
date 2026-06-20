@@ -1,10 +1,13 @@
 import { motion } from 'framer-motion'
-import { Header } from '~/layouts/user/Header'
-import { Footer } from '~/layouts/user/Footer'
 import { RegisterStoreForm } from './RegisterStoreForm'
 import { FiShoppingBag, FiInfo } from 'react-icons/fi'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const RegisterStorePage = () => {
+  usePageTitle(
+    'Đăng ký kênh người bán',
+    'Đăng ký để bắt đầu kinh doanh cùng Shoes Store'
+  )
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
 

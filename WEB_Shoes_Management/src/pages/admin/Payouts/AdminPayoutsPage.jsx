@@ -11,8 +11,13 @@ import { PayoutTable } from './PayoutTable'
 import { PayoutSearchResultsInfo } from './PayoutSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
 import { ProcessPayoutModal } from './ProcessPayoutModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const AdminPayoutsPage = () => {
+  usePageTitle(
+    'Quản lý Rút tiền',
+    'Quản lý các yêu cầu rút tiền từ cửa hàng'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

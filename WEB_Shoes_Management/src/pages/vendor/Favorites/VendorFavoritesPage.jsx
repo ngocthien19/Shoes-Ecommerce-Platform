@@ -11,8 +11,13 @@ import { FavoriteUsersModal } from './FavoriteUsersModal'
 import { FavoriteFilters } from './FavoriteFilters'
 import { FavoriteSearchResultsInfo } from './FavoriteSearchResultsInfo'
 import { Pagination } from '~/components/common/Pagination'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorFavoritesPage = () => {
+  usePageTitle(
+    'Sản phẩm yêu thích',
+    'Phân tích xu hướng và sự quan tâm của khách hàng đối với sản phẩm'
+  )
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

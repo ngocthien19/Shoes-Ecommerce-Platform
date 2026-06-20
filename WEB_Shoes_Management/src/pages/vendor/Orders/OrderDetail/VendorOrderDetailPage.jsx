@@ -13,6 +13,7 @@ import { formatPrice } from '~/utils/formatters'
 import { getImageUrl, getOrderItemImage } from '~/utils/formatters'
 import { ORDER_STATUS, PAYMENT_METHODS, PAYMENT_STATUS } from '~/utils/constant'
 import { CancelRequestModal } from '../CancelRequestModal'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VendorOrderDetailPage = () => {
   const { id } = useParams()
@@ -20,6 +21,11 @@ export const VendorOrderDetailPage = () => {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+
+  usePageTitle(
+    order ? `Đơn hàng #${order.id}` : 'Chi tiết đơn hàng',
+    order ? `Xem chi tiết đơn hàng #${order.id} - ${order.store_name}` : 'Xem chi tiết đơn hàng'
+  )
 
   useEffect(() => {
     fetchOrderDetail()
