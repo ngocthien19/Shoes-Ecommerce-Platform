@@ -1,15 +1,5 @@
 import { vendorProductService } from '~/services/vendor/vendorProductService'
 
-const extractImagesFromReqFiles = (reqFiles) => {
-  const imagesArray = []
-  if (reqFiles && reqFiles.length > 0) {
-    reqFiles.forEach(file => {
-      imagesArray.push({ public_id: file.filename, secure_url: file.path })
-    })
-  }
-  return imagesArray
-}
-
 const extractVariantImage = (reqFile) => {
   if (!reqFile) return null
   return { public_id: reqFile.filename, secure_url: reqFile.path }
@@ -19,16 +9,13 @@ const createProduct = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { categoryId, name, description, price } = req.body
-    const images = extractImagesFromReqFiles(req.files)
-
-    const finalDescription = description !== undefined ? description : null
 
     const result = await vendorProductService.createProduct(userId, {
       categoryId: Number(categoryId),
       name,
-      description: finalDescription,
+      description: description || null,
       price: Number(price),
-      images
+      images: []
     })
     return res.status(201).json(result)
   } catch (error) {
@@ -40,33 +27,13 @@ const updateProduct = async (req, res) => {
   try {
     const userId = req.jwtDecoded?.id
     const { id } = req.params
-    const { categoryId, name, description, price, oldImages } = req.body
-
-    let newImages = extractImagesFromReqFiles(req.files)
-
-    let keptOldImages = []
-    if (oldImages) {
-      try {
-        keptOldImages = JSON.parse(oldImages)
-      } catch (error) {
-        keptOldImages = []
-      }
-    }
-
-    const finalImages = [...keptOldImages, ...newImages]
-
-    if (finalImages.length > 10) {
-      return res.status(400).json({ message: 'Sản phẩm chỉ được phép hiển thị tối đa 10 hình ảnh.' })
-    }
-
-    const finalDescription = description !== undefined ? description : null
+    const { categoryId, name, description, price } = req.body
 
     const result = await vendorProductService.updateProduct(userId, Number(id), {
       categoryId: Number(categoryId),
       name,
-      description: finalDescription,
-      price: Number(price),
-      images: finalImages
+      description: description || null,
+      price: Number(price)
     })
     return res.status(200).json(result)
   } catch (error) {
