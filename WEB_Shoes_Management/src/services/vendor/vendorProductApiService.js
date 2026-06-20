@@ -36,24 +36,18 @@ export const vendorProductApiService = {
     return res.data
   },
 
-  createProduct: async (formData) => {
+  createProduct: async (data) => {
     const res = await authorizedAxiosInstance.post(
       `${DEV_API_URL}/api/vendor/products/add`,
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }
+      data
     )
     return res.data
   },
 
-  updateProduct: async (id, formData) => {
+  updateProduct: async (id, data) => {
     const res = await authorizedAxiosInstance.put(
       `${DEV_API_URL}/api/vendor/products/update/${id}`,
-      formData,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }
+      data
     )
     return res.data
   },

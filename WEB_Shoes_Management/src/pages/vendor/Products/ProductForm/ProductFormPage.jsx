@@ -225,19 +225,21 @@ export const ProductFormPage = () => {
   const onSubmit = async (data) => {
     try {
       setLoading(true)
-      const formData = new FormData()
-      formData.append('name', data.name)
-      formData.append('categoryId', data.categoryId)
-      formData.append('price', data.price)
-      if (data.description) formData.append('description', data.description)
+
+      const payload = {
+        name: data.name,
+        categoryId: data.categoryId,
+        price: data.price,
+        description: data.description || ''
+      }
 
       if (isEditMode) {
-        await vendorProductApiService.updateProduct(id, formData)
+      // 1. Cập nhật product
+        await vendorProductApiService.updateProduct(id, payload)
 
-        // Tạo các variant mới (không có id)
+        // 2. Xử lý variants mới (có ảnh)
         if (data.variants && data.variants.length > 0) {
           const newVariants = data.variants.filter(variant => !variant.id)
-
           if (newVariants.length > 0) {
             for (const variant of newVariants) {
               const variantFormData = new FormData()
@@ -252,12 +254,14 @@ export const ProductFormPage = () => {
           }
         }
 
-        toast.success('Cập nhật sản phẩm và biến thể thành công!')
+        toast.success('Cập nhật sản phẩm thành công!')
         navigate('/vendor/products')
       } else {
-        const resProduct = await vendorProductApiService.createProduct(formData)
+      // 1. Tạo product mới
+        const resProduct = await vendorProductApiService.createProduct(payload)
         const newProductId = resProduct.insertId
 
+        // 2. Tạo variants (có ảnh)
         if (data.variants && data.variants.length > 0 && newProductId) {
           for (const variant of data.variants) {
             const variantFormData = new FormData()
@@ -271,7 +275,7 @@ export const ProductFormPage = () => {
           }
         }
 
-        toast.success('Thêm sản phẩm và biến thể thành công!')
+        toast.success('Thêm sản phẩm thành công!')
         navigate('/vendor/products')
       }
     } catch (error) {
