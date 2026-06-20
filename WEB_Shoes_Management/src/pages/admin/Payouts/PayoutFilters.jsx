@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiFilter } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
@@ -11,7 +11,9 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip
 import { motion, AnimatePresence } from 'framer-motion'
 import { PAYOUT_STATUS } from '~/utils/constant'
 
-export const PayoutFilters = ({ filters, onFilterChange, onReset }) => {
+export const PayoutFilters = ({ filters, onFilterChange, onReset, onSearch }) => {
+  const [searchInput, setSearchInput] = useState(filters.search || '')
+
   const statusOptions = [
     { value: '', label: 'Tất cả trạng thái' },
     { value: PAYOUT_STATUS.PENDING, label: 'Đang chờ duyệt' },
@@ -30,14 +32,31 @@ export const PayoutFilters = ({ filters, onFilterChange, onReset }) => {
 
   const currentStatusLabel = statusOptions.find(s => s.value === filters.status)?.label || 'Tất cả trạng thái'
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (onSearch) {
+        onSearch(searchInput)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
   const activeBadges = []
   if (filters.status) {
     const status = statusOptions.find(s => s.value === filters.status)
     if (status) activeBadges.push({ key: 'status', label: `Trạng thái: ${status.label}` })
   }
+  if (filters.search) {
+    activeBadges.push({ key: 'search', label: `Tìm kiếm: "${filters.search}"` })
+  }
 
   const handleRemoveFilter = (key) => {
-    onFilterChange(key, null)
+    if (key === 'search') {
+      setSearchInput('')
+      onFilterChange('search', null)
+    } else {
+      onFilterChange(key, null)
+    }
   }
 
   return (
@@ -46,11 +65,22 @@ export const PayoutFilters = ({ filters, onFilterChange, onReset }) => {
         <div className="relative w-full lg:max-w-sm">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <Input
-            value=""
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm theo ID, tên cửa hàng hoặc ngân hàng..."
             className="pl-10 rounded-xl border-gray-200 py-5 text-sm font-semibold focus-visible:ring-emerald-500/20"
-            disabled
           />
+          {searchInput && (
+            <button
+              onClick={() => {
+                setSearchInput('')
+                onFilterChange('search', null)
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <FiX size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">

@@ -1,7 +1,7 @@
 // ~/pages/admin/Stores/StoreDetail/StoreProductsList.jsx
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiPackage, FiSearch, FiStar } from 'react-icons/fi'
+import { FiPackage, FiSearch, FiStar, FiImage } from 'react-icons/fi'
 import { adminStoreApiService } from '~/services/admin/adminStoreApiService'
 import { formatPrice, getImageUrl, formatDateTime } from '~/utils/formatters'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
@@ -76,6 +76,55 @@ export const StoreProductsList = ({ storeId }) => {
             product.reject_reason
   }
 
+  const getProductImage = (product) => {
+    // Lấy ảnh từ variants
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            if (imageData && imageData.secure_url) {
+              return imageData.secure_url
+            }
+          } catch (e) {
+            continue
+          }
+        }
+      }
+    }
+
+    // product.images
+    if (product.images) {
+      return getImageUrl(product.images, 'https://placehold.co/60x60?text=Product')
+    }
+
+    return 'https://placehold.co/60x60?text=Product'
+  }
+
+  const getVariantCountWithImage = (product) => {
+    if (!product.variants || !Array.isArray(product.variants)) return 0
+    let count = 0
+    for (const variant of product.variants) {
+      if (variant.image) {
+        try {
+          let imageData = variant.image
+          if (typeof variant.image === 'string') {
+            imageData = JSON.parse(variant.image)
+          }
+          if (imageData && imageData.secure_url) {
+            count++
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+    return count
+  }
+
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -141,25 +190,40 @@ export const StoreProductsList = ({ storeId }) => {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {products.map((product) => {
-                  const imageUrl = getImageUrl(product.images, 'https://placehold.co/60x60?text=Product')
+                  const imageUrl = getProductImage(product)
                   const showRejectReason = shouldShowRejectReason(product)
                   const rating = Number(product.rating_avg || 0)
+                  const variantCount = getVariantCountWithImage(product)
 
                   return (
                     <tr key={product.id} className="hover:bg-gray-50/40 transition-colors duration-200">
                       <td className="py-3 px-3 text-xs font-mono text-gray-500">#{product.id}</td>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={imageUrl}
-                            alt={product.product_name}
-                            className="w-10 h-10 rounded-lg object-cover border border-gray-200 shrink-0"
-                          />
+                          <div className="relative">
+                            <img
+                              src={imageUrl}
+                              alt={product.product_name}
+                              className="w-10 h-10 rounded-lg object-cover border border-gray-200 shrink-0"
+                            />
+                            {variantCount > 0 && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm">
+                                {variantCount}
+                              </div>
+                            )}
+                          </div>
                           <div>
                             <p className="font-semibold text-gray-800 line-clamp-1 max-w-[200px]">
                               {product.product_name}
                             </p>
-                            <p className="text-[10px] text-gray-400">{product.slug}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-400">{product.slug}</span>
+                              {variantCount > 0 && (
+                                <span className="text-[9px] text-emerald-500 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                  {variantCount} ảnh
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
