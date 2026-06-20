@@ -3,8 +3,8 @@ import { adminPayoutService } from '~/services/admin/adminPayoutService'
 // 1. GET: Lấy danh sách lệnh rút tiền toàn sàn
 const getPayoutList = async (req, res) => {
   try {
-    const { page, limit, status } = req.query
-    const result = await adminPayoutService.getPayoutList({ page, limit, status })
+    const { page, limit, status, search } = req.query
+    const result = await adminPayoutService.getPayoutList({ page, limit, status, search })
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi tải danh sách lệnh rút tiền: ${error.message}` })

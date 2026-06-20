@@ -1,8 +1,8 @@
 import pool from '~/config/db'
 import { PAYOUT_STATUS } from '~/utils/constants'
 
-// A. Lấy danh sách lệnh rút tiền toàn sàn (Có phân trang và lọc theo status)
-const getPayoutRequests = async ({ status, limit, offset }) => {
+// A. Lấy danh sách lệnh rút tiền toàn sàn (Có phân trang, lọc theo status và tìm kiếm)
+const getPayoutRequests = async ({ status, search, limit, offset }) => {
   let query = `
     SELECT 
       pr.*, 
@@ -17,9 +17,30 @@ const getPayoutRequests = async ({ status, limit, offset }) => {
     WHERE 1=1
   `
   const queryParams = []
+
+  // Lọc theo status
   if (status) {
     query += ' AND pr.status = ?'
     queryParams.push(status)
+  }
+
+  if (search) {
+    query += ' AND ('
+    query += ' pr.id LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR s.name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.bank_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_number LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR u.fullname LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR u.email LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ')'
   }
 
   query += ' ORDER BY pr.created_at DESC LIMIT ? OFFSET ?'
@@ -30,13 +51,28 @@ const getPayoutRequests = async ({ status, limit, offset }) => {
 }
 
 // B. Đếm tổng số lượng lệnh rút tiền phục vụ phân trang
-const countPayoutRequests = async ({ status }) => {
-  let query = 'SELECT COUNT(*) AS total FROM payout_requests WHERE 1=1'
+const countPayoutRequests = async ({ status, search }) => {
+  let query = 'SELECT COUNT(*) AS total FROM payout_requests pr WHERE 1=1'
   const queryParams = []
+
   if (status) {
-    query += ' AND status = ?'
+    query += ' AND pr.status = ?'
     queryParams.push(status)
   }
+
+  if (search) {
+    query += ' AND ('
+    query += ' pr.id LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.bank_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_number LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ')'
+  }
+
   const [rows] = await pool.execute(query, queryParams)
   return rows[0]?.total || 0
 }
