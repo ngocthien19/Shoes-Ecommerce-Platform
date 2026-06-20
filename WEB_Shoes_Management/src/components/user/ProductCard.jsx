@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiShoppingCart, FiInfo, FiHeart, FiStar } from 'react-icons/fi'
 import { FaEye } from 'react-icons/fa'
 import { formatPrice, formatSold } from '~/utils/formatters'
@@ -26,12 +26,109 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
   const [showVariantPicker, setShowVariantPicker] = useState(false)
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
+  const [currentImage, setCurrentImage] = useState(null)
 
   const variants = product?.variants || []
+
+  // Lấy ảnh từ variants theo màu sắc
+  const getImageByColor = (color) => {
+    if (!color) return null
+    const variant = variants.find(v => v.color === color && v.image)
+    if (variant) {
+      try {
+        let imageData = variant.image
+        if (typeof variant.image === 'string') {
+          imageData = JSON.parse(variant.image)
+        }
+        if (imageData && imageData.secure_url) {
+          return imageData.secure_url
+        }
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  }
+
+  // Lấy ảnh đầu tiên từ variants hoặc product.images
+  const getDefaultImage = () => {
+    for (const variant of variants) {
+      if (variant.image) {
+        try {
+          let imageData = variant.image
+          if (typeof variant.image === 'string') {
+            imageData = JSON.parse(variant.image)
+          }
+          if (imageData && imageData.secure_url) {
+            return imageData.secure_url
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+    if (product?.images) {
+      try {
+        const images = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+        if (Array.isArray(images) && images.length > 0) {
+          return images[0]?.secure_url
+        }
+      } catch (e) {
+        return null
+      }
+    }
+    return null
+  }
+
+  // Lấy màu đầu tiên có ảnh để focus sẵn
+  const getDefaultColor = () => {
+    for (const variant of variants) {
+      if (variant.image && variant.color) {
+        try {
+          let imageData = variant.image
+          if (typeof variant.image === 'string') {
+            imageData = JSON.parse(variant.image)
+          }
+          if (imageData && imageData.secure_url) {
+            return variant.color
+          }
+        } catch (e) {
+          continue
+        }
+      }
+    }
+    return null
+  }
+
+  // Cập nhật ảnh khi chọn màu
+  useEffect(() => {
+    if (!selectedColor) {
+      const defaultColor = getDefaultColor()
+      if (defaultColor) {
+        setSelectedColor(defaultColor)
+      }
+    }
+
+    if (selectedColor) {
+      const imageUrl = getImageByColor(selectedColor)
+      if (imageUrl) {
+        setCurrentImage(imageUrl)
+      } else {
+        setCurrentImage(getDefaultImage())
+      }
+    } else {
+      setCurrentImage(getDefaultImage())
+    }
+  }, [selectedColor, variants])
 
   // Lọc danh sách thuộc tính gốc duy nhất
   const uniqueSizes = [...new Set(variants.map(v => v.size))]
   const uniqueColors = [...new Set(variants.map(v => v.color))]
+
+  // Kiểm tra màu nào có ảnh
+  const getColorWithImage = (color) => {
+    return getImageByColor(color) !== null
+  }
 
   const isColorDisabled = (color) => {
     if (selectedSize) {
@@ -86,7 +183,9 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
       const firstAvailableVariant = variants.find(v => v.stock > 0)
       if (firstAvailableVariant) {
         setSelectedSize(firstAvailableVariant.size)
-        setSelectedColor(firstAvailableVariant.color)
+        if (!selectedColor) {
+          setSelectedColor(firstAvailableVariant.color)
+        }
       }
       return
     }
@@ -121,12 +220,58 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
   const originalPrice = product?.price || 0
   const salePrice = product?.sale_price || (hasDiscount ? originalPrice * (1 - parseFloat(product.discount_percentage) / 100) : originalPrice)
 
+  // Lấy danh sách màu có ảnh để hiển thị dot
+  const colorsWithImage = uniqueColors.filter(color => getColorWithImage(color))
+
+  const getColorDisplay = (color) => {
+    const colorMap = {
+      'Đỏ': '#FF0000',
+      'Red': '#FF0000',
+      'Xanh Dương': '#0066FF',
+      'Blue': '#0066FF',
+      'Xanh Lá': '#00CC66',
+      'Green': '#00CC66',
+      'Đen': '#000000',
+      'Black': '#000000',
+      'Trắng': '#FFFFFF',
+      'White': '#FFFFFF',
+      'Vàng': '#FFD700',
+      'Yellow': '#FFD700',
+      'Tím': '#800080',
+      'Purple': '#800080',
+      'Hồng': '#FF69B4',
+      'Pink': '#FF69B4',
+      'Cam': '#FF8C00',
+      'Orange': '#FF8C00',
+      'Xám': '#808080',
+      'Gray': '#808080',
+      'Nâu': '#8B4513',
+      'Brown': '#8B4513'
+    }
+
+    const match = color.match(/\(([^)]+)\)/)
+    if (match) {
+      const colorName = match[1].trim()
+      return colorMap[colorName] || color.toLowerCase()
+    }
+
+    return colorMap[color] || color.toLowerCase()
+  }
+
+  // Lấy danh sách size có sẵn cho màu đang chọn
+  const getAvailableSizesForColor = (color) => {
+    if (!color) return []
+    return variants
+      .filter(v => v.color === color && v.stock > 0)
+      .map(v => v.size)
+  }
+
   return (
     <div className="group bg-white shadow-bold rounded-2xl p-4 transition-all duration-300 hover:shadow-bold hover:-translate-y-1 flex flex-col justify-between min-h-[410px] relative overflow-hidden">
 
       <div>
         {/* Khối hình ảnh */}
-        <div className="relative overflow-hidden rounded-xl mb-4 bg-gray-50 h-56 w-full flex items-center justify-center">
+        <div className="relative overflow-hidden rounded-xl mb-3 bg-gray-50 h-56 w-full flex items-center justify-center">
           {hasDiscount && (
             <div className="absolute top-3 left-3 z-10 bg-brand-primary text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">
               -{Math.round(parseFloat(product.discount_percentage))}%
@@ -148,7 +293,7 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
 
           <Link to={`/product/${product.slug}`} className="w-full h-full">
             <img
-              src={product?.images?.[0]?.secure_url}
+              src={currentImage || getDefaultImage() || 'https://placehold.co/400x400/f6f9fc/a0aabf?text=No+Image'}
               alt={product?.name}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
@@ -158,23 +303,91 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
           {showVariantPicker && (
             <QuickVariantPicker
               variants={variants}
-              uniqueSizes={uniqueSizes}
+              uniqueSizes={getAvailableSizesForColor(selectedColor)}
               uniqueColors={uniqueColors}
               selectedSize={selectedSize}
               setSelectedSize={setSelectedSize}
               selectedColor={selectedColor}
-              setSelectedColor={setSelectedColor}
+              setSelectedColor={(color) => {
+                setSelectedColor(color)
+                // Tự động chọn size đầu tiên của màu mới
+                const availableSizes = getAvailableSizesForColor(color)
+                if (availableSizes.length > 0) {
+                  setSelectedSize(availableSizes[0])
+                }
+                const imageUrl = getImageByColor(color)
+                if (imageUrl) {
+                  setCurrentImage(imageUrl)
+                }
+              }}
               isSizeDisabled={isSizeDisabled}
               isColorDisabled={isColorDisabled}
               onClose={() => {
                 setShowVariantPicker(false)
                 setSelectedSize(null)
-                setSelectedColor(null)
               }}
               onSubmit={handleAddToCartSubmit}
+              getImageByColor={getImageByColor}
+              getAvailableSizesForColor={getAvailableSizesForColor}
             />
           )}
         </div>
+
+        {/* Dot màu sắc bên dưới ảnh */}
+        {colorsWithImage.length > 0 && (
+          <div className="flex items-center justify-center gap-2 mb-3">
+            {colorsWithImage.map((color, idx) => {
+              const isActive = selectedColor === color
+              const imageUrl = getImageByColor(color)
+              const bgColor = getColorDisplay(color)
+
+              return (
+                <Tooltip key={idx}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        setSelectedColor(color)
+                        // Tự động chọn size đầu tiên của màu mới
+                        const availableSizes = getAvailableSizesForColor(color)
+                        if (availableSizes.length > 0) {
+                          setSelectedSize(availableSizes[0])
+                        }
+                        if (showVariantPicker) {
+                          const availableVariant = variants.find(v => v.color === color && v.stock > 0)
+                          if (availableVariant) {
+                            setSelectedSize(availableVariant.size)
+                          }
+                        }
+                      }}
+                      className={`relative w-6 h-6 rounded-full border-2 transition-all duration-200 hover:scale-110 cursor-pointer
+                        ${isActive
+                  ? 'border-brand-primary scale-110 shadow-lg shadow-brand-primary/30'
+                  : 'border-gray-300 hover:border-gray-400'}`}
+                      style={{ backgroundColor: bgColor }}
+                    >
+                      {/* Badge số lượng nếu có nhiều hơn 1 variant cùng màu */}
+                      {variants.filter(v => v.color === color).length > 1 && (
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-gray-700 text-white text-[6px] font-bold rounded-full flex items-center justify-center">
+                          {variants.filter(v => v.color === color).length}
+                        </span>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="text-center">
+                      <p className="font-semibold">{color}</p>
+                      {imageUrl && (
+                        <img src={imageUrl} alt={color} className="w-12 h-12 rounded-lg object-cover mt-1" />
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+          </div>
+        )}
 
         {/* Khối thông tin văn bản */}
         <div className="space-y-1.5 text-left">
@@ -206,15 +419,13 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
       </div>
 
       <div>
-        {/* Khối hiển thị giá - Sửa lại */}
+        {/* Khối hiển thị giá */}
         <div className="flex items-center gap-2 pt-2 text-left">
           {hasDiscount ? (
             <>
-              {/* Giá sau giảm (màu đỏ) */}
               <p className="font-bold text-lg text-brand-primary">
                 {formatPrice(salePrice)}
               </p>
-              {/* Giá gốc bị gạch ngang (màu xám) */}
               <p className="text-xs text-gray-400 line-through">
                 {formatPrice(originalPrice)}
               </p>

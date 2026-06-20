@@ -34,7 +34,13 @@ export const ProductSection = ({ title, products, icon, onAddToCartSuccess }) =>
         {/* Sử dụng grid responsive */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.length > 0 ? (
-            products.map(p => <ProductCard key={p.id} product={p} onAddToCartSuccess={onAddToCartSuccess} />)
+            products.map(p => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onAddToCartSuccess={onAddToCartSuccess}
+              />
+            ))
           ) : (
             <p className="col-span-full text-center text-gray-500 py-10">Hiện chưa có sản phẩm nào.</p>
           )}
