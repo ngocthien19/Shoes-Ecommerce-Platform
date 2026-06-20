@@ -6,14 +6,60 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip
 export const ProductMainInfo = ({ product }) => {
   const [activeImgIndex, setActiveImgIndex] = useState(0)
 
-  // Parse ảnh an toàn phòng trường hợp chuỗi JSON
-  let imagesArray = []
-  try {
-    imagesArray = typeof product.images === 'string' ? JSON.parse(product.images) : product.images
-  } catch (e) {
-    imagesArray = []
+  // 🔥 Lấy tất cả ảnh từ variants thay vì product.images
+  const getVariantImages = () => {
+    const images = []
+
+    if (product.variants && Array.isArray(product.variants)) {
+      product.variants.forEach(variant => {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            // Nếu là string JSON thì parse
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            // Nếu có secure_url thì thêm vào danh sách
+            if (imageData && imageData.secure_url) {
+              // Kiểm tra trùng lặp
+              const exists = images.some(img => img.secure_url === imageData.secure_url)
+              if (!exists) {
+                images.push({
+                  secure_url: imageData.secure_url,
+                  public_id: imageData.public_id,
+                  variantId: variant.id,
+                  size: variant.size,
+                  color: variant.color
+                })
+              }
+            }
+          } catch (e) {
+            console.error('Lỗi parse ảnh variant:', e)
+          }
+        }
+      })
+    }
+
+    return images
   }
 
+  // Lấy danh sách ảnh từ variants
+  const variantImages = getVariantImages()
+
+  // Nếu không có ảnh từ variants, thử lấy từ product.images (fallback)
+  let fallbackImages = []
+  if (variantImages.length === 0 && product.images) {
+    try {
+      fallbackImages = typeof product.images === 'string'
+        ? JSON.parse(product.images)
+        : product.images
+    } catch (e) {
+      fallbackImages = []
+    }
+  }
+
+  // Sử dụng ảnh từ variants, nếu không có thì dùng fallback
+  const imagesArray = variantImages.length > 0 ? variantImages : fallbackImages
   const mainImageUrl = imagesArray?.[activeImgIndex]?.secure_url || 'https://placehold.co/600x600?text=No+Image'
 
   // Kiểm tra có reject_reason không
@@ -46,15 +92,30 @@ export const ProductMainInfo = ({ product }) => {
                 key={idx}
                 type="button"
                 onClick={() => setActiveImgIndex(idx)}
-                className={`w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 cursor-pointer transition-all duration-200 ${
+                className={`relative w-16 h-16 rounded-xl border-2 overflow-hidden shrink-0 cursor-pointer transition-all duration-200 ${
                   activeImgIndex === idx ? 'border-brand-primary shadow-sm' : 'border-gray-200 hover:border-gray-400'
                 }`}
               >
                 <img src={img.secure_url} alt="thumbnail" className="w-full h-full object-cover" />
+                {/* Hiển thị thông tin size/color nếu có */}
+                {img.size && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                    {img.size} {img.color ? `- ${img.color}` : ''}
+                  </div>
+                )}
               </motion.button>
             ))}
           </div>
         )}
+
+        {/* Thông tin số lượng ảnh */}
+        <div className="text-xs text-gray-400 font-semibold text-center">
+          {imagesArray.length > 0 ? (
+            <span>Hiển thị {imagesArray.length} ảnh từ các biến thể</span>
+          ) : (
+            <span>Chưa có ảnh nào được thêm</span>
+          )}
+        </div>
       </div>
 
       {/* THÔNG TIN CHI TIẾT SẢN PHẨM (Bên phải - 7 cột) */}

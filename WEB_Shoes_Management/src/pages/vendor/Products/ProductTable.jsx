@@ -9,6 +9,31 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
 
   const handleToggleSelectAll = (e) => onSelectAll(e.target.checked)
 
+  const getFirstVariantImage = (product) => {
+    // Nếu product có variants và là array
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      // Duyệt qua các variants để tìm variant có ảnh
+      for (const variant of product.variants) {
+        if (variant.image) {
+          try {
+            let imageData = variant.image
+            // Nếu là string JSON thì parse
+            if (typeof variant.image === 'string') {
+              imageData = JSON.parse(variant.image)
+            }
+            // Nếu có secure_url thì trả về
+            if (imageData && imageData.secure_url) {
+              return imageData.secure_url
+            }
+          } catch (e) {
+            console.error('Lỗi parse ảnh variant:', e)
+          }
+        }
+      }
+    }
+    return null
+  }
+
   // Component badge riêng để có tooltip
   const ModerationBadge = ({ status, rejectReason }) => {
     const getBadgeContent = () => {
@@ -86,10 +111,17 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
               </tr>
             ) : (
               products.map((p) => {
-                let imagesArray = []
-                try {
-                  imagesArray = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
-                } catch (e) { imagesArray = [] }
+                const variantImageUrl = getFirstVariantImage(p)
+
+                // Fallback: nếu không có ảnh từ variants, thử lấy từ product.images
+                let fallbackImages = []
+                if (!variantImageUrl && p.images) {
+                  try {
+                    fallbackImages = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+                  } catch (e) { fallbackImages = [] }
+                }
+
+                const imageUrl = variantImageUrl || getImageUrl(fallbackImages?.[0], 'https://placehold.co/100x100?text=Giay')
 
                 const isChecked = selectedIds.includes(p.id)
 
@@ -106,7 +138,7 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-4">
                         <img
-                          src={getImageUrl(imagesArray?.[0], 'https://placehold.co/100x100?text=Giay')}
+                          src={imageUrl}
                           alt={p.name}
                           className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 shadow-sm"
                         />
