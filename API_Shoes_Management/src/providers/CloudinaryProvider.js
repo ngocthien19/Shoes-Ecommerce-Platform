@@ -38,7 +38,7 @@ const uploadStore = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 })
 
-// Product Vendor
+// Product và Variant dùng chung 1 storage
 const productStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -50,20 +50,6 @@ const productStorage = new CloudinaryStorage({
 const uploadProduct = multer({
   storage: productStorage,
   limits: { fileSize: 5 * 1024 * 1024 }
-})
-
-// cho variant (ảnh riêng của từng biến thể)
-const variantStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'shoes_store_products/variants',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-    transformation: [{ width: 500, height: 500, crop: 'limit' }]
-  }
-})
-const uploadVariant = multer({
-  storage: variantStorage,
-  limits: { fileSize: 3 * 1024 * 1024 } // 3MB cho ảnh variant
 })
 
 // 4. Cấu hình lưu trữ hình ảnh Feedback Đánh giá từ Khách hàng
@@ -94,7 +80,7 @@ const uploadAppeal = multer({
   limits: { fileSize: 3 * 1024 * 1024 }
 })
 
-// 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm (Nếu có)
+// 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm
 const categoryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -108,7 +94,7 @@ const uploadCategory = multer({
   limits: { fileSize: 3 * 1024 * 1024 }
 })
 
-// 7. Cấu hình lưu trữ hình ảnh cho Khung Chat (Giao tiếp Khách - Shop)
+// 7. Cấu hình lưu trữ hình ảnh cho Khung Chat
 const chatStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -129,8 +115,9 @@ export const CloudinaryProvider = {
     { name: 'logo', maxCount: 1 },
     { name: 'banner', maxCount: 1 }
   ]),
+  // Product và Variant dùng chung uploadProduct
   uploadProductFields: uploadProduct.array('images', 10),
-  uploadVariantImage: uploadVariant.single('image'),
+  uploadVariantImage: uploadProduct.single('image'),
   uploadReviewFields: uploadReview.array('reviewImages', 10),
   uploadAppealFields: uploadAppeal.array('evidenceImages', 5),
   streamUploadCategory: uploadCategory.single('categoryImage'),
