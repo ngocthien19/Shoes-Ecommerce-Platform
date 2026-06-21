@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { updateUserFields, logoutSuccess, setFavorites, removeFromFavorites } from '~/redux/user/userSlice'
 import { userService } from '~/services/user/userService'
@@ -15,8 +15,18 @@ import { usePageTitle } from '~/hooks/usePageTitle'
 export const ProfilePage = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('profile')
+
+  // Lấy tab từ URL, mặc định là 'profile'
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabFromUrl = searchParams.get('tab')
+    // Kiểm tra tab hợp lệ
+    const validTabs = ['profile', 'favorites', 'password']
+    return tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'profile'
+  })
+
   const getTabTitle = () => {
     switch (activeTab) {
     case 'profile': return 'Thông tin cá nhân'
@@ -38,6 +48,12 @@ export const ProfilePage = () => {
 
   const [previewAvatar, setPreviewAvatar] = useState(getImageUrl(user?.avatar))
   const [selectedFile, setSelectedFile] = useState(null)
+
+  // Cập nhật URL khi đổi tab
+  const handleSetActiveTab = (tab) => {
+    setActiveTab(tab)
+    setSearchParams({ tab })
+  }
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,12 +115,11 @@ export const ProfilePage = () => {
     setLoading(true)
     const formData = new FormData()
 
-    // Nếu có password (đổi mật khẩu)
     if (data.password) {
       formData.append('fullname', user?.fullname || '')
       formData.append('phone', user?.phone || '')
       formData.append('address', user?.address || '')
-      formData.append('oldPassword', data.oldPassword) // Thêm oldPassword
+      formData.append('oldPassword', data.oldPassword)
       formData.append('password', data.password)
     } else {
       formData.append('fullname', data.fullname)
@@ -165,7 +180,7 @@ export const ProfilePage = () => {
             <ProfileSidebar
               user={user}
               activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
               onLogout={handleLogout}
               avatarUrl={getImageUrl(user?.avatar)}
             />

@@ -262,7 +262,7 @@ export const ProductsPage = () => {
 
                     {filters.isDiscounted && (
                       <motion.span layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="bg-[#e94560]/10 text-brand-primary px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
-                        Đang giảm giá <FiZap /><FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => setFilters({ ...filters, isDiscounted: false, page: 1 })} />
+                        Đang giảm giá<FiX className="cursor-pointer hover:text-red-600 hover:scale-125 transition-transform" onClick={() => setFilters({ ...filters, isDiscounted: false, page: 1 })} />
                       </motion.span>
                     )}
                   </AnimatePresence>

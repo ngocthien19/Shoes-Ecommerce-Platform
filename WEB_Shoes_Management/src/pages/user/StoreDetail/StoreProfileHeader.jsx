@@ -86,7 +86,7 @@ export const StoreProfileHeader = ({ store }) => {
         variants={itemVariants}
       >
         <motion.img
-          src={getImageUrl(store?.banner?.secure_url)}
+          src={getImageUrl(store?.banner)}
           alt="Banner"
           className="w-full h-full object-cover"
           initial={{ scale: 1.1, opacity: 0 }}
@@ -95,7 +95,7 @@ export const StoreProfileHeader = ({ store }) => {
         />
         {/* Lớp phủ đen nhẹ để chữ/logo nổi hơn nếu cần */}
         <motion.div
-          className="absolute inset-0 bg-black/20"
+          className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/60"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
@@ -119,10 +119,10 @@ export const StoreProfileHeader = ({ store }) => {
           </motion.div>
 
           {/* Tên & Nút Chat */}
-          <div className="flex-1 flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-2">
+          <div className="flex-1 flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-6">
             <motion.div variants={itemVariants}>
               <motion.h1
-                className="text-2xl font-extrabold text-gray-900"
+                className="text-2xl font-extrabold text-brand-primary"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.4 }}

@@ -197,7 +197,7 @@ export const FilterSidebar = ({ filters, setFilters }) => {
       {/* 6. Trạng thái giảm giá */}
       <div>
         <label className="flex items-center justify-between cursor-pointer group p-3 bg-[#e94560]/5 rounded-xl border border-[#e94560]/10 hover:bg-[#e94560]/10 transition-colors">
-          <div className="font-bold text-brand-primary">Đang giảm giá <FiZap /></div>
+          <div className="font-bold text-brand-primary">Đang giảm giá</div>
           <input
             type="checkbox"
             checked={filters.isDiscounted || false}
