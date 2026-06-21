@@ -41,7 +41,25 @@ const updateCategory = async (req, res, next) => {
   }
 }
 
+// 3. Validate TOGGLE TRẠNG THÁI danh mục (PATCH)
+const toggleCategoryStatus = async (req, res, next) => {
+  const correctCondition = Joi.object({
+    isActive: Joi.boolean().required().messages({
+      'boolean.base': 'Trạng thái isActive phải là true hoặc false!',
+      'any.required': 'Vui lòng cung cấp trạng thái isActive!'
+    })
+  })
+
+  try {
+    await correctCondition.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    return res.status(400).json({ message: error.details[0].message })
+  }
+}
+
 export const adminCategoryValidation = {
   createCategory,
-  updateCategory
+  updateCategory,
+  toggleCategoryStatus
 }

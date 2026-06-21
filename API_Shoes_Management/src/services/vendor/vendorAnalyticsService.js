@@ -8,6 +8,44 @@ const getVerifiedStoreId = async (userId) => {
   return store.id
 }
 
+const getImageFromVariants = (variants) => {
+  if (!variants || !Array.isArray(variants) || variants.length === 0) return null
+
+  for (const variant of variants) {
+    if (variant.image) {
+      try {
+        let imageData = variant.image
+        if (typeof variant.image === 'string') {
+          imageData = JSON.parse(variant.image)
+        }
+        if (imageData && imageData.secure_url && imageData.public_id) {
+          return imageData
+        }
+        if (imageData && imageData.secure_url) {
+          return imageData
+        }
+      } catch (e) {
+        continue
+      }
+    }
+  }
+  return null
+}
+
+const getImageFromProductImages = (images) => {
+  if (!images) return null
+
+  try {
+    let parsedImages = typeof images === 'string' ? JSON.parse(images) : images
+    if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+      return parsedImages[0] || null
+    }
+  } catch (e) {
+    return null
+  }
+  return null
+}
+
 const getRevenueAnalytics = async (userId, { type, startDate, endDate }) => {
   const storeId = await getVerifiedStoreId(userId)
 
@@ -16,7 +54,7 @@ const getRevenueAnalytics = async (userId, { type, startDate, endDate }) => {
   const commissionRate = store?.commission_rate || 10
 
   const now = new Date()
-  const todayStr = now.toISOString().split('T')[0] // 'YYYY-MM-DD'
+  const todayStr = now.toISOString().split('T')[0]
 
   let computedStartDate = startDate
   let computedEndDate = endDate
@@ -89,16 +127,17 @@ const getRevenueAnalytics = async (userId, { type, startDate, endDate }) => {
       orders: Number(item.dailyOrders)
     })),
     topSellingProducts: topProducts.map(item => {
-      let parsedImages = []
-      try {
-        parsedImages = typeof item.images === 'string' ? JSON.parse(item.images) : item.images
-      } catch (e) {
-        parsedImages = []
+      let image = getImageFromVariants(item.variants)
+
+      // Nếu không có ảnh từ variants, fallback sang product.images
+      if (!image) {
+        image = getImageFromProductImages(item.images)
       }
+
       return {
         id: item.id,
         name: item.name,
-        imageUrl: parsedImages?.[0]?.secure_url || null,
+        image: image || null, // Trả về object { public_id, secure_url } hoặc null
         totalSold: Number(item.total_sold),
         totalRevenue: Number(item.total_revenue)
       }

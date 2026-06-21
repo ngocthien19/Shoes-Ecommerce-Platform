@@ -16,7 +16,7 @@ const checkProductOwnership = async (productId, storeId) => {
 }
 
 // 3. Thêm mới sản phẩm - Ép ẩn khỏi sàn (is_active = 0) và gán trạng thái pending chờ duyệt
-const createProduct = async ({ storeId, categoryId, name, slug, description, price, images }) => {
+const createProduct = async ({ storeId, categoryId, name, slug, description, price }) => {
   const query = `
     INSERT INTO products (store_id, category_id, name, slug, description, price, images, rating_avg, sold, is_active, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 0.00, 0, FALSE, ?)
@@ -26,19 +26,19 @@ const createProduct = async ({ storeId, categoryId, name, slug, description, pri
     categoryId,
     name,
     slug,
-    description,
+    description || null,
     price,
-    images,
+    JSON.stringify([]),
     PRODUCT_MODERATION_STATUS.PENDING
   ])
   return result
 }
 
 // 4. Chỉnh sửa sản phẩm - Tự động đá văng về trạng thái pending chờ duyệt lại và hạ is_active về 0
-const updateProduct = async (productId, { categoryId, name, description, price, images }) => {
+const updateProduct = async (productId, { categoryId, name, description, price }) => {
   const query = `
     UPDATE products 
-    SET category_id = ?, name = ?, description = ?, price = ?, images = ?, is_active = FALSE, status = ?
+    SET category_id = ?, name = ?, description = ?, price = ?, is_active = FALSE, status = ?
     WHERE id = ?
   `
   const [result] = await pool.execute(query, [
@@ -46,7 +46,6 @@ const updateProduct = async (productId, { categoryId, name, description, price, 
     name,
     description,
     price,
-    images,
     PRODUCT_MODERATION_STATUS.PENDING,
     productId
   ])
@@ -68,22 +67,102 @@ const hardDeleteProduct = async (productId) => {
 }
 
 // 7. Thêm biến thể mới (Size, Màu, Số lượng tồn kho) vào bảng product_variants
-const createVariant = async ({ productId, size, color, stock }) => {
+const createVariant = async ({ productId, size, color, stock, image }) => {
   const query = `
-    INSERT INTO product_variants (product_id, size, color, stock)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO product_variants (product_id, size, color, stock, image)
+    VALUES (?, ?, ?, ?, ?)
   `
-  const [result] = await pool.execute(query, [productId, size, color, stock])
+  const [result] = await pool.execute(query, [
+    productId,
+    size,
+    color,
+    stock,
+    image ? JSON.stringify(image) : null
+  ])
   return result
 }
 
-// 8. Lấy danh sách sản phẩm cửa hàng (N nạp thêm p.status vào mảng SELECT để hiển thị thẻ trạng thái)
+const getVariantById = async (variantId) => {
+  const query = 'SELECT id, product_id, size, color, stock, image FROM product_variants WHERE id = ?'
+  const [rows] = await pool.execute(query, [variantId])
+  return rows[0] || null
+}
+
+const getVariantsByProductId = async (productId) => {
+  const query = 'SELECT id, size, color, stock, image FROM product_variants WHERE product_id = ?'
+  const [rows] = await pool.execute(query, [productId])
+  return rows
+}
+
+const checkVariantInCart = async (variantId) => {
+  const query = 'SELECT COUNT(*) as count FROM cart WHERE variant_id = ?'
+  const [rows] = await pool.execute(query, [variantId])
+  return rows[0].count > 0
+}
+
+const updateVariant = async (variantId, { size, color, stock, image }) => {
+  // Xây dựng câu query động
+  let updateFields = []
+  let queryParams = []
+
+  // Luôn update size, color, stock
+  updateFields.push('size = ?')
+  queryParams.push(size)
+
+  updateFields.push('color = ?')
+  queryParams.push(color)
+
+  updateFields.push('stock = ?')
+  queryParams.push(stock)
+
+  // Chỉ update image khi có ảnh mới
+  if (image !== undefined && image !== null) {
+    updateFields.push('image = ?')
+    queryParams.push(JSON.stringify(image))
+  }
+  // Nếu image = null và muốn xóa ảnh
+  else if (image === null) {
+    updateFields.push('image = ?')
+    queryParams.push(null)
+  }
+
+  queryParams.push(variantId)
+
+  const query = `
+    UPDATE product_variants 
+    SET ${updateFields.join(', ')}
+    WHERE id = ?
+  `
+  const [result] = await pool.execute(query, queryParams)
+  return result.affectedRows
+}
+
+const deleteVariant = async (variantId) => {
+  const query = 'DELETE FROM product_variants WHERE id = ?'
+  const [result] = await pool.execute(query, [variantId])
+  return result.affectedRows
+}
+
+// 8. Lấy danh sách sản phẩm cửa hàng
 const getVendorProductsWithFilters = async (storeId, { search, categoryId, isActive, minPrice, maxPrice, sortBy, limit, offset }) => {
   let query = `
     SELECT 
       p.id, p.store_id, p.category_id, p.name, p.slug, p.description, p.price, 
       p.sold, p.rating_avg, p.images, p.is_active, p.status, p.created_at, p.reject_reason,
-      c.name AS category_name
+      c.name AS category_name,
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv.id,
+            'size', pv.size,
+            'color', pv.color,
+            'stock', pv.stock,
+            'image', pv.image
+          )
+        )
+        FROM product_variants pv
+        WHERE pv.product_id = p.id
+      ) AS variants
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.store_id = ?
@@ -124,7 +203,27 @@ const getVendorProductsWithFilters = async (storeId, { search, categoryId, isAct
   queryParams.push(String(limit), String(offset))
 
   const [rows] = await pool.execute(query, queryParams)
-  return rows
+
+  // Parse variants từ JSON string sang array
+  return rows.map(row => {
+    if (row.variants) {
+      try {
+        // Nếu variants là string JSON thì parse
+        if (typeof row.variants === 'string') {
+          row.variants = JSON.parse(row.variants)
+        }
+        // Nếu variants là null hoặc undefined thì set thành array rỗng
+        if (!row.variants) {
+          row.variants = []
+        }
+      } catch (e) {
+        row.variants = []
+      }
+    } else {
+      row.variants = []
+    }
+    return row
+  })
 }
 
 // 9. Đếm tổng số lượng sản phẩm thỏa điều kiện lọc để tính tổng số trang
@@ -159,11 +258,18 @@ const countVendorProductsWithFilters = async (storeId, { search, categoryId, isA
 
 // 10. Lấy chi tiết 1 sản phẩm kèm toàn bộ biến thể size/màu của nó
 const getProductDetailWithVariants = async (productId, storeId) => {
-  const pQuery = 'SELECT * FROM products WHERE id = ? AND store_id = ?'
+  const pQuery = `
+    SELECT 
+      p.*,
+      c.name AS category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.id = ? AND p.store_id = ?
+  `
   const [pRows] = await pool.execute(pQuery, [productId, storeId])
   if (pRows.length === 0) return null
 
-  const vQuery = 'SELECT id, size, color, stock FROM product_variants WHERE product_id = ?'
+  const vQuery = 'SELECT id, size, color, stock, image FROM product_variants WHERE product_id = ?'
   const [vRows] = await pool.execute(vQuery, [productId])
 
   return {
@@ -250,6 +356,72 @@ const updateProductStatus = async (productId, status) => {
   return result
 }
 
+const addImageToProduct = async (productId, image) => {
+  // Lấy images hiện tại
+  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ?', [productId])
+  let currentImages = []
+
+  if (rows[0]?.images) {
+    try {
+      currentImages = JSON.parse(rows[0].images)
+    } catch {
+      currentImages = []
+    }
+  }
+
+  // Kiểm tra xem ảnh đã tồn tại chưa (so sánh secure_url)
+  const exists = currentImages.some(img => img.secure_url === image.secure_url)
+
+  if (!exists) {
+    currentImages.push(image)
+    const query = 'UPDATE products SET images = ? WHERE id = ?'
+    await pool.execute(query, [JSON.stringify(currentImages), productId])
+  }
+
+  return currentImages
+}
+
+const removeImageFromProduct = async (productId, image) => {
+  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ?', [productId])
+  let currentImages = []
+
+  if (rows[0]?.images) {
+    try {
+      currentImages = JSON.parse(rows[0].images)
+    } catch {
+      currentImages = []
+    }
+  }
+
+  // Lọc bỏ ảnh cần xóa
+  const filteredImages = currentImages.filter(img => img.secure_url !== image.secure_url)
+
+  const query = 'UPDATE products SET images = ? WHERE id = ?'
+  await pool.execute(query, [JSON.stringify(filteredImages), productId])
+
+  return filteredImages
+}
+
+const checkImageUsedByOtherVariant = async (productId, image, excludeVariantId) => {
+  const query = 'SELECT id, image FROM product_variants WHERE product_id = ? AND id != ?'
+  const [rows] = await pool.execute(query, [productId, excludeVariantId])
+
+  for (const row of rows) {
+    if (!row.image) continue
+    let variantImage = null
+    try {
+      variantImage = typeof row.image === 'string' ? JSON.parse(row.image) : row.image
+    } catch {
+      variantImage = row.image
+    }
+
+    if (variantImage && variantImage.secure_url === image.secure_url) {
+      return true
+    }
+  }
+  return false
+}
+
 export const vendorProductModel = {
   getStoreByOwnerId,
   checkProductOwnership,
@@ -258,6 +430,11 @@ export const vendorProductModel = {
   getProductImages,
   hardDeleteProduct,
   createVariant,
+  getVariantById,
+  checkVariantInCart,
+  updateVariant,
+  deleteVariant,
+  getVariantsByProductId,
   getVendorProductsWithFilters,
   countVendorProductsWithFilters,
   getProductDetailWithVariants,
@@ -267,5 +444,8 @@ export const vendorProductModel = {
   getMultipleProductImages,
   hardDeleteProductsBulk,
   requestProductsReapprovalBulk,
-  updateProductStatus
+  updateProductStatus,
+  addImageToProduct,
+  removeImageFromProduct,
+  checkImageUsedByOtherVariant
 }

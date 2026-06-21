@@ -18,7 +18,7 @@ router.patch('/toggle-active-bulk', adminUserValidation.checkUserIdsMendatory, a
 router.get('/:id', adminUserController.getUserDetail)
 
 router.post('/add', CloudinaryProvider.streamUpload, adminUserValidation.createUser, adminUserController.createUser)
-
+router.put('/:id', CloudinaryProvider.streamUpload, adminUserValidation.updateUser, adminUserController.updateUser)
 router.delete('/delete-bulk', adminUserValidation.checkUserIdsMendatory, adminUserController.deleteUsersBulk)
 
 export const adminUserRouter = router

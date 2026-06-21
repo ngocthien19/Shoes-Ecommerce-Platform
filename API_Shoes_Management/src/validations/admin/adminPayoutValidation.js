@@ -1,12 +1,13 @@
 import Joi from 'joi'
 import { PAYOUT_STATUS } from '~/utils/constants'
 
-// 1. Validate query truyền lên khi lấy danh sách lệnh rút tiền
+// 1. Kiểm duyệt bộ lọc danh sách lệnh rút tiền
 const getPayoutList = async (req, res, next) => {
   const correctCondition = Joi.object({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(10),
-    status: Joi.string().valid(...Object.values(PAYOUT_STATUS)).optional()
+    page: Joi.number().integer().min(1).optional().default(1),
+    limit: Joi.number().integer().min(1).max(100).optional().default(10),
+    status: Joi.string().valid(...Object.values(PAYOUT_STATUS)).optional().allow('', null),
+    search: Joi.string().allow('', null).trim().optional().max(100)
   })
 
   try {
@@ -14,51 +15,53 @@ const getPayoutList = async (req, res, next) => {
     next()
   } catch (error) {
     return res.status(422).json({
-      message: 'Dữ liệu bộ lọc tìm kiếm yêu cầu rút tiền không hợp lệ.',
+      message: 'Tham số bộ lọc danh sách lệnh rút tiền không hợp lệ.',
       errors: error.details ? error.details.map(err => err.message) : error.message
     })
   }
 }
 
-// 2. VALIDATE XEM CHI TIẾT: Kiểm tra tham số ID từ req.params
+// 2. Kiểm duyệt tham số ID trên URL khi xem chi tiết lệnh rút
 const getPayoutDetail = async (req, res, next) => {
   const correctCondition = Joi.object({
     id: Joi.number().integer().positive().required().messages({
-      'number.base': 'Mã định danh lệnh rút tiền (ID) phải là một chữ số.',
-      'any.required': 'Mã định danh lệnh rút tiền (ID) là bắt buộc.'
+      'number.base': 'Mã định danh lệnh rút phải là định dạng số.',
+      'number.positive': 'Mã lệnh rút phải là số dương.'
     })
   })
 
   try {
-    await correctCondition.validateAsync(req.params, { abortEarly: false })
+    await correctCondition.validateAsync(req.params)
     next()
   } catch (error) {
     return res.status(422).json({
-      message: 'Mã định danh lệnh rút tiền trên URL không hợp lệ.',
+      message: 'Tham số mã lệnh rút trên URL không hợp lệ.',
       errors: error.details ? error.details.map(err => err.message) : error.message
     })
   }
 }
 
-// 3. Validate body truyền lên khi Admin duyệt hoặc từ chối đơn rút tiền
+// 3. Kiểm duyệt dữ liệu khi xử lý phê duyệt/từ chối lệnh rút
 const processPayout = async (req, res, next) => {
-  const correctCondition = Joi.object({
+  const paramCondition = Joi.object({
+    id: Joi.number().integer().positive().required()
+  })
+
+  const bodyCondition = Joi.object({
     targetStatus: Joi.string().valid(PAYOUT_STATUS.APPROVED, PAYOUT_STATUS.REJECTED).required().messages({
-      'any.only': 'Trạng thái xử lý mục tiêu chỉ chấp nhận [approved] hoặc [rejected].',
-      'any.required': 'Trạng thái xử lý mục tiêu (targetStatus) là bắt buộc.'
+      'any.only': 'Trạng thái mục tiêu chỉ được chọn APPROVED hoặc REJECTED.',
+      'any.required': 'Trạng thái xử lý là bắt buộc.'
     }),
-    adminNote: Joi.string().min(5).max(500).trim().allow(null, '').messages({
-      'string.min': 'Ghi chú của Admin/Mã đối soát giao dịch phải có ít nhất 5 ký tự.',
-      'string.max': 'Ghi chú của Admin không được vượt quá 500 ký tự.'
-    })
+    adminNote: Joi.string().max(500).trim().optional().allow('', null)
   })
 
   try {
-    await correctCondition.validateAsync(req.body, { abortEarly: false })
+    await paramCondition.validateAsync(req.params)
+    await bodyCondition.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {
     return res.status(422).json({
-      message: 'Dữ liệu phê duyệt lệnh rút tiền không đúng định dạng.',
+      message: 'Dữ liệu xử lý lệnh rút tiền không hợp lệ.',
       errors: error.details ? error.details.map(err => err.message) : error.message
     })
   }

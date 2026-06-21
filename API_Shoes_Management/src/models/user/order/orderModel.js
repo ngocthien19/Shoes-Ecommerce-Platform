@@ -51,7 +51,8 @@ const createOrderItem = async (connection, { orderId, variantId, quantity, price
 }
 
 // 4. Trừ số lượng kho của biến thể giày
-const decreaseVariantStock = async (connection, variantId, quantity) => {
+const decreaseVariantStock = async (conn, variantId, quantity) => {
+  const connection = conn?.execute ? conn : conn
   const query = 'UPDATE product_variants SET stock = stock - ? WHERE id = ?'
   await connection.execute(query, [quantity, variantId])
 }
@@ -76,6 +77,20 @@ const updatePaymentStatusBulk = async (orderIds, paymentStatus, orderStatus) => 
   await pool.execute(query, [paymentStatus, orderStatus, ...orderIds])
 }
 
+// Lấy user_id của đơn hàng
+const getOrderUserId = async (orderId) => {
+  const query = 'SELECT user_id FROM orders WHERE id = ?'
+  const [rows] = await pool.execute(query, [orderId])
+  return rows[0]?.user_id || null
+}
+
+// Lấy thông tin đơn hàng và user_id
+const getOrderWithUserId = async (orderId) => {
+  const query = 'SELECT id, user_id, status, payment_status FROM orders WHERE id = ?'
+  const [rows] = await pool.execute(query, [orderId])
+  return rows[0] || null
+}
+
 export const orderModel = {
   getCartItemsForCheckout,
   createOrder,
@@ -83,5 +98,7 @@ export const orderModel = {
   decreaseVariantStock,
   increaseProductSold,
   clearUserCart,
-  updatePaymentStatusBulk
+  updatePaymentStatusBulk,
+  getOrderUserId,
+  getOrderWithUserId
 }

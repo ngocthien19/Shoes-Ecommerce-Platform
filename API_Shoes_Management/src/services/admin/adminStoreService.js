@@ -1,7 +1,9 @@
 import { adminStoreModel } from '~/models/admin/store/adminStoreModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import { ROLE_ID } from '~/utils/constants'
+import moment from 'moment'
 
-// 1. Tải danh sách Store phân trang + đa bộ lọc +Widgets tổng
+// 1. Tải danh sách Store phân trang + đa bộ lọc + Widgets tổng
 const getStoresList = async (filters) => {
   const page = Number(filters.page) || 1
   const limit = Number(filters.limit) || 10
@@ -31,13 +33,50 @@ const getStoresList = async (filters) => {
 
 // 2. Lấy hồ sơ chi tiết của 1 Store
 const getStoreDetail = async (storeId) => {
-  const store = await adminStoreModel.getStoreDetailById(storeId)
+  const id = Number(storeId)
+  if (isNaN(id) || id <= 0) {
+    throw new Error('Mã cửa hàng không hợp lệ.')
+  }
+
+  const store = await adminStoreModel.getStoreDetailById(id)
   if (!store) throw new Error('Cửa hàng yêu cầu không tồn tại trên sàn.')
-  return store
+
+  // Lấy thông tin chủ sở hữu
+  const owner = await adminStoreModel.getStoreOwnerInfo(id)
+
+  // Lấy thống kê doanh thu 30 ngày gần nhất
+  const endDate = moment().endOf('day').format('YYYY-MM-DD HH:mm:ss')
+  const startDate = moment().subtract(30, 'days').startOf('day').format('YYYY-MM-DD HH:mm:ss')
+
+  const revenueStats = await adminStoreModel.getStoreRevenueStats(id, { startDate, endDate })
+
+  return {
+    ...store,
+    owner: owner || null,
+    revenueStats: revenueStats.map(stat => ({
+      ...stat,
+      daily_revenue: Number(stat.daily_revenue) || 0,
+      daily_commission: Number(stat.daily_commission) || 0,
+      orders_count: Number(stat.orders_count) || 0
+    }))
+  }
 }
 
-// 3. Đóng băng hoặc mở khóa hàng loạt Store diện rộng
-const toggleStoreActiveBulk = async (storeIds, isActive) => {
+// 3. Đóng băng hoặc mở khóa hàng loạt Store
+const toggleStoreActiveBulk = async (storeIds, isActive, reason = null) => {
+  // Nếu khóa (isActive = false) và có reason, lưu vào reject_reason
+  if (!isActive && reason) {
+    // Cập nhật reject_reason cho từng store
+    for (const storeId of storeIds) {
+      await adminStoreModel.updateStoreRejectReason(storeId, reason)
+    }
+  } else if (isActive) {
+    // Nếu mở khóa, xóa reject_reason
+    for (const storeId of storeIds) {
+      await adminStoreModel.updateStoreRejectReason(storeId, null)
+    }
+  }
+
   const affectedRows = await adminStoreModel.updateStoreActiveStatusBulk(storeIds, isActive)
   return {
     message: isActive
@@ -46,7 +85,7 @@ const toggleStoreActiveBulk = async (storeIds, isActive) => {
   }
 }
 
-// 4. CẬP NHẬT HOA HỒNG SÀN HÀNG LOẠT
+// 4. Cập nhật hoa hồng sàn hàng loạt
 const updateStoreCommissionBulk = async (storeIds, commissionRate) => {
   const affectedRows = await adminStoreModel.updateStoreCommissionBulk(storeIds, commissionRate)
   return {
@@ -54,7 +93,7 @@ const updateStoreCommissionBulk = async (storeIds, commissionRate) => {
   }
 }
 
-// 5. CƯỠNG CHẾ SỐ DƯ VÍ DO TRANH CHẤP / PHẠT TIỀN HOẶC ĐỀN BÙ
+// 5. Cưỡng chế số dư ví
 const enforceStoreBalance = async ({ storeId, amount, type }) => {
   const store = await adminStoreModel.getStoreDetailById(storeId)
   if (!store) throw new Error('Không tìm thấy cửa hàng mục tiêu để can thiệp ví dòng tiền.')
@@ -74,7 +113,6 @@ const enforceStoreBalance = async ({ storeId, amount, type }) => {
 
 // 6. Admin tự tay tạo Store
 const createStoreByAdmin = async (storeData) => {
-  // Gọi hàm check tổng hợp từ Model lên
   const checkOwner = await adminStoreModel.checkStoreOwnerValidation(storeData.ownerId)
 
   if (checkOwner.isNotFound) {
@@ -112,19 +150,16 @@ const createStoreByAdmin = async (storeData) => {
   }
 }
 
-// 7. Xử lý xóa đơn lẻ hoặc hàng loạt Store + QUÉT DỌN ẢNH KÉP TRÊN CLOUDINARY
+// 7. Xử lý xóa đơn lẻ hoặc hàng loạt Store
 const deleteStoresBulk = async (storeIds) => {
   if (!Array.isArray(storeIds) || storeIds.length === 0) throw new Error('Danh sách ID cửa hàng không hợp lệ.')
 
-  // Bước 1: Đối soát xem Shop nào đã dính líu vận đơn hóa đơn (Giữ lại)
   const storesWithOrders = await adminStoreModel.checkStoresHaveOrders(storeIds)
-  // Bước 2: Lọc ra các Shop rác để ra tay XÓA CỨNG hoàn toàn
   const storesToHardDelete = storeIds.filter(id => !storesWithOrders.includes(id))
 
   let hardDeletedCount = 0
 
   if (storesToHardDelete.length > 0) {
-    // 2A. Bốc thông tin lưu trữ của các shop sắp xóa cứng
     const storeProfiles = await adminStoreModel.getStoresProfilesBulk(storesToHardDelete)
     const publicIdsToDelete = []
 
@@ -139,18 +174,15 @@ const deleteStoresBulk = async (storeIds) => {
       }
     })
 
-    // 2B. Xóa sạch bách đống ảnh Logo và Banner trên Cloudinary song song cùng lúc
     if (publicIdsToDelete.length > 0) {
       await Promise.all(
         publicIdsToDelete.map(publicId => CloudinaryProvider.cloudinary.uploader.destroy(publicId))
       )
     }
 
-    // 2C. Xóa cứng dữ liệu Store và tự động Cascade các sản phẩm liên đới dưới MySQL
     hardDeletedCount = await adminStoreModel.deleteStoresHardBulk(storesToHardDelete)
   }
 
-  // Bước 3: Những Shop dính đơn hàng thì chuyển trạng thái Đóng băng (Xóa mềm)
   let softDeletedCount = 0
   if (storesWithOrders.length > 0) {
     softDeletedCount = await adminStoreModel.updateStoreActiveStatusBulk(storesWithOrders, false)

@@ -33,4 +33,6 @@ router.post('/reset-password',
 
 router.post('/logout', authController.logout)
 
+router.post('/refresh-token', authController.refreshAccessToken)
+
 export const authRouter = router

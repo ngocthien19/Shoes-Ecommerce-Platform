@@ -198,6 +198,12 @@ const updateRejectReasonSingle = async (storeId, reason) => {
   return result.affectedRows
 }
 
+const updateStoreActiveStatus = async (storeId, isActive) => {
+  const query = 'UPDATE stores SET is_active = ?, reject_reason = NULL WHERE id = ?'
+  const [result] = await pool.execute(query, [isActive ? 1 : 0, storeId])
+  return result.affectedRows
+}
+
 export const managerStoreModel = {
   getStoresForManager,
   countStoresForManager,
@@ -212,5 +218,6 @@ export const managerStoreModel = {
   getStoresOverviewStats,
   getStoreDetailForManager,
   updateStoreStatusSingle,
-  updateRejectReasonSingle
+  updateRejectReasonSingle,
+  updateStoreActiveStatus
 }

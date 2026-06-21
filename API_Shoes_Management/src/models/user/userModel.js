@@ -168,6 +168,19 @@ const getAllAdminIds = async () => {
   return rows.map(row => row.id)
 }
 
+const getRefreshTokenByUserId = async (userId) => {
+  const query = 'SELECT refresh_token FROM users WHERE id = ?'
+  const [rows] = await pool.execute(query, [userId])
+  return rows[0]?.refresh_token || null
+}
+
+const verifyRefreshToken = async (userId, refreshToken) => {
+  const query = 'SELECT refresh_token FROM users WHERE id = ?'
+  const [rows] = await pool.execute(query, [userId])
+  if (rows.length === 0) return false
+  return rows[0].refresh_token === refreshToken
+}
+
 export const userModel = {
   findByEmail,
   createPendingUser,
@@ -186,5 +199,7 @@ export const userModel = {
   setOffline,
   getAllManagerIds,
   getUserById,
-  getAllAdminIds
+  getAllAdminIds,
+  getRefreshTokenByUserId,
+  verifyRefreshToken
 }

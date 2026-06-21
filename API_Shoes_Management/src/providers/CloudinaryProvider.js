@@ -35,10 +35,10 @@ const storeStorage = new CloudinaryStorage({
 })
 const uploadStore = multer({
   storage: storeStorage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB cho banner chất lượng cao
+  limits: { fileSize: 5 * 1024 * 1024 }
 })
 
-// Product Vendor
+// Product và Variant dùng chung 1 storage
 const productStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -77,10 +77,10 @@ const appealStorage = new CloudinaryStorage({
 })
 const uploadAppeal = multer({
   storage: appealStorage,
-  limits: { fileSize: 3 * 1024 * 1024 } // Giới hạn 3MB mỗi ảnh bằng chứng
+  limits: { fileSize: 3 * 1024 * 1024 }
 })
 
-// 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm (Nếu có)
+// 6. Cấu hình lưu trữ hình ảnh danh mục sản phẩm
 const categoryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -94,7 +94,7 @@ const uploadCategory = multer({
   limits: { fileSize: 3 * 1024 * 1024 }
 })
 
-// 7. Cấu hình lưu trữ hình ảnh cho Khung Chat (Giao tiếp Khách - Shop)
+// 7. Cấu hình lưu trữ hình ảnh cho Khung Chat
 const chatStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -105,7 +105,7 @@ const chatStorage = new CloudinaryStorage({
 })
 const uploadChat = multer({
   storage: chatStorage,
-  limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB/ảnh
+  limits: { fileSize: 10 * 1024 * 1024 }
 })
 
 export const CloudinaryProvider = {
@@ -115,7 +115,9 @@ export const CloudinaryProvider = {
     { name: 'logo', maxCount: 1 },
     { name: 'banner', maxCount: 1 }
   ]),
+  // Product và Variant dùng chung uploadProduct
   uploadProductFields: uploadProduct.array('images', 10),
+  uploadVariantImage: uploadProduct.single('image'),
   uploadReviewFields: uploadReview.array('reviewImages', 10),
   uploadAppealFields: uploadAppeal.array('evidenceImages', 5),
   streamUploadCategory: uploadCategory.single('categoryImage'),

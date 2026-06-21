@@ -171,10 +171,10 @@ const toggleProductActive = async (productId, targetStatus, reason) => {
 }
 
 // 3. GET: Chi tiết cấu trúc một sản phẩm theo đường dẫn Slug (Giữ nguyên)
-const getProductDetail = async (productSlug) => {
-  if (!productSlug) throw new Error('Đường dẫn cấu trúc sản phẩm (Slug) không hợp lệ.')
+const getProductDetail = async (productId) => {
+  if (!productId) throw new Error('Đường dẫn cấu trúc sản phẩm (Id) không hợp lệ.')
 
-  const product = await managerProductModel.getProductDetailForManager(productSlug)
+  const product = await managerProductModel.getProductDetailForManager(productId)
   if (!product) throw new Error('Không tồn tại sản phẩm này trên hệ thống dữ liệu.')
 
   // Lấy thêm biến thể của sản phẩm

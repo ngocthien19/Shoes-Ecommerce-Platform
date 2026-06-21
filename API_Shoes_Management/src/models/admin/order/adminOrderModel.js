@@ -1,12 +1,27 @@
 import pool from '~/config/db'
 import { ORDER_STATUS, PAYMENT_STATUS } from '~/utils/constants'
 
-// 1. Admin lấy danh sách đơn hàng toàn sàn (Phân trang + Bộ lọc trạng thái, mã đơn, thời gian)
-const getAllOrdersSystem = async ({ status, searchOrderId, startDate, endDate, limit, offset }) => {
+// 1. Admin lấy danh sách đơn hàng toàn sàn
+const getAllOrdersSystem = async ({ status, paymentStatus, searchOrderId, startDate, endDate, limit, offset }) => {
   let query = `
-    SELECT o.id AS order_id, o.user_id, o.store_id, o.total_amount, o.discount_amount,
-           o.status, o.payment_status, o.payment_method, o.created_at,
-           s.name AS store_name, u.fullname AS buyer_name
+    SELECT 
+      o.id AS order_id, 
+      o.user_id, 
+      o.store_id, 
+      o.total_amount, 
+      o.discount_amount,
+      o.status, 
+      o.payment_status, 
+      o.payment_method, 
+      o.created_at,
+      o.cancel_reason,
+      o.recipient_name,
+      o.recipient_phone,
+      o.shipping_address,
+      s.name AS store_name,
+      s.logo AS store_logo,
+      u.fullname AS buyer_name,
+      u.avatar AS buyer_avatar
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id
     INNER JOIN users u ON o.user_id = u.id
@@ -17,6 +32,10 @@ const getAllOrdersSystem = async ({ status, searchOrderId, startDate, endDate, l
   if (status) {
     query += ' AND o.status = ?'
     queryParams.push(status)
+  }
+  if (paymentStatus) {
+    query += ' AND o.payment_status = ?'
+    queryParams.push(paymentStatus)
   }
   if (searchOrderId) {
     query += ' AND o.id = ?'
@@ -38,14 +57,18 @@ const getAllOrdersSystem = async ({ status, searchOrderId, startDate, endDate, l
   return rows
 }
 
-// 2. Đếm tổng số đơn hàng phục vụ tính toán phân trang ở Frontend
-const countAllOrdersSystem = async ({ status, searchOrderId, startDate, endDate }) => {
+// 2. Đếm tổng số đơn hàng
+const countAllOrdersSystem = async ({ status, paymentStatus, searchOrderId, startDate, endDate }) => {
   let query = 'SELECT COUNT(*) AS total FROM orders WHERE 1=1'
   const queryParams = []
 
   if (status) {
     query += ' AND status = ?'
     queryParams.push(status)
+  }
+  if (paymentStatus) {
+    query += ' AND payment_status = ?'
+    queryParams.push(paymentStatus)
   }
   if (searchOrderId) {
     query += ' AND id = ?'
@@ -64,13 +87,31 @@ const countAllOrdersSystem = async ({ status, searchOrderId, startDate, endDate 
   return rows[0]?.total || 0
 }
 
-// 3. Xem chi tiết một đơn hàng toàn cục (Bốc kèm thông tin người mua, người bán, và mảng giày)
+// 3. Xem chi tiết một đơn hàng
 const getOrderDetailSystem = async (orderId) => {
   const orderQuery = `
-    SELECT o.*, s.name AS store_name, u.fullname AS buyer_name, u.email AS buyer_email
+    SELECT 
+      o.*, 
+      s.name AS store_name, 
+      s.logo AS store_logo,
+      s.address AS store_address,
+      u.fullname AS buyer_name, 
+      u.email AS buyer_email,
+      u.phone AS buyer_phone,
+      u.avatar AS buyer_avatar,
+      u.address AS buyer_address,
+      -- Thông tin người nhận (từ order)
+      o.recipient_name,
+      o.recipient_phone,
+      o.shipping_address,
+      -- Thông tin chủ cửa hàng
+      owner.fullname AS owner_name,
+      owner.phone AS owner_phone,
+      owner.email AS owner_email
     FROM orders o
     INNER JOIN stores s ON o.store_id = s.id
     INNER JOIN users u ON o.user_id = u.id
+    LEFT JOIN users owner ON s.owner_id = owner.id
     WHERE o.id = ?
   `
   const [orderRows] = await pool.execute(orderQuery, [orderId])
@@ -79,15 +120,88 @@ const getOrderDetailSystem = async (orderId) => {
   if (!order) return null
 
   const itemsQuery = `
-    SELECT oi.id AS item_id, oi.variant_id, oi.quantity, oi.price, 
-           pv.size, pv.color, p.name AS product_name
+    SELECT 
+      oi.id AS item_id, 
+      oi.variant_id, 
+      oi.quantity, 
+      oi.price, 
+      pv.size, 
+      pv.color, 
+      pv.image AS variant_image,
+      p.name AS product_name,
+      p.images AS product_images,
+      -- Lấy tất cả variants của sản phẩm để FE match ảnh
+      (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', pv2.id,
+            'size', pv2.size,
+            'color', pv2.color,
+            'stock', pv2.stock,
+            'image', pv2.image
+          )
+        )
+        FROM product_variants pv2
+        WHERE pv2.product_id = p.id
+      ) AS all_variants
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
     WHERE oi.order_id = ?
   `
   const [items] = await pool.execute(itemsQuery, [orderId])
-  order.items = items
+
+  // Parse dữ liệu cho từng item
+  order.items = items.map(item => {
+    // Parse variant_image
+    let parsedVariantImage = item.variant_image
+    if (item.variant_image && typeof item.variant_image === 'string') {
+      try {
+        parsedVariantImage = JSON.parse(item.variant_image)
+      } catch (e) {
+        parsedVariantImage = null
+      }
+    }
+
+    // Parse product_images
+    let parsedProductImages = item.product_images
+    if (item.product_images && typeof item.product_images === 'string') {
+      try {
+        parsedProductImages = JSON.parse(item.product_images)
+      } catch (e) {
+        parsedProductImages = []
+      }
+    }
+
+    let allVariants = []
+    if (item.all_variants) {
+      try {
+        allVariants = typeof item.all_variants === 'string'
+          ? JSON.parse(item.all_variants)
+          : item.all_variants
+        // Parse image trong từng variant
+        allVariants = allVariants.map(variant => {
+          if (variant.image && typeof variant.image === 'string') {
+            try {
+              variant.image = JSON.parse(variant.image)
+            } catch (e) {
+              variant.image = null
+            }
+          }
+          return variant
+        })
+      } catch (e) {
+        allVariants = []
+      }
+    }
+
+    return {
+      ...item,
+      variant_image: parsedVariantImage,
+      product_images: parsedProductImages,
+      all_variants: allVariants
+    }
+  })
 
   return order
 }
@@ -98,7 +212,6 @@ const forceCancelOrderTransaction = async (orderId, adminNote) => {
   try {
     await connection.beginTransaction()
 
-    // Khóa dòng đơn hàng để tránh xung đột dữ liệu (Race Condition)
     const [orderRows] = await connection.execute(
       'SELECT payment_status FROM orders WHERE id = ? FOR UPDATE',
       [orderId]
@@ -106,12 +219,10 @@ const forceCancelOrderTransaction = async (orderId, adminNote) => {
     const order = orderRows[0]
     if (!order) throw new Error('Đơn hàng không tồn tại trên hệ thống.')
 
-    // Nếu đơn hàng cũ đã paid -> lật sang 'refunded' để kế toán đối soát hoàn ngoài
     const nextPaymentStatus = order.payment_status === PAYMENT_STATUS.PAID
       ? PAYMENT_STATUS.REFUNDED
       : order.payment_status
 
-    // A. Cập nhật trạng thái đơn về CANCELLED và lật payment_status sang trạng thái mới kèm ghi chú Admin
     await connection.execute(
       `UPDATE orders 
        SET status = ?, payment_status = ?, cancel_reason = ? 
@@ -119,13 +230,11 @@ const forceCancelOrderTransaction = async (orderId, adminNote) => {
       [ORDER_STATUS.CANCELLED, nextPaymentStatus, `[ADMIN FORCE CANCEL] ${adminNote}`, orderId]
     )
 
-    // B. Lấy danh sách sản phẩm trong đơn để tiến hành hoàn trả kho
     const [items] = await connection.execute(
       'SELECT variant_id, quantity FROM order_items WHERE order_id = ?',
       [orderId]
     )
 
-    // C. Cộng trả lại số lượng tồn kho (stock) cho từng biến thể giày trên sàn
     for (const item of items) {
       await connection.execute(
         'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
@@ -143,7 +252,7 @@ const forceCancelOrderTransaction = async (orderId, adminNote) => {
   }
 }
 
-// Thống kê nhanh số liệu đơn hàng toàn sàn phục vụ 5 thẻ Widget đầu trang Admin
+// Thống kê nhanh số liệu đơn hàng toàn sàn
 const getOrdersOverviewStatsSystem = async () => {
   const query = `
     SELECT 

@@ -83,6 +83,52 @@ const createUserByAdmin = async (userData) => {
   }
 }
 
+const updateUserByAdmin = async (userId, userData) => {
+  const existingUser = await adminUserModel.getUserDetailById(userId)
+  if (!existingUser) throw new Error('Người dùng không tồn tại trên hệ thống.')
+
+  // Nếu có password mới, hash lại
+  let hashedPassword = undefined
+  if (userData.password) {
+    const salt = await bcrypt.genSalt(8)
+    hashedPassword = await bcrypt.hash(userData.password, salt)
+  }
+
+  // Nếu có avatar mới, upload lên Cloudinary
+  let avatarJson = undefined
+  if (userData.avatarFile) {
+    // Xóa avatar cũ nếu có
+    if (existingUser.avatar) {
+      const oldAvatar = typeof existingUser.avatar === 'string'
+        ? JSON.parse(existingUser.avatar)
+        : existingUser.avatar
+      if (oldAvatar && oldAvatar.public_id) {
+        await CloudinaryProvider.cloudinary.uploader.destroy(oldAvatar.public_id)
+      }
+    }
+    avatarJson = JSON.stringify({
+      public_id: userData.avatarFile.filename,
+      secure_url: userData.avatarFile.path
+    })
+  }
+
+  const updated = await adminUserModel.updateUserById(userId, {
+    fullname: userData.fullname,
+    phone: userData.phone,
+    address: userData.address,
+    roleId: userData.roleId,
+    password: hashedPassword,
+    avatar: avatarJson
+  })
+
+  if (updated === 0) throw new Error('Cập nhật người dùng thất bại.')
+
+  return {
+    message: 'Cập nhật người dùng thành công!',
+    userId: userId
+  }
+}
+
 // 6. Xử lý xóa đơn lẻ hoặc hàng loạt tài khoản + DỌN SẠCH CLOUDINARY
 const deleteUsersBulk = async (userIds) => {
   const safeUserIds = userIds.filter(id => Number(id) !== 1)
@@ -133,5 +179,6 @@ export const adminUserService = {
   changeUserRoleBulk,
   toggleUserActiveBulk,
   createUserByAdmin,
-  deleteUsersBulk
+  deleteUsersBulk,
+  updateUserByAdmin
 }

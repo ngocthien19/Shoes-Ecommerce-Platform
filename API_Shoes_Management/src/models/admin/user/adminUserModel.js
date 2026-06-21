@@ -66,15 +66,107 @@ const countUsersForAdmin = async ({ search, roleId, isActive }) => {
 
 // 3. Xem chi tiết thông tin một tài khoản
 const getUserDetailById = async (userId) => {
-  const query = `
-    SELECT u.id, u.role_id, r.name AS role_name, u.fullname, u.email, u.phone, 
-           u.avatar, u.is_active, u.is_verified, u.created_at
+  // 1. Lấy thông tin user cơ bản
+  const userQuery = `
+    SELECT u.id, u.role_id, r.name AS role_name, u.fullname, u.email, u.phone, u.address,
+           u.avatar, u.is_active, u.is_verified, u.created_at, u.last_active
     FROM users u
     JOIN roles r ON u.role_id = r.id
     WHERE u.id = ?
   `
-  const [rows] = await pool.execute(query, [userId])
-  return rows[0] || null
+  const [userRows] = await pool.execute(userQuery, [userId])
+  if (userRows.length === 0) return null
+
+  const user = userRows[0]
+
+  // 2. Lấy thống kê đơn hàng
+  const orderStatsQuery = `
+    SELECT 
+      COUNT(id) AS totalOrders,
+      SUM(CASE WHEN status IN ('pending', 'processing') THEN 1 ELSE 0 END) AS pendingOrders,
+      SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) AS shippingOrders,
+      SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS deliveredOrders,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelledOrders,
+      SUM(total_amount) AS totalSpent
+    FROM orders
+    WHERE user_id = ?
+  `
+  const [orderStatsRows] = await pool.execute(orderStatsQuery, [userId])
+  const orderStats = orderStatsRows[0] || {
+    totalOrders: 0,
+    pendingOrders: 0,
+    shippingOrders: 0,
+    deliveredOrders: 0,
+    cancelledOrders: 0,
+    totalSpent: 0
+  }
+
+  // 3. Lấy danh sách đơn hàng gần đây (5 đơn gần nhất)
+  const recentOrdersQuery = `
+    SELECT id, total_amount, status, payment_status, created_at
+    FROM orders
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 5
+  `
+  const [recentOrders] = await pool.execute(recentOrdersQuery, [userId])
+
+  // 4. Lấy thông tin cửa hàng (nếu user là Vendor)
+  const storeQuery = `
+    SELECT id, name, logo, bio, address, balance, is_active, rating_average, 
+           created_at, commission_rate
+    FROM stores
+    WHERE owner_id = ?
+  `
+  const [storeRows] = await pool.execute(storeQuery, [userId])
+  const store = storeRows[0] || null
+
+  // 5. Lấy thống kê sản phẩm (nếu user có cửa hàng)
+  let productStats = null
+  if (store) {
+    const productStatsQuery = `
+      SELECT 
+        COUNT(id) AS totalProducts,
+        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS activeProducts,
+        SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS inactiveProducts
+      FROM products
+      WHERE store_id = ?
+    `
+    const [productStatsRows] = await pool.execute(productStatsQuery, [store.id])
+    productStats = productStatsRows[0] || {
+      totalProducts: 0,
+      activeProducts: 0,
+      inactiveProducts: 0
+    }
+  }
+
+  // 6. Trả về dữ liệu tổng hợp
+  return {
+    ...user,
+    orderStats: {
+      totalOrders: Number(orderStats.totalOrders) || 0,
+      pendingOrders: Number(orderStats.pendingOrders) || 0,
+      shippingOrders: Number(orderStats.shippingOrders) || 0,
+      deliveredOrders: Number(orderStats.deliveredOrders) || 0,
+      cancelledOrders: Number(orderStats.cancelledOrders) || 0,
+      totalSpent: Number(orderStats.totalSpent) || 0
+    },
+    recentOrders: recentOrders.map(order => ({
+      ...order,
+      total_amount: Number(order.total_amount)
+    })),
+    store: store ? {
+      ...store,
+      balance: Number(store.balance),
+      rating_average: Number(store.rating_average),
+      commission_rate: Number(store.commission_rate),
+      productStats: productStats ? {
+        totalProducts: Number(productStats.totalProducts) || 0,
+        activeProducts: Number(productStats.activeProducts) || 0,
+        inactiveProducts: Number(productStats.inactiveProducts) || 0
+      } : null
+    } : null
+  }
 }
 
 // 4. Cấu hình phân quyền hàng loạt cho mảng ID từ Checkbox (Cấm thay đổi tài khoản ADMIN tối cao khác để bảo vệ hệ thống)
@@ -133,12 +225,20 @@ const checkEmailExist = async (email) => {
 }
 
 // 8. Admin tạo mới tài khoản nhân sự trực tiếp
-const createNewUserByAdmin = async ({ roleId, fullname, email, password, phone, avatar }) => {
+const createNewUserByAdmin = async ({ roleId, fullname, email, password, phone, address, avatar }) => {
   const query = `
-    INSERT INTO users (role_id, fullname, email, password, phone, avatar, is_verified) 
-    VALUES (?, ?, ?, ?, ?, ?, TRUE)
+    INSERT INTO users (role_id, fullname, email, password, phone, address, avatar, is_verified) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
   `
-  const [result] = await pool.execute(query, [Number(roleId), fullname, email, password, phone, avatar])
+  const [result] = await pool.execute(query, [
+    Number(roleId),
+    fullname,
+    email,
+    password,
+    phone,
+    address,
+    avatar
+  ])
   return result.insertId
 }
 
@@ -167,6 +267,44 @@ const deleteUsersHardBulk = async (userIds) => {
   return result.affectedRows
 }
 
+const updateUserById = async (userId, data) => {
+  const updates = []
+  const queryParams = []
+
+  if (data.fullname !== undefined) {
+    updates.push('fullname = ?')
+    queryParams.push(data.fullname)
+  }
+  if (data.phone !== undefined) {
+    updates.push('phone = ?')
+    queryParams.push(data.phone)
+  }
+  if (data.address !== undefined) {
+    updates.push('address = ?')
+    queryParams.push(data.address)
+  }
+  if (data.roleId !== undefined) {
+    updates.push('role_id = ?')
+    queryParams.push(data.roleId)
+  }
+  if (data.password !== undefined) {
+    updates.push('password = ?')
+    queryParams.push(data.password)
+  }
+  if (data.avatar !== undefined) {
+    updates.push('avatar = ?')
+    queryParams.push(data.avatar)
+  }
+
+  if (updates.length === 0) return 0
+
+  const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ? AND id != 1`
+  queryParams.push(userId)
+
+  const [result] = await pool.execute(query, queryParams)
+  return result.affectedRows
+}
+
 export const adminUserModel = {
   getUsersForAdmin,
   countUsersForAdmin,
@@ -178,5 +316,6 @@ export const adminUserModel = {
   checkUsersHaveOrders,
   deleteUsersHardBulk,
   checkEmailExist,
-  getUsersAvatarsBulk
+  getUsersAvatarsBulk,
+  updateUserById
 }
