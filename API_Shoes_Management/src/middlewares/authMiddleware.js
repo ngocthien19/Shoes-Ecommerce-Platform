@@ -56,7 +56,7 @@ const validateVerifyOtp = (req, res, next) => {
 
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 5,
+  max: 20,
   message: {
     message: 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng thử lại sau 5 phút.'
   },
