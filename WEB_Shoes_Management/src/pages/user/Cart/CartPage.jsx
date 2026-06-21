@@ -135,10 +135,28 @@ export const CartPage = () => {
   }
 
   const handleUpdateQuantity = async (variantId, newQty) => {
+    const oldItem = cartItems.find(item => item.variant_id === variantId)
+    const oldQty = oldItem?.cart_quantity || 1
+
+    setCartItems(prev =>
+      prev.map(item =>
+        item.variant_id === variantId
+          ? { ...item, cart_quantity: newQty }
+          : item
+      )
+    )
+
     try {
-      const res = await cartApiService.updateQuantity(variantId, newQty)
-      if (res) fetchCartData()
+      await cartApiService.updateQuantity(variantId, newQty)
+      fetchCartData()
     } catch (error) {
+      setCartItems(prev =>
+        prev.map(item =>
+          item.variant_id === variantId
+            ? { ...item, cart_quantity: oldQty }
+            : item
+        )
+      )
       toast.error(error.response?.data?.message || 'Lỗi cập nhật số lượng!')
     }
   }
