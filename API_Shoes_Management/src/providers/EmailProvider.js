@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer'
 import { env } from '~/config/environment'
+import dns from 'dns'
 
-// Cấu hình transporter tối ưu cho production
+dns.setDefaultResultOrder('ipv4first')
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -10,21 +12,22 @@ const transporter = nodemailer.createTransport({
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS
   },
+  // Cấu hình mạng
   tls: {
-    rejectUnauthorized: false, // Bỏ qua lỗi chứng chỉ SSL
+    rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
   },
-  socketTimeout: 60000, // 60 giây timeout
-  connectionTimeout: 60000, // 60 giây timeout kết nối
-  family: 4 // Force IPv4
+  socketTimeout: 60000,
+  connectionTimeout: 60000,
+  family: 4
 })
 
-// Kiểm tra kết nối khi khởi động
+// Kiểm tra kết nối
 const verifyConnection = async () => {
   try {
     await transporter.verify()
   } catch (error) {
-    // console.error('❌ Kết nối Email Server thất bại:', error.message)
+    // console.error('Kết nối Email Server thất bại:', error.message)
   }
 }
 
