@@ -69,22 +69,24 @@ export const OrderDetailPage = () => {
           className="bg-white rounded-3xl p-8 md:p-16 my-8 overflow-hidden shadow-shadow-custom"
         >
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mb-4 sm:mb-6 md:mb-8">
             <motion.h2
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.2, ease: 'anticipate' }}
-              className="text-xl font-extrabold text-brand-secondary flex items-center gap-2"
+              className="text-base sm:text-lg md:text-xl font-extrabold text-brand-secondary flex flex-wrap items-center gap-2"
             >
-              <FiInfo className="text-brand-primary" /> Chi tiết đơn hàng #{order.order_id}
-              {renderStatusBadge(order.status)}
+              <FiInfo className="text-brand-primary shrink-0" />
+              <span>Chi tiết đơn hàng #{order.order_id}</span>
+              <span className="inline-block">{renderStatusBadge(order.status)}</span>
             </motion.h2>
 
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center justify-center gap-2 text-sm font-semibold text-gray-600 bg-white border border-gray-200 px-4 py-2.5 rounded-xl shadow-sm hover:text-brand-primary hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-gray-600 bg-white border border-gray-200 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-sm hover:text-brand-primary hover:border-brand-primary hover:bg-brand-primary/5 transition-all duration-300 cursor-pointer active:scale-95 shrink-0 w-full sm:w-auto"
             >
-              <FiArrowLeft size={16} /> Quay lại danh sách
+              <FiArrowLeft size={14} className="sm:w-4 sm:h-4" />
+              <span>Quay lại danh sách</span>
             </button>
           </div>
 

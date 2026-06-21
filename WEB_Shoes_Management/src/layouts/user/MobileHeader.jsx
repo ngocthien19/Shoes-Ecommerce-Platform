@@ -91,10 +91,6 @@ export const MobileHeader = ({ mobileMenuOpen, searchTerm, setSearchTerm,
         {user ? (
           <div className="flex items-center justify-between pt-4 pb-2">
             <span className="text-sm font-semibold text-gray-700">Xin chào, {user.fullname}</span>
-            <div className="relative cursor-pointer">
-              <FiShoppingCart size={22} className="text-gray-700 hover:text-brand-primary transition-colors" />
-              <span className="absolute -top-2 -right-2 bg-brand-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">3</span>
-            </div>
           </div>
         ) : (
           <div className="flex gap-3 pt-4 pb-2">

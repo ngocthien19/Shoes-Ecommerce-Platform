@@ -14,7 +14,7 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
   const dispatch = useDispatch()
 
   const [activePickerProductId, setActivePickerProductId] = useState(null)
-  const [selectedVariants, setSelectedVariants] = useState({}) // { [productId]: { size, color } }
+  const [selectedVariants, setSelectedVariants] = useState({})
   const [productImages, setProductImages] = useState({})
 
   const getColorDisplay = (color) => {
@@ -209,9 +209,10 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
           return (
             <div
               key={product.id}
-              className="group bg-white border border-gray-100 rounded-2xl p-4 flex gap-4 items-center transition-all duration-300 hover:shadow-bold hover:-translate-y-0.5 relative overflow-hidden"
+              className="group bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 flex gap-3 sm:gap-4 items-center transition-all duration-300 hover:shadow-bold hover:-translate-y-0.5 relative overflow-hidden"
             >
-              <Link to={`/product/${product.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 shrink-0 cursor-pointer relative">
+              {/* Ảnh sản phẩm */}
+              <Link to={`/product/${product.slug}`} className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border border-gray-100 shrink-0 cursor-pointer relative">
                 <img
                   src={currentImage}
                   alt={product.name}
@@ -224,60 +225,77 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                 )}
               </Link>
 
-              <div className="flex-1 min-w-0 space-y-1 text-left">
+              {/* Thông tin sản phẩm */}
+              <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1 text-left">
                 <Link
                   to={`/product/${product.slug}`}
-                  className="font-bold text-gray-800 text-sm sm:text-base line-clamp-1 hover:text-brand-primary transition-colors cursor-pointer block"
+                  className="font-bold text-gray-800 text-xs sm:text-sm md:text-base line-clamp-1 hover:text-brand-primary transition-colors cursor-pointer block"
                 >
                   {product.name}
                 </Link>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-                  <FiHome size={13} className="text-brand-secondary" />
+
+                {/* Tên cửa hàng */}
+                <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-400 font-medium">
+                  <FiHome size={12} className="text-brand-secondary shrink-0" />
                   <span className="truncate">{product.store_name}</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-400 pt-0.5">
+
+                {/* Rating và Đã bán - Responsive */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-gray-400 pt-0.5">
+                  {/* ⭐ Rating - luôn hiển thị */}
                   <div className="flex items-center text-amber-400 gap-0.5">
                     {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
-                    <span className="text-gray-600 font-semibold ml-1">{parseFloat(product.rating_avg).toFixed(1)}</span>
+                    <span className="text-gray-600 font-semibold ml-0.5 sm:ml-1">{parseFloat(product.rating_avg).toFixed(1)}</span>
                   </div>
-                  <span>|</span>
-                  <span>Đã bán {formatSold(product.sold)}</span>
+
+                  {/* Dấu | - ẩn trên mobile */}
+                  <span className="hidden xs:inline text-gray-300">|</span>
+
+                  {/* Đã bán - Ẩn trên mobile, hiện từ tablet trở lên */}
+                  <span className="hidden xs:inline">
+                    Đã bán {formatSold(product.sold)}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-col items-end justify-between self-stretch shrink-0 pt-0.5 min-w-[100px]">
-                <div className="flex items-center gap-1">
+              {/* Giá và nút hành động */}
+              <div className="flex flex-col items-end justify-between self-stretch shrink-0 pt-0.5 min-w-[70px] sm:min-w-[100px]">
+                <div className="flex items-center gap-0.5 sm:gap-1">
+                  {/* Nút thêm vào giỏ */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => handleOpenPicker(product)}
-                        className="text-brand-primary hover:bg-[#e94560]/10 p-1.5 rounded-full transition-all cursor-pointer group/cart flex items-center justify-center gap-0.5"
+                        className="text-brand-primary hover:bg-[#e94560]/10 p-1 sm:p-1.5 rounded-full transition-all cursor-pointer group/cart flex items-center justify-center gap-0.5"
                       >
-                        <FiPlus size={14} className="font-bold" />
-                        <FiShoppingCart size={16} />
+                        <FiPlus size={12} className="font-bold" />
+                        <FiShoppingCart size={14} />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent><p>Thêm vào giỏ hàng</p></TooltipContent>
                   </Tooltip>
 
+                  {/* Nút bỏ thích */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => onRemoveFavoriteItem(product.id)}
-                        className="text-red-500 hover:text-red-600 p-1.5 rounded-full hover:bg-red-50 transition-all cursor-pointer group/btn"
+                        className="text-red-500 hover:text-red-600 p-1 sm:p-1.5 rounded-full hover:bg-red-50 transition-all cursor-pointer group/btn"
                       >
-                        <FiHeart size={18} fill="currentColor" className="transition-transform duration-200 group-hover/btn:scale-110" />
+                        <FiHeart size={14} fill="currentColor" className="transition-transform duration-200 group-hover/btn:scale-110" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent><p>Bỏ thích</p></TooltipContent>
                   </Tooltip>
                 </div>
 
-                <p className="font-extrabold text-base sm:text-lg text-brand-secondary tracking-tight">
+                {/* Giá */}
+                <p className="font-extrabold text-sm sm:text-base md:text-lg text-brand-secondary tracking-tight">
                   {formatPrice(product.price)}
                 </p>
               </div>
 
+              {/* Picker - giữ nguyên */}
               {isPickerOpen && (
                 <QuickFavoritePicker
                   product={product}
@@ -286,7 +304,6 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                   uniqueColors={colorsWithStock}
                   selectedSize={selectedSize}
                   setSelectedSize={(size) => {
-                    // Cập nhật state ngay lập tức
                     setSelectedVariants(prev => {
                       const current = prev[product.id] || { size: null, color: null }
                       return {
@@ -300,7 +317,6 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
                   }}
                   selectedColor={selectedColor}
                   setSelectedColor={(color) => {
-                    // Cập nhật state ngay lập tức và đổi ảnh
                     setSelectedVariants(prev => {
                       const current = prev[product.id] || { size: null, color: null }
                       return {
