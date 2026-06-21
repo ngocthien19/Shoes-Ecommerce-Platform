@@ -35,7 +35,8 @@ const getOrderHistoryPaginated = async (userId, page, limit, status) => {
 }
 
 // 2. USER: Lấy chi tiết các đôi giày nằm trong đơn hàng đó để hiển thị lên UI
-const getOrderItemsByOrderId = async (orderId) => {
+const getOrderItemsByOrderId = async (orderId, conn = null) => {
+  const connection = conn || pool
   const query = `
     SELECT 
       oi.id AS item_id, 
@@ -46,13 +47,14 @@ const getOrderItemsByOrderId = async (orderId) => {
       pv.image AS variant_image, 
       p.name AS product_name, 
       p.images AS product_images, 
-      p.slug
+      p.slug,
+      pv.id AS variant_id
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
     WHERE oi.order_id = ?
   `
-  const [items] = await pool.execute(query, [orderId])
+  const [items] = await connection.execute(query, [orderId])
 
   // Parse variant_image nếu là string JSON
   return items.map(item => {
@@ -76,6 +78,8 @@ const getOrderItemsByOrderId = async (orderId) => {
 
     return {
       ...item,
+      variant_id: item.variant_id || null,
+      quantity: item.quantity || 0,
       variant_image: parsedVariantImage,
       product_images: parsedProductImages
     }
@@ -143,19 +147,17 @@ const getOrderDetailByIdAndUser = async (orderId, userId) => {
 }
 
 // 9. Cập nhật trạng thái đơn hàng kèm lý do hủy
-const updateOrderStatusWithReason = async (orderId, status, cancelReason = null) => {
-  let query = 'UPDATE orders SET status = ?'
-  const queryParams = [status]
+const updateOrderStatusWithReason = async (orderId, status, cancelReason = null, conn = null) => {
+  const connection = conn || pool
 
-  if (cancelReason) {
-    query += ', cancel_reason = ?'
-    queryParams.push(cancelReason)
-  }
+  const reason = (cancelReason && typeof cancelReason === 'string' && cancelReason.trim())
+    ? cancelReason.trim()
+    : null
 
-  query += ' WHERE id = ?'
-  queryParams.push(orderId)
+  const query = 'UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?'
+  const queryParams = [status, reason, orderId]
 
-  const [result] = await pool.execute(query, queryParams)
+  const [result] = await connection.execute(query, queryParams)
   return result
 }
 
