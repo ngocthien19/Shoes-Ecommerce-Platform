@@ -7,6 +7,7 @@ export const env = {
   DB_USER: process.env.DB_USER,
   DB_PASSWORD: process.env.DB_PASSWORD,
   DB_NAME: process.env.DB_NAME,
+  DB_PORT: process.env.DB_PORT || 3307,
 
   // Cấu hình Email
   EMAIL_USER: process.env.EMAIL_USER,
