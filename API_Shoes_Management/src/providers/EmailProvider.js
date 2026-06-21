@@ -6,20 +6,19 @@ dns.setDefaultResultOrder('ipv4first')
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for 465, false for other ports
+  port: 587,
+  secure: false,
   auth: {
     user: env.EMAIL_USER,
     pass: env.EMAIL_PASS
   },
-  // Cấu hình mạng
+  family: 4,
   tls: {
     rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
   },
   socketTimeout: 60000,
-  connectionTimeout: 60000,
-  family: 4
+  connectionTimeout: 60000
 })
 
 // Kiểm tra kết nối
