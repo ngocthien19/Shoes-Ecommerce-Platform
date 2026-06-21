@@ -8,6 +8,7 @@ import { MaintenanceModal } from '~/components/common/MaintenanceModal'
 export const ManagerLayout = () => {
   const { isMaintenance, maintenanceMessage, loading, handleMaintenanceLogout } = useMaintenance()
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!loading && isMaintenance) {
@@ -17,8 +18,15 @@ export const ManagerLayout = () => {
 
   const handleCloseMaintenance = () => {
     setShowMaintenanceModal(false)
-    // Gọi logout
     handleMaintenanceLogout()
+  }
+
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen)
+  }
+
+  const closeMobileSidebar = () => {
+    setIsMobileSidebarOpen(false)
   }
 
   if (loading) {
@@ -32,17 +40,22 @@ export const ManagerLayout = () => {
   return (
     <>
       <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden">
-        {/* Sidebar cố định bên trái */}
-        <ManagerSidebar />
+        {/* Sidebar */}
+        <ManagerSidebar
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileClose={closeMobileSidebar}
+        />
 
         {/* Khu vực nội dung bên phải */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Header cố định trên cùng */}
-          <ManagerHeader />
+          {/* Header với nút toggle */}
+          <ManagerHeader onMenuToggle={toggleMobileSidebar} />
 
-          {/* Nội dung chính cuộn dọc */}
-          <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-            <Outlet />
+          {/* Nội dung chính */}
+          <main className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 custom-scrollbar">
+            <div className="max-w-7xl mx-auto">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>

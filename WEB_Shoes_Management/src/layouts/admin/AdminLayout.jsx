@@ -1,23 +1,72 @@
+import { useState, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AdminSidebar } from './AdminSidebar'
 import { AdminHeader } from './AdminHeader'
+import { useMaintenance } from '~/hooks/useMaintenance'
+import { MaintenanceModal } from '~/components/common/MaintenanceModal'
 
 export const AdminLayout = () => {
-  return (
-    <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden">
-      {/* Sidebar cố định bên trái */}
-      <AdminSidebar />
+  const { isMaintenance, maintenanceMessage, loading, handleMaintenanceLogout } = useMaintenance()
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
-      {/* Khu vực nội dung bên phải */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Header cố định trên cùng */}
-        <AdminHeader />
+  useEffect(() => {
+    if (!loading && isMaintenance) {
+      setShowMaintenanceModal(true)
+    }
+  }, [loading, isMaintenance])
 
-        {/* Nội dung chính cuộn dọc */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-          <Outlet />
-        </main>
+  const handleCloseMaintenance = () => {
+    setShowMaintenanceModal(false)
+    handleMaintenanceLogout()
+  }
+
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen)
+  }
+
+  const closeMobileSidebar = () => {
+    setIsMobileSidebarOpen(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden">
+        {/* Sidebar */}
+        <AdminSidebar
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileClose={closeMobileSidebar}
+        />
+
+        {/* Khu vực nội dung bên phải */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Header với nút toggle */}
+          <AdminHeader onMenuToggle={toggleMobileSidebar} />
+
+          {/* Nội dung chính */}
+          <main className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 custom-scrollbar">
+            <div className="max-w-7xl mx-auto">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Maintenance Modal */}
+      <MaintenanceModal
+        isOpen={showMaintenanceModal}
+        message={maintenanceMessage}
+        onClose={handleCloseMaintenance}
+        onLogout={handleMaintenanceLogout}
+      />
+    </>
   )
 }

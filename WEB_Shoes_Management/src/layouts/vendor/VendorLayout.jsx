@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import { VendorSidebar } from '~/layouts/vendor/VendorSidebar'
@@ -17,6 +17,9 @@ export const VendorLayout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastAppealId, setLastAppealId] = useState(null)
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
+  const navigate = useNavigate()
   const user = useSelector((state) => state.user.userInfo)
 
   const { isMaintenance, maintenanceMessage, loading: maintenanceLoading, handleMaintenanceLogout } = useMaintenance()
@@ -79,8 +82,17 @@ export const VendorLayout = () => {
 
   const handleCloseMaintenance = () => {
     setShowMaintenanceModal(false)
-    // Gọi logout
     handleMaintenanceLogout()
+  }
+
+  // Hàm toggle sidebar
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen)
+  }
+
+  // Hàm close sidebar
+  const closeMobileSidebar = () => {
+    setIsMobileSidebarOpen(false)
   }
 
   // Nếu đang kiểm tra, hiển thị loading
@@ -95,21 +107,32 @@ export const VendorLayout = () => {
   return (
     <>
       <div className="flex h-screen bg-gray-50/50 font-sans overflow-hidden relative">
-        {/* Sidebar cố định bên trái */}
-        <VendorSidebar isBanned={isBanned} />
+        {/* Sidebar */}
+        <VendorSidebar
+          isBanned={isBanned}
+          isMobileOpen={isMobileSidebarOpen}
+          onMobileClose={closeMobileSidebar}
+        />
 
         {/* Khu vực nội dung bên phải */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Header cố định trên cùng */}
-          <VendorHeader isBanned={isBanned} />
+          {/* Header với nút toggle */}
+          <VendorHeader
+            isBanned={isBanned}
+            onMenuToggle={toggleMobileSidebar}
+          />
 
-          {/* Nội dung chính cuộn dọc - bị mờ khi bị khóa */}
-          <main className={`flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar transition-all duration-300 ${isBanned ? 'opacity-50 pointer-events-none select-none blur-sm' : ''}`}>
-            <Outlet />
+          {/* Nội dung chính */}
+          <main className={`flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 custom-scrollbar transition-all duration-300 ${
+            isBanned ? 'opacity-50 pointer-events-none select-none blur-sm' : ''
+          }`}>
+            <div className="max-w-7xl mx-auto">
+              <Outlet />
+            </div>
           </main>
         </div>
 
-        {/* Overlay khi bị khóa - chặn toàn bộ tương tác */}
+        {/* Overlay khi bị khóa */}
         {isBanned && (
           <StoreBannedOverlay
             store={storeData}
