@@ -1,38 +1,30 @@
-import nodemailer from 'nodemailer'
+import axios from 'axios'
 import { env } from '~/config/environment'
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp-relay.brevo.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: env.BREVO_SMTP_USER,
-    pass: env.BREVO_SMTP_KEY
-  },
-  family: 4,
-  tls: {
-    rejectUnauthorized: false,
-    minVersion: 'TLSv1.2'
-  },
-  socketTimeout: 60000,
-  connectionTimeout: 60000
-})
 
 const sendEmail = async (to, subject, htmlContent) => {
   try {
-    const mailOptions = {
-      from: `Shoes Store <${env.BREVO_SMTP_USER}>`,
-      to,
-      subject,
-      html: htmlContent
-    }
-    const result = await transporter.sendMail(mailOptions)
-    return result
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          email: env.BREVO_SMTP_USER,
+          name: 'Shoes Store'
+        },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: htmlContent
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': env.BREVO_API_KEY
+        }
+      }
+    )
+    return response.data
   } catch (error) {
-    throw new Error(`Lỗi gửi Email: ${error.message}`)
+    throw new Error(`Lỗi gửi Email: ${error.response?.data?.message || error.message}`)
   }
 }
 
-export const EmailProvider = {
-  sendEmail
-}
+export const EmailProvider = { sendEmail }
