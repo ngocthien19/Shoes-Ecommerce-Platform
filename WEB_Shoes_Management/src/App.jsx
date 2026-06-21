@@ -41,7 +41,7 @@ import { ManagerStoreDetailPage } from '~/pages/manager/Store/StoreDetail/Manage
 import { ManagerProductDetailPage } from '~/pages/manager/Store/StoreDetail/ProductDetail/ManagerProductDetailPage'
 import { ManagerProductsPage } from '~/pages/manager/Products/ManagerProductsPage'
 import { ManagerReviewsPage } from '~/pages/manager/Reviews/ManagerReviewsPage'
-import { ManagerReviewDetailPage } from '~/pages/manager/reviews/ReviewDetail/ManagerReviewDetailPage'
+import { ManagerReviewDetailPage } from '~/pages/manager/Reviews/ReviewDetail/ManagerReviewDetailPage'
 import { ManagerAppealsPage } from '~/pages/manager/Appeals/ManagerAppealsPage'
 import { ManagerAppealDetailPage } from '~/pages/manager/Appeals/AppealDetail/ManagerAppealDetailPage'
 import { ManagerProfileAccount } from '~/pages/manager/Profile/ManagerProfileAccount'
