@@ -15,12 +15,17 @@ const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount
     const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
 
     let message = ''
+    let orderStatus = null
+
     if (type === NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED) {
       message = `Khách hàng ${buyerName} đã gửi yêu cầu hủy đơn hàng #${orderId} với lý do: "${reason || 'Không có lý do cụ thể'}". Tổng tiền: ${formattedAmount}. Vui lòng xem xét và duyệt yêu cầu.`
+      orderStatus = 'cancel_requested'
     } else if (type === NOTIFICATION_TYPES.ORDER_CANCELLED) {
       message = `Đơn hàng #${orderId} từ khách hàng ${buyerName} đã bị hủy trực tiếp với lý do: "${reason || 'Không có lý do cụ thể'}". Tổng tiền: ${formattedAmount}.`
+      orderStatus = 'cancelled'
     } else if (type === NOTIFICATION_TYPES.ORDER_PROCESSING) {
       message = `Khách hàng ${buyerName} đã rút lại yêu cầu hủy đơn hàng #${orderId}. Tổng tiền: ${formattedAmount}. Đơn hàng đã được đưa trở lại trạng thái đang xử lý.`
+      orderStatus = 'processing'
     }
 
     await notificationService.createAndPushNotification({
@@ -33,7 +38,7 @@ const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount
         buyerName: buyerName,
         amount: totalAmount,
         reason: reason,
-        orderStatus: type === NOTIFICATION_TYPES.ORDER_PROCESSING ? 'processing' : null
+        orderStatus: orderStatus
       }),
       type: type,
       referenceId: orderId
@@ -113,7 +118,6 @@ const cancelOrderByUser = async (userId, orderId, cancelReason) => {
       throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
     }
 
-    // Chỉ cho phép hủy khi đơn hàng ở trạng thái PENDING hoặc PROCESSING
     if ([ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.CANCEL_REQUESTED].includes(order.status)) {
       throw new Error('Đơn hàng đã thay đổi trạng thái, không thể thực hiện yêu cầu hủy.')
     }
@@ -283,7 +287,6 @@ const handleAutoConfirmOrders = async () => {
 
 // 4. Rút yêu cầu hủy
 const withdrawCancelRequest = async (userId, orderId) => {
-  // Lấy thông tin đơn hàng
   const order = await orderTrackingModel.getOrderById(orderId)
 
   if (!order) {
@@ -294,7 +297,6 @@ const withdrawCancelRequest = async (userId, orderId) => {
     throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
   }
 
-  // Chỉ cho phép rút yêu cầu khi đơn hàng đang ở trạng thái CANCEL_REQUESTED
   if (order.status !== ORDER_STATUS.CANCEL_REQUESTED) {
     throw new Error('Đơn hàng không ở trạng thái chờ hủy, không thể rút lại yêu cầu hủy.')
   }
