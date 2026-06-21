@@ -148,7 +148,7 @@ export const CartPage = () => {
 
     try {
       await cartApiService.updateQuantity(variantId, newQty)
-      fetchCartData()
+      // fetchCartData()
     } catch (error) {
       setCartItems(prev =>
         prev.map(item =>
