@@ -14,7 +14,6 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
   const dispatch = useDispatch()
 
   const [activePickerProductId, setActivePickerProductId] = useState(null)
-  // ✅ Fix: dùng object theo product.id thay vì state chung
   const [selectedVariants, setSelectedVariants] = useState({}) // { [productId]: { size, color } }
   const [productImages, setProductImages] = useState({})
 
@@ -108,10 +107,8 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
     setProductImages(initialImages)
   }, [favoriteProducts])
 
-  // ✅ Helper để lấy selected của từng product
   const getSelected = (productId) => selectedVariants[productId] || { size: null, color: null }
 
-  // ✅ Helper để set selected của từng product
   const setSelected = (productId, patch) => {
     setSelectedVariants(prev => ({
       ...prev,
@@ -207,7 +204,6 @@ export const TabFavorites = ({ loading, favoriteProducts, onRemoveFavoriteItem }
 
           const isPickerOpen = activePickerProductId === product.id
 
-          // ✅ Lấy selected theo từng product
           const { size: selectedSize, color: selectedColor } = getSelected(product.id)
 
           return (

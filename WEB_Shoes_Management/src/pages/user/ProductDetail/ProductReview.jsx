@@ -39,7 +39,7 @@ export const ProductReview = ({ product }) => {
 
   return (
     <motion.div
-      className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 mt-8"
+      className="mb-10 bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-gray-100 mt-8"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}

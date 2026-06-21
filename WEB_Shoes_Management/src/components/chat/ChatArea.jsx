@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '~/components/ui/tooltip'
+import { Link } from 'react-router-dom'
 
 export const ChatArea = ({
   activeChat,
@@ -113,7 +114,7 @@ export const ChatArea = ({
               className="w-10 h-10 rounded-full object-cover border-2 border-white/50 bg-white shrink-0"
             />
             <div className="flex flex-col">
-              <span className="font-bold text-sm leading-tight">{displayName}</span>
+              <Link to={`/store/${activeChat.store_id}`} className="font-bold text-sm leading-tight">{displayName}</Link>
               <span className={`text-[10px] font-normal leading-tight mt-0.5 ${isOnline ? 'text-green-200' : 'text-white/70'}`}>
                 {isOnline ? 'Đang hoạt động' : `Hoạt động ${formatLastActive(lastActive).toLowerCase()}`}
               </span>
