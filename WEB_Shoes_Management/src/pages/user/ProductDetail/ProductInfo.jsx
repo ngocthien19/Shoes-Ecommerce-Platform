@@ -99,7 +99,6 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
   const availableSizes = variants.filter(v => v.color === selectedColor)
   const currentVariant = variants.find(v => v.color === selectedColor && v.size === selectedSize)
 
-  // Khi chọn màu từ gallery, cập nhật selectedColor
   useEffect(() => {
     if (onColorChangeFromGallery && onColorChangeFromGallery !== selectedColor) {
       setSelectedColor(onColorChangeFromGallery)
@@ -119,10 +118,8 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
     if (type === 'plus' && quantity < stock) setQuantity(prev => prev + 1)
   }
 
-  // Khi chọn màu, thông báo lên gallery để đổi ảnh
   const handleColorSelect = (color) => {
     setSelectedColor(color)
-    // Gọi callback để đổi ảnh bên gallery
     if (onColorSelect) {
       onColorSelect(color)
     }
@@ -130,35 +127,53 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
 
   return (
     <motion.div
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4 sm:gap-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       {/* Header Info */}
-      <motion.div className="space-y-3" variants={itemVariants}>
-        <span className="inline-block bg-[#e94560]/10 text-brand-primary text-xs font-bold px-3 py-1 rounded-full">
+      <motion.div className="space-y-2 sm:space-y-3" variants={itemVariants}>
+        <span className="inline-block bg-[#e94560]/10 text-brand-primary text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full w-fit">
           Sản phẩm nổi bật
         </span>
-        <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
 
-        <div className="flex items-center gap-4 text-sm text-gray-500 divide-x divide-gray-200">
-          <div className="flex items-center gap-1 text-yellow-400 pr-4">
+        {/* Rating, Views, Sold - Responsive với TEXT vẫn giữ nguyên */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs sm:text-sm text-gray-500">
+          {/* ⭐ Rating */}
+          <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-400">
             {[...Array(5)].map((_, i) => (
               <FiStar
                 key={i}
                 className={`${i < Math.round(product.rating_avg || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                size={16}
+                size={14}
               />
             ))}
-            <span className="text-gray-900 font-semibold ml-1">{product.rating_avg}</span>
+            <span className="text-gray-900 font-semibold ml-0.5 sm:ml-1">{product.rating_avg}</span>
           </div>
-          <div className="px-4">{product.view_count || 0} Lượt xem</div>
-          <div className="px-4">{formatSold(product.sold)} Đã bán</div>
 
-          {/* Nút Yêu thích */}
+          <span className="text-gray-300">|</span>
+
+          {/* 👁️ Lượt xem */}
+          <div className="flex items-center gap-1">
+            <span>{product.view_count || 0}</span>
+            <span>Lượt xem</span>
+          </div>
+
+          <span className="text-gray-300">|</span>
+
+          {/* 📦 Đã bán */}
+          <div className="flex items-center gap-1">
+            <span>{formatSold(product.sold)}</span>
+            <span>Đã bán</span>
+          </div>
+
+          <span className="text-gray-300">|</span>
+
+          {/* ❤️ Yêu thích */}
           <motion.button
-            className={`flex items-center gap-2 pl-4 transition-colors duration-300 cursor-pointer group select-none
+            className={`flex items-center gap-1 sm:gap-2 transition-colors duration-300 cursor-pointer group select-none text-xs sm:text-sm
               ${isFavorite ? 'text-brand-primary font-semibold' : 'hover:text-brand-primary'}`}
             onClick={handleToggleFavorite}
             whileTap={{ scale: 0.9 }}
@@ -168,7 +183,7 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
               transition={{ duration: 0.3 }}
             >
               <FiHeart
-                size={16}
+                size={14}
                 className={`transition-all duration-300 group-hover:fill-brand-primary 
                   ${isFavorite ? 'text-brand-primary fill-brand-primary' : ''}`}
                 fill={isFavorite ? 'currentColor' : 'none'}
@@ -179,47 +194,50 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
         </div>
       </motion.div>
 
-      {/* Giá */}
-      <motion.div className="bg-gray-50 rounded-2xl p-6 flex flex-col gap-2" variants={itemVariants}>
-        <div className="flex items-center gap-4">
-          <span className="text-4xl font-bold text-brand-primary">{formatPrice(finalPrice)}</span>
+      {/* Giá - Responsive với TEXT vẫn giữ nguyên */}
+      <motion.div className="bg-gray-50 rounded-2xl p-4 sm:p-6 flex flex-col gap-2" variants={itemVariants}>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-primary">
+            {formatPrice(finalPrice)}
+          </span>
           {product?.discount_percentage && (
-            <div className="flex items-center gap-3">
-              <span className="text-lg text-gray-400 line-through font-medium">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="text-sm sm:text-lg text-gray-400 line-through font-medium">
                 {formatPrice(product.price)}
               </span>
-              <span className="bg-brand-primary text-white text-sm font-bold px-3 py-1 rounded-lg shadow-sm">
+              <span className="bg-brand-primary text-white text-[10px] sm:text-sm font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg shadow-sm">
                 -{product.discount_percentage}%
               </span>
             </div>
           )}
         </div>
         {product?.promotion_name && (
-          <div className="text-sm font-semibold text-brand-secondary bg-[#0f3460]/10 px-3 py-1.5 rounded-lg w-fit flex items-center gap-1.5">
-            <FiZap className="text-brand-secondary" size={24} /> {product.promotion_name}
+          <div className="text-xs sm:text-sm font-semibold text-brand-secondary bg-[#0f3460]/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg w-fit flex items-center gap-1 sm:gap-1.5">
+            <FiZap className="text-brand-secondary" size={16} />
+            <span>{product.promotion_name}</span>
           </div>
         )}
       </motion.div>
 
       {/* Mô tả ngắn */}
-      <motion.p className="text-gray-600 text-sm leading-relaxed" variants={itemVariants}>
+      <motion.p className="text-gray-600 text-xs sm:text-sm leading-relaxed" variants={itemVariants}>
         {product.description}
       </motion.p>
 
       {/* Biến thể: Màu sắc */}
       {uniqueColors.length > 0 && (
-        <motion.div className="space-y-3" variants={itemVariants}>
-          <h3 className="font-bold text-sm text-gray-800 uppercase">
+        <motion.div className="space-y-2 sm:space-y-3" variants={itemVariants}>
+          <h3 className="font-bold text-xs sm:text-sm text-gray-800 uppercase">
             Màu sắc: <span className="font-normal text-gray-600 capitalize">{selectedColor}</span>
           </h3>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {uniqueColors.map(color => (
               <motion.button
                 key={color}
                 onClick={() => handleColorSelect(color)}
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                className={`px-4 py-2 border-2 rounded-lg text-sm font-semibold transition-all duration-300 cursor-pointer
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 border-2 rounded-lg text-[10px] sm:text-sm font-semibold transition-all duration-300 cursor-pointer
                   ${selectedColor === color ? 'border-brand-primary text-brand-primary bg-[#e94560]/5' : 'border-gray-200 text-gray-600 hover:border-brand-primary hover:text-brand-primary'}`}
               >
                 {color}
@@ -231,14 +249,14 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
 
       {/* Biến thể: Kích cỡ */}
       {availableSizes.length > 0 && (
-        <motion.div className="space-y-3" variants={itemVariants}>
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-gray-800 uppercase">Kích cỡ</h3>
-            <span className="text-sm font-semibold text-brand-primary hover:text-[#c73652] hover:underline transition-colors duration-300 cursor-pointer">
+        <motion.div className="space-y-2 sm:space-y-3" variants={itemVariants}>
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <h3 className="font-bold text-xs sm:text-sm text-gray-800 uppercase">Kích cỡ</h3>
+            <span className="text-[10px] sm:text-sm font-semibold text-brand-primary hover:text-[#c73652] hover:underline transition-colors duration-300 cursor-pointer">
               Bảng quy đổi kích cỡ
             </span>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {availableSizes.map(v => {
               const isOutOfStock = v.stock === 0
               return (
@@ -248,7 +266,7 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
                   onClick={() => setSelectedSize(v.size)}
                   whileHover={!isOutOfStock ? { scale: 1.06 } : {}}
                   whileTap={!isOutOfStock ? { scale: 0.94 } : {}}
-                  className={`w-14 h-12 flex items-center justify-center border-2 rounded-lg font-semibold transition-all duration-300
+                  className={`w-10 h-10 sm:w-14 sm:h-12 flex items-center justify-center border-2 rounded-lg font-semibold transition-all duration-300 text-xs sm:text-sm
                     ${isOutOfStock ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-100 text-gray-400'
                   : selectedSize === v.size ? 'border-brand-primary text-brand-primary bg-[#e94560]/5 cursor-pointer'
                     : 'border-gray-200 text-gray-700 hover:border-brand-primary hover:text-brand-primary cursor-pointer'}`}
@@ -263,11 +281,11 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
 
       {/* Danh mục */}
       {product?.category_name && (
-        <motion.div className="flex items-center gap-6 mt-2" variants={itemVariants}>
-          <h3 className="font-bold text-sm text-gray-800 uppercase">Danh mục</h3>
+        <motion.div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-1 sm:mt-2" variants={itemVariants}>
+          <h3 className="font-bold text-xs sm:text-sm text-gray-800 uppercase">Danh mục</h3>
           <Link
             to={`/products?categories=${product.category_slug}`}
-            className="px-4 py-1.5 bg-gray-50 border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg hover:border-brand-primary hover:text-brand-primary transition-all duration-300"
+            className="px-3 sm:px-4 py-1 sm:py-1.5 bg-gray-50 border border-gray-200 text-gray-600 text-[10px] sm:text-sm font-semibold rounded-lg hover:border-brand-primary hover:text-brand-primary transition-all duration-300"
           >
             {product.category_name}
           </Link>
@@ -275,17 +293,17 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
       )}
 
       {/* Số lượng */}
-      <motion.div className="flex items-center gap-6 mt-2" variants={itemVariants}>
-        <h3 className="font-bold text-sm text-gray-800 uppercase">Số lượng</h3>
-        <div className="flex items-center border border-gray-200 rounded-lg h-11 w-32">
+      <motion.div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-1 sm:mt-2" variants={itemVariants}>
+        <h3 className="font-bold text-xs sm:text-sm text-gray-800 uppercase">Số lượng</h3>
+        <div className="flex items-center border border-gray-200 rounded-lg h-9 sm:h-11 w-24 sm:w-32">
           <motion.button
             onClick={() => handleQuantityChange('minus')}
             whileTap={{ scale: 0.85 }}
             className="flex-1 flex justify-center text-gray-500 hover:text-brand-primary transition-colors duration-300 cursor-pointer"
           >
-            <FiMinus />
+            <FiMinus size={14} />
           </motion.button>
-          <span className="flex-1 text-center font-semibold text-gray-800 border-x border-gray-200 h-full flex items-center justify-center">
+          <span className="flex-1 text-center font-semibold text-gray-800 border-x border-gray-200 h-full flex items-center justify-center text-sm">
             {quantity}
           </span>
           <motion.button
@@ -293,36 +311,38 @@ export const ProductInfo = ({ product, onColorChangeFromGallery, onColorSelect }
             whileTap={{ scale: 0.85 }}
             className="flex-1 flex justify-center text-gray-500 hover:text-brand-primary transition-colors duration-300 cursor-pointer"
           >
-            <FiPlus />
+            <FiPlus size={14} />
           </motion.button>
         </div>
-        <span className="text-sm text-gray-500">{currentVariant?.stock || 0} sản phẩm có sẵn</span>
+        <span className="text-xs sm:text-sm text-gray-500">{currentVariant?.stock || 0} sản phẩm có sẵn</span>
       </motion.div>
 
       {/* Nút Hành Động */}
-      <motion.div className="flex gap-4 mt-4" variants={itemVariants}>
+      <motion.div className="flex flex-col xs:flex-row gap-3 sm:gap-4 mt-2 sm:mt-4" variants={itemVariants}>
         <motion.button
           onClick={handleAddToCart}
           disabled={isAddingToCart || !currentVariant || currentVariant.stock === 0}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.97 }}
-          className="flex-1 bg-white border-2 border-brand-primary text-brand-primary font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#e94560]/5 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full xs:flex-1 bg-white border-2 border-brand-primary text-brand-primary font-bold py-3 sm:py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#e94560]/5 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
-          <FiShoppingCart size={20} />
+          <FiShoppingCart size={18} />
           {isAddingToCart ? 'Đang xử lý...' : 'Thêm vào giỏ hàng'}
         </motion.button>
       </motion.div>
 
       {/* Info Phụ */}
       <motion.div
-        className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100"
+        className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-4 pt-4 sm:pt-6 border-t border-gray-100"
         variants={itemVariants}
       >
-        <div className="flex items-center gap-3 text-sm text-gray-600">
-          <FiTruck size={20} className="text-green-500" /> Miễn phí vận chuyển toàn quốc
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-sm text-gray-600">
+          <FiTruck size={16} className="text-green-500 shrink-0" />
+          <span>Miễn phí vận chuyển toàn quốc</span>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-600">
-          <FiRefreshCcw size={20} className="text-blue-500" /> Đổi trả trong 30 ngày
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-sm text-gray-600">
+          <FiRefreshCcw size={16} className="text-blue-500 shrink-0" />
+          <span>Đổi trả trong 30 ngày</span>
         </div>
       </motion.div>
     </motion.div>
