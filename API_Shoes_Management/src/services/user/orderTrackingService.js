@@ -280,16 +280,45 @@ const handleAutoConfirmOrders = async () => {
 
 // 4. Rút yêu cầu hủy
 const withdrawCancelRequest = async (userId, orderId) => {
+  // Lấy thông tin đơn hàng
   const order = await orderTrackingModel.getOrderById(orderId)
-  if (!order) throw new Error('Đơn hàng không tồn tại trên hệ thống.')
-  if (order.user_id !== userId) throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
 
+  if (!order) {
+    throw new Error('Đơn hàng không tồn tại trên hệ thống.')
+  }
+
+  if (order.user_id !== userId) {
+    throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
+  }
+
+  // Chỉ cho phép rút yêu cầu khi đơn hàng đang ở trạng thái CANCEL_REQUESTED
   if (order.status !== ORDER_STATUS.CANCEL_REQUESTED) {
     throw new Error('Đơn hàng không ở trạng thái chờ hủy, không thể rút lại yêu cầu hủy.')
   }
 
-  // Khi rút yêu cầu hủy, xóa lý do hủy
+  // Lấy thông tin user và store để gửi thông báo
+  const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
+  const buyerName = userRows.length > 0 ? userRows[0].fullname : 'Khách hàng'
+
+  const [storeRows] = await pool.execute('SELECT owner_id, name FROM stores WHERE id = ?', [order.store_id])
+  const storeOwnerId = storeRows.length > 0 ? storeRows[0].owner_id : null
+  const storeName = storeRows.length > 0 ? storeRows[0].name : 'Cửa hàng'
+
+  // Rút yêu cầu hủy và xóa lý do hủy, chuyển về PROCESSING
   await orderTrackingModel.withdrawCancelOrderAndClearReason(orderId)
+
+  // Gửi thông báo cho Vendor khi rút yêu cầu hủy
+  if (storeOwnerId) {
+    await sendNotificationToVendor(
+      order.store_id,
+      orderId,
+      buyerName,
+      order.total_amount,
+      null,
+      NOTIFICATION_TYPES.ORDER_PROCESSING,
+      'Khách hàng đã rút yêu cầu hủy đơn hàng'
+    )
+  }
 
   // Gửi thông báo cho User khi rút yêu cầu hủy thành công
   await sendNotificationToUser(
