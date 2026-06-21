@@ -1,15 +1,15 @@
 import nodemailer from 'nodemailer'
 import { env } from '~/config/environment'
 
-// Cấu hình SMTP của Brevo
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
     user: env.BREVO_SMTP_USER,
     pass: env.BREVO_SMTP_KEY
   },
+  family: 4,
   tls: {
     rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
