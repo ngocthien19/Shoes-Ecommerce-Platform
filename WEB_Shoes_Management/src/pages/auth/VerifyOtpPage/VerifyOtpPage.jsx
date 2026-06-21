@@ -12,7 +12,9 @@ export const VerifyOtpPage = () => {
   const [loading, setLoading] = useState(false)
   const [countdown, setCountdown] = useState(60)
 
-  const email = location.state?.email || ''
+  const searchParams = new URLSearchParams(location.search)
+  const email = searchParams.get('email') || location.state?.email || ''
+
   const inputRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()]
 
   const { handleSubmit, setValue, watch } = useForm({
