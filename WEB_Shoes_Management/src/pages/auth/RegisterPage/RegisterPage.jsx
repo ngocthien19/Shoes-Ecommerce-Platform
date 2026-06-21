@@ -41,10 +41,14 @@ export const RegisterPage = () => {
     try {
       const response = await authService.register({ fullname, email, phone, password, address })
 
-      if (response) {
+      if (response && response.success !== false) {
         toast.success(response.message || 'Đăng ký thành công! Vui lòng kiểm tra Email nhận OTP.')
-        navigate('/verify-otp', { state: { email } })
+        navigate(`/verify-otp?email=${encodeURIComponent(email)}`)
+      } else {
+        toast.error(response?.message || 'Đăng ký thất bại, vui lòng thử lại!')
       }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Đăng ký thất bại!')
     } finally {
       setLoading(false)
     }
