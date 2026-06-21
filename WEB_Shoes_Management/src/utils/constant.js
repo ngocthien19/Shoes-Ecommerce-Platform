@@ -1,10 +1,8 @@
-const isDocker = window.location.hostname === 'localhost'
-  ? false
-  : true
-
-export const DEV_API_URL = isDocker
-  ? 'http://backend:3000' // Khi chạy Docker
-  : 'http://localhost:3000' // Khi chạy local
+export const DEV_API_URL = import.meta.env.PROD
+  ? import.meta.env.VITE_API_URL || 'https://shoes-api-backend.onrender.com'
+  : window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'http://backend:3000'
 
 export const ROLE_ID = {
   ADMIN: 1,
