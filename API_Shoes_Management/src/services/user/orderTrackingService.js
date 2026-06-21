@@ -16,9 +16,11 @@ const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount
 
     let message = ''
     if (type === NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED) {
-      message = `Khách hàng ${buyerName} đã gửi yêu cầu hủy đơn hàng #${orderId} với lý do: "${reason}". Tổng tiền: ${formattedAmount}. Vui lòng xem xét và duyệt yêu cầu.`
+      message = `Khách hàng ${buyerName} đã gửi yêu cầu hủy đơn hàng #${orderId} với lý do: "${reason || 'Không có lý do cụ thể'}". Tổng tiền: ${formattedAmount}. Vui lòng xem xét và duyệt yêu cầu.`
     } else if (type === NOTIFICATION_TYPES.ORDER_CANCELLED) {
-      message = `Đơn hàng #${orderId} từ khách hàng ${buyerName} đã bị hủy trực tiếp với lý do: "${reason}". Tổng tiền: ${formattedAmount}.`
+      message = `Đơn hàng #${orderId} từ khách hàng ${buyerName} đã bị hủy trực tiếp với lý do: "${reason || 'Không có lý do cụ thể'}". Tổng tiền: ${formattedAmount}.`
+    } else if (type === NOTIFICATION_TYPES.ORDER_PROCESSING) {
+      message = `Khách hàng ${buyerName} đã rút lại yêu cầu hủy đơn hàng #${orderId}. Tổng tiền: ${formattedAmount}. Đơn hàng đã được đưa trở lại trạng thái đang xử lý.`
     }
 
     await notificationService.createAndPushNotification({
@@ -30,7 +32,8 @@ const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount
         storeName: storeName,
         buyerName: buyerName,
         amount: totalAmount,
-        reason: reason
+        reason: reason,
+        orderStatus: type === NOTIFICATION_TYPES.ORDER_PROCESSING ? 'processing' : null
       }),
       type: type,
       referenceId: orderId
