@@ -34,6 +34,22 @@ const updateCategory = async (req, res) => {
   }
 }
 
+const toggleCategoryStatus = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { isActive } = req.body
+
+    if (isActive === undefined || isActive === null) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp trạng thái isActive (true/false)' })
+    }
+
+    const result = await adminCategoryService.toggleCategoryStatus(Number(id), isActive)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi cập nhật trạng thái danh mục: ${error.message}` })
+  }
+}
+
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params
@@ -58,6 +74,7 @@ export const adminCategoryController = {
   getCategoryTree,
   createCategory,
   updateCategory,
+  toggleCategoryStatus,
   deleteCategory,
   getCategoryDetail
 }

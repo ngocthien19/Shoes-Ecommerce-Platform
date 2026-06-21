@@ -1,4 +1,5 @@
 import { adminStoreService } from '~/services/admin/adminStoreService'
+import { managerProductService } from '~/services/manager/managerProductService'
 
 const getStoresList = async (req, res) => {
   try {
@@ -22,8 +23,8 @@ const getStoreDetail = async (req, res) => {
 
 const toggleStoreActiveBulk = async (req, res) => {
   try {
-    const { storeIds, isActive } = req.body
-    const result = await adminStoreService.toggleStoreActiveBulk(storeIds, isActive)
+    const { storeIds, isActive, reason } = req.body
+    const result = await adminStoreService.toggleStoreActiveBulk(storeIds, isActive, reason)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi đóng băng trạng thái cửa hàng loạt: ${error.message}` })
@@ -52,7 +53,6 @@ const enforceStoreBalance = async (req, res) => {
 
 const createStore = async (req, res) => {
   try {
-    // 🌟 ĐÃ THÊM: Tiếp nhận thêm trường địa chỉ 'address' từ req.body
     const { ownerId, name, bio, address, commissionRate } = req.body
 
     const logoFile = req.files?.logo || null
@@ -77,6 +77,19 @@ const deleteStoresBulk = async (req, res) => {
   }
 }
 
+const getStoreProducts = async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await managerProductService.getProductsList({
+      storeId: id,
+      ...req.query
+    })
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi tải sản phẩm của cửa hàng: ${error.message}` })
+  }
+}
+
 export const adminStoreController = {
   getStoresList,
   getStoreDetail,
@@ -84,5 +97,6 @@ export const adminStoreController = {
   updateStoreCommissionBulk,
   enforceStoreBalance,
   createStore,
-  deleteStoresBulk
+  deleteStoresBulk,
+  getStoreProducts
 }

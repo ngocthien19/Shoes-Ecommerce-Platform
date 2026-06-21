@@ -40,8 +40,7 @@ const validateUpdateProduct = async (req, res, next) => {
     categoryId: Joi.number().integer().positive().required(),
     name: Joi.string().min(3).max(150).trim().required(),
     description: Joi.string().max(2000).trim().optional().allow('', null),
-    price: Joi.number().positive().min(1000).required(),
-    oldImages: Joi.string().optional().allow('', null)
+    price: Joi.number().positive().min(1000).required()
   })
 
   try {
@@ -89,7 +88,8 @@ const validateCreateVariantBody = async (req, res, next) => {
     stock: Joi.number().integer().min(0).required().messages({
       'number.min': 'Số lượng hàng tồn kho (stock) không được nhỏ hơn 0.',
       'any.required': 'Số lượng hàng tồn kho là thông tin bắt buộc.'
-    })
+    }),
+    image: Joi.any().optional().allow(null)
   })
 
   try {
@@ -192,6 +192,53 @@ const validateProductIdsBulkBody = async (req, res, next) => {
   }
 }
 
+const validateUpdateVariantBody = async (req, res, next) => {
+  const paramCondition = Joi.object({
+    productId: Joi.number().integer().positive().required(),
+    variantId: Joi.number().integer().positive().required()
+  })
+
+  const bodyCondition = Joi.object({
+    size: Joi.string().min(1).max(10).trim().required().messages({
+      'string.empty': 'Kích thước (size) không được để trống.'
+    }),
+    color: Joi.string().max(30).trim().optional().allow('', null),
+    stock: Joi.number().integer().min(0).required().messages({
+      'number.min': 'Số lượng tồn kho không được nhỏ hơn 0.',
+      'any.required': 'Số lượng tồn kho là bắt buộc.'
+    }),
+    image: Joi.any().optional().allow(null)
+  })
+
+  try {
+    await paramCondition.validateAsync(req.params)
+    await bodyCondition.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    return res.status(422).json({
+      message: 'Dữ liệu cập nhật biến thể không hợp lệ.',
+      errors: error.details ? error.details.map(err => err.message) : error.message
+    })
+  }
+}
+
+const validateVariantIdParam = async (req, res, next) => {
+  const correctCondition = Joi.object({
+    productId: Joi.number().integer().positive().required(),
+    variantId: Joi.number().integer().positive().required()
+  })
+
+  try {
+    await correctCondition.validateAsync(req.params)
+    next()
+  } catch (error) {
+    return res.status(422).json({
+      message: 'Tham số ID biến thể không hợp lệ.',
+      errors: error.details ? error.details.map(err => err.message) : error.message
+    })
+  }
+}
+
 export const vendorProductValidation = {
   validateCreateProductBody,
   validateUpdateProduct,
@@ -200,5 +247,7 @@ export const vendorProductValidation = {
   validateGetProductsFilters,
   validateToggleActiveSingleBody,
   validateToggleActiveBulkBody,
-  validateProductIdsBulkBody
+  validateProductIdsBulkBody,
+  validateUpdateVariantBody,
+  validateVariantIdParam
 }

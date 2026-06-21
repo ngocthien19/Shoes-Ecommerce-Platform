@@ -26,21 +26,17 @@ const createProduct = async (userId, productData) => {
     name: productData.name,
     slug,
     description: productData.description,
-    price: productData.price,
-    images: JSON.stringify(productData.images)
+    price: productData.price
   })
 
-  const thumbnail = (productData.images && productData.images.length > 0) ? productData.images[0].secure_url : ''
   const managerIds = await userModel.getAllManagerIds()
-
-  // THÔNG BÁO MANAGER
   for (const managerId of managerIds) {
     await notificationService.createAndPushNotification({
       userId: managerId,
       title: 'Yêu cầu kiểm duyệt sản phẩm mới',
       content: JSON.stringify({
         message: `Gian hàng "${store.store_name}" vừa thêm sản phẩm: ${productData.name}`,
-        image: thumbnail,
+        image: '',
         storeName: store.store_name,
         productName: productData.name
       }),
@@ -61,36 +57,41 @@ const updateProduct = async (userId, productId, updateData) => {
   const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
   if (!isOwner) throw new Error('Bạn không có quyền chỉnh sửa sản phẩm này.')
 
-  // Lấy thông tin sản phẩm hiện tại để kiểm tra trạng thái
   const currentProduct = await vendorProductModel.getProductDetailWithVariants(productId, store.id)
   const wasApproved = currentProduct?.status === PRODUCT_MODERATION_STATUS.APPROVED
 
-  // Cập nhật thông tin sản phẩm
   await vendorProductModel.updateProduct(productId, {
     categoryId: updateData.categoryId,
     name: updateData.name,
     description: updateData.description,
-    price: updateData.price,
-    images: JSON.stringify(updateData.images)
+    price: updateData.price
   })
 
-  // Nếu sản phẩm đang ở trạng thái APPROVED, chuyển về PENDING_REAPPROVAL và gửi thông báo
   if (wasApproved) {
-    // Cập nhật trạng thái thành PENDING_REAPPROVAL
     await vendorProductModel.updateProductStatus(productId, PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL)
 
-    // Lấy ảnh đại diện để gửi kèm thông báo
     let thumbnail = ''
     try {
-      const images = JSON.parse(currentProduct.images || '[]')
-      if (images.length > 0 && images[0].secure_url) {
-        thumbnail = images[0].secure_url
+      // Lấy variants của product
+      const variants = currentProduct?.variants || []
+
+      // Tìm variant đầu tiên có ảnh
+      const variantWithImage = variants.find(v => v.image)
+
+      if (variantWithImage && variantWithImage.image) {
+        // Parse image nếu là string JSON
+        const imageData = typeof variantWithImage.image === 'string'
+          ? JSON.parse(variantWithImage.image)
+          : variantWithImage.image
+
+        if (imageData && imageData.secure_url) {
+          thumbnail = imageData.secure_url
+        }
       }
     } catch (e) {
       thumbnail = ''
     }
 
-    // Gửi thông báo cho tất cả MANAGER
     const managerIds = await userModel.getAllManagerIds()
     for (const managerId of managerIds) {
       await notificationService.createAndPushNotification({
@@ -111,7 +112,7 @@ const updateProduct = async (userId, productId, updateData) => {
   return { message: 'Cập nhật sản phẩm thành công! Mặt hàng đã được chuyển về hàng chờ kiểm duyệt lại.' }
 }
 
-// Xóa cứng sản phẩm khỏi DB và xóa toàn bộ ảnh trên Cloudinary
+// Xóa cứng sản phẩm
 const deleteProduct = async (userId, productId) => {
   const store = await getVerifiedStore(userId)
   const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
@@ -141,23 +142,92 @@ const deleteProduct = async (userId, productId) => {
   return { message: 'Xóa sản phẩm thành công.' }
 }
 
-// Thêm biến thể phân loại
 const createVariant = async (userId, productId, variantData) => {
   const store = await getVerifiedStore(userId)
   const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
   if (!isOwner) throw new Error('Bạn không có quyền tạo biến thể cho sản phẩm này.')
 
+  // 1. Tạo variant
   await vendorProductModel.createVariant({
     productId,
     size: variantData.size,
     color: variantData.color,
-    stock: variantData.stock
+    stock: variantData.stock,
+    image: variantData.image
   })
+
+  // 2. Nếu có ảnh variant, thêm vào product.images
+  if (variantData.image) {
+    await vendorProductModel.addImageToProduct(productId, variantData.image)
+  }
 
   return { message: 'Thêm biến thể kho hàng thành công.' }
 }
 
-// Lấy danh sách sản phẩm phân trang + tìm kiếm + lọc + sắp xếp
+const updateVariant = async (userId, productId, variantId, variantData) => {
+  const store = await getVerifiedStore(userId)
+  const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
+  if (!isOwner) throw new Error('Bạn không có quyền sửa biến thể của sản phẩm này.')
+
+  // 1. Cập nhật variant
+  const updated = await vendorProductModel.updateVariant(variantId, {
+    size: variantData.size,
+    color: variantData.color,
+    stock: variantData.stock,
+    image: variantData.image // Có thể là object, null, hoặc undefined
+  })
+
+  if (updated === 0) throw new Error('Không tìm thấy biến thể hoặc không có thay đổi.')
+
+  // 2. Nếu có ảnh mới -> thêm vào product.images
+  if (variantData.image && typeof variantData.image === 'object') {
+    await vendorProductModel.addImageToProduct(productId, variantData.image)
+  }
+
+  return { message: 'Cập nhật biến thể thành công.' }
+}
+
+const deleteVariant = async (userId, productId, variantId) => {
+  const store = await getVerifiedStore(userId)
+  const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
+  if (!isOwner) throw new Error('Bạn không có quyền xóa biến thể của sản phẩm này.')
+
+  // 1. Lấy variant để biết ảnh
+  const variant = await vendorProductModel.getVariantById(variantId)
+  if (!variant) throw new Error('Biến thể không tồn tại.')
+
+  // 2. Kiểm tra biến thể có trong giỏ hàng không
+  const inCart = await vendorProductModel.checkVariantInCart(variantId)
+  if (inCart) {
+    throw new Error('Biến thể đang có trong giỏ hàng của khách, không thể xóa. Hãy ẩn thay vì xóa.')
+  }
+
+  // 3. Xóa variant
+  await vendorProductModel.deleteVariant(variantId)
+
+  // 4. Nếu có ảnh, kiểm tra xem còn variant nào dùng ảnh này không
+  if (variant.image) {
+    const hasOtherVariant = await vendorProductModel.checkImageUsedByOtherVariant(productId, variant.image, variantId)
+    if (!hasOtherVariant) {
+      // Không còn variant nào dùng -> xóa khỏi product.images
+      await vendorProductModel.removeImageFromProduct(productId, variant.image)
+    }
+  }
+
+  return { message: 'Xóa biến thể thành công.' }
+}
+
+// Lấy danh sách biến thể
+const getVariantsByProductId = async (userId, productId) => {
+  const store = await getVerifiedStore(userId)
+  const isOwner = await vendorProductModel.checkProductOwnership(productId, store.id)
+  if (!isOwner) throw new Error('Sản phẩm không thuộc quyền sở hữu của cửa hàng.')
+
+  const variants = await vendorProductModel.getVariantsByProductId(productId)
+  return { variants }
+}
+
+// Lấy danh sách sản phẩm
 const getVendorProducts = async (userId, filters) => {
   const store = await getVerifiedStore(userId)
   const storeId = store.id
@@ -195,7 +265,7 @@ const getVendorProducts = async (userId, filters) => {
   }
 }
 
-// Lấy chi tiết sản phẩm và biến thể phục vụ chỉnh sửa
+// Lấy chi tiết sản phẩm
 const getProductDetail = async (userId, productId) => {
   const store = await getVerifiedStore(userId)
   const productDetail = await vendorProductModel.getProductDetailWithVariants(productId, store.id)
@@ -227,7 +297,7 @@ const toggleProductsActiveBulk = async (userId, productIds, isActive) => {
   }
 }
 
-// Xóa cứng hàng loạt sản phẩm + Dọn sạch kho ảnh Cloudinary
+// Xóa cứng hàng loạt sản phẩm
 const deleteProductsBulk = async (userId, productIds) => {
   const store = await getVerifiedStore(userId)
   const storeId = store.id
@@ -276,7 +346,6 @@ const requestProductsReapprovalBulk = async (userId, productIds) => {
   const affectedRows = await vendorProductModel.requestProductsReapprovalBulk(productIds, store.id)
   if (affectedRows === 0) throw new Error('Gửi yêu cầu thất bại. Chỉ có sản phẩm đang bị khóa (BANNED) mới có thể gửi yêu cầu giải trình.')
 
-  // Lấy thông tin sản phẩm để gửi kèm
   let productNames = []
   for (const productId of productIds) {
     const product = await vendorProductModel.getProductDetailWithVariants(productId, store.id)
@@ -285,7 +354,6 @@ const requestProductsReapprovalBulk = async (userId, productIds) => {
 
   const managerIds = await userModel.getAllManagerIds()
 
-  // THÔNG BÁO MANAGER
   for (const managerId of managerIds) {
     await notificationService.createAndPushNotification({
       userId: managerId,
@@ -310,6 +378,9 @@ export const vendorProductService = {
   updateProduct,
   deleteProduct,
   createVariant,
+  updateVariant,
+  deleteVariant,
+  getVariantsByProductId,
   getVendorProducts,
   getProductDetail,
   toggleProductsActiveBulk,

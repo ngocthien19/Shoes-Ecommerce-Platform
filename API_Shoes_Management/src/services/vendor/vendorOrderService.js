@@ -1,5 +1,7 @@
 import { vendorOrderModel } from '~/models/vendor/order/vendorOrderModel'
-import { ORDER_STATUS } from '~/utils/constants'
+import { orderModel } from '~/models/user/order/orderModel'
+import { notificationService } from '~/services/notification/notificationService'
+import { ORDER_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 
 const getVerifiedStoreId = async (userId) => {
   const store = await vendorOrderModel.getStoreByOwnerId(userId)
@@ -45,6 +47,48 @@ const getVendorOrders = async (userId, filters) => {
   }
 }
 
+// Hàm gửi notification cho user
+const sendOrderNotification = async (orderId, userId, title, message, type) => {
+  try {
+    await notificationService.createAndPushNotification({
+      userId: userId,
+      title: title,
+      content: JSON.stringify({
+        message: message,
+        orderId: orderId
+      }),
+      type: type,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo cho đơn hàng #${orderId}:`, error)
+  }
+}
+
+// Hàm gửi thông báo cho Vendor khi xác nhận đơn hàng
+const sendNotificationToVendorOnConfirm = async (orderId, storeId) => {
+  try {
+    // Sử dụng Model thay vì query trực tiếp
+    const storeInfo = await vendorOrderModel.getStoreOwnerInfo(storeId)
+    if (!storeInfo) return
+
+    const ownerId = storeInfo.owner_id
+
+    await notificationService.createAndPushNotification({
+      userId: ownerId,
+      title: 'Xác nhận đơn hàng thành công',
+      content: JSON.stringify({
+        message: `Đơn hàng #${orderId} đã được xác nhận thành công và chuyển sang trạng thái đang xử lý.`,
+        orderId: orderId
+      }),
+      type: NOTIFICATION_TYPES.ORDER_PROCESSING,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo xác nhận đơn hàng #${orderId}:`, error)
+  }
+}
+
 // Cập nhật hàng loạt đơn lẻ (Có check vết Admin xích đơn)
 const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   const storeId = await getVerifiedStoreId(userId)
@@ -77,6 +121,18 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
         )
         totalCredited += cashFlow.vendorNetProfit
         successCount++
+
+        // Gửi thông báo khi đơn hàng đã giao thành công
+        const userId = await orderModel.getOrderUserId(orderId)
+        if (userId) {
+          await sendOrderNotification(
+            orderId,
+            userId,
+            'Đơn hàng đã giao thành công',
+            `Đơn hàng #${orderId} đã được giao thành công. Cảm ơn bạn đã mua sắm!`,
+            NOTIFICATION_TYPES.ORDER_DELIVERED
+          )
+        }
       }
     }
 
@@ -87,6 +143,39 @@ const updateOrderStatusBulk = async (userId, orderIds, targetStatus) => {
   }
 
   const affectedRows = await vendorOrderModel.updateOrderStatusBulk(orderIds, targetStatus, storeId)
+
+  // Gửi thông báo cho từng đơn hàng
+  for (const orderId of orderIds) {
+    const userId = await orderModel.getOrderUserId(orderId)
+    if (!userId) continue
+
+    let title = ''
+    let message = ''
+    let type = ''
+
+    switch (targetStatus) {
+      case ORDER_STATUS.PROCESSING:
+        title = 'Đơn hàng đang xử lý'
+        message = `Đơn hàng #${orderId} đang được cửa hàng xác nhận và chuẩn bị.`
+        type = NOTIFICATION_TYPES.ORDER_PROCESSING
+        break
+      case ORDER_STATUS.SHIPPED:
+        title = 'Đơn hàng đang giao'
+        message = `Đơn hàng #${orderId} đã được giao cho đơn vị vận chuyển.`
+        type = NOTIFICATION_TYPES.ORDER_SHIPPED
+        break
+      case ORDER_STATUS.CANCELLED:
+        title = 'Đơn hàng đã hủy'
+        message = `Đơn hàng #${orderId} đã bị hủy.`
+        type = NOTIFICATION_TYPES.ORDER_CANCELLED
+        break
+      default:
+        continue
+    }
+
+    await sendOrderNotification(orderId, userId, title, message, type)
+  }
+
   return { message: `Đã cập nhật trạng thái sang [${targetStatus}] thành công cho ${affectedRows} đơn hàng.` }
 }
 
@@ -109,6 +198,9 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
     throw new Error('Không thể thay đổi trạng thái của đơn hàng đã hoàn thành hoặc đã hủy.')
   }
 
+  // Lấy userId để gửi notification
+  const userOrderId = await orderModel.getOrderUserId(orderId)
+
   if (newStatus === ORDER_STATUS.DELIVERED) {
     if (currentStatus !== ORDER_STATUS.SHIPPED) {
       throw new Error('Đơn hàng phải được chuyển sang trạng thái "Đang giao hàng (shipped)" trước khi xác nhận Giao thành công.')
@@ -120,6 +212,17 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
       Number(orderDetail[0].total_amount)
     )
 
+    // Gửi thông báo khi đơn hàng đã giao thành công
+    if (userOrderId) {
+      await sendOrderNotification(
+        orderId,
+        userOrderId,
+        'Đơn hàng đã giao thành công',
+        `Đơn hàng #${orderId} đã được giao thành công. Cảm ơn bạn đã mua sắm!`,
+        NOTIFICATION_TYPES.ORDER_DELIVERED
+      )
+    }
+
     return {
       message: 'Xác nhận giao hàng thành công! Trạng thái thanh toán đã lật sang [PAID] và tiền doanh thu thực nhận đã được nạp vào ví balance của cửa hàng.',
       data: cashFlow
@@ -127,6 +230,38 @@ const updateOrderStatus = async (userId, orderId, newStatus) => {
   }
 
   await vendorOrderModel.updateOrderStatus(orderId, newStatus)
+
+  // Gửi thông báo cho user khi cập nhật trạng thái
+  if (userOrderId) {
+    let title = ''
+    let message = ''
+    let type = ''
+
+    switch (newStatus) {
+      case ORDER_STATUS.PROCESSING:
+        title = 'Đơn hàng đang xử lý'
+        message = `Đơn hàng #${orderId} đang được cửa hàng xác nhận và chuẩn bị.`
+        type = NOTIFICATION_TYPES.ORDER_PROCESSING
+        break
+      case ORDER_STATUS.SHIPPED:
+        title = 'Đơn hàng đang giao'
+        message = `Đơn hàng #${orderId} đã được giao cho đơn vị vận chuyển.`
+        type = NOTIFICATION_TYPES.ORDER_SHIPPED
+        break
+      case ORDER_STATUS.CANCELLED:
+        title = 'Đơn hàng đã hủy'
+        message = `Đơn hàng #${orderId} đã bị hủy.`
+        type = NOTIFICATION_TYPES.ORDER_CANCELLED
+        break
+      default:
+        break
+    }
+
+    if (title) {
+      await sendOrderNotification(orderId, userOrderId, title, message, type)
+    }
+  }
+
   return { message: `Cập nhật trạng thái đơn hàng sang [${newStatus}] thành công.` }
 }
 
@@ -145,10 +280,23 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
   }
 
   const currentStatus = orderDetail[0].status
+  const userOrderId = await orderModel.getOrderUserId(orderId)
 
   if (currentStatus === ORDER_STATUS.PENDING) {
     const finalReason = reason ? `HỦY TỰ ĐỘNG (PENDING): ${reason}` : 'HỦY TỰ ĐỘNG: Hệ thống hủy đơn trực tiếp từ trạng thái chờ duyệt.'
     await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELLED, finalReason)
+
+    // Gửi thông báo khi đơn hàng bị hủy
+    if (userOrderId) {
+      await sendOrderNotification(
+        orderId,
+        userOrderId,
+        'Đơn hàng đã hủy',
+        `Đơn hàng #${orderId} đã bị hủy. Lý do: ${finalReason}`,
+        NOTIFICATION_TYPES.ORDER_CANCELLED
+      )
+    }
+
     return { message: 'Đơn hàng đang ở trạng thái chờ duyệt, hệ thống đã thực hiện hủy trực tiếp.' }
   }
 
@@ -156,11 +304,35 @@ const handleCancelRequest = async (userId, orderId, { decision, reason }) => {
     if (decision === 'accept') {
       const finalReason = reason ? reason : 'Người bán chấp nhận yêu cầu hủy từ khách hàng.'
       await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.CANCELLED, finalReason)
+
+      // Gửi thông báo khi chấp nhận hủy đơn
+      if (userOrderId) {
+        await sendOrderNotification(
+          orderId,
+          userOrderId,
+          'Đơn hàng đã hủy',
+          `Đơn hàng #${orderId} đã được hủy theo yêu cầu của bạn.`,
+          NOTIFICATION_TYPES.ORDER_CANCELLED
+        )
+      }
+
       return { message: 'Đã chấp nhận yêu cầu hủy đơn hàng từ khách hàng.' }
 
     } else if (decision === 'reject') {
       const rejectNote = reason ? reason : 'Hàng đã được đóng gói và bàn giao cho đơn vị vận chuyển.'
       await vendorOrderModel.updateOrderStatus(orderId, ORDER_STATUS.PROCESSING, rejectNote)
+
+      // Gửi thông báo khi từ chối hủy đơn
+      if (userOrderId) {
+        await sendOrderNotification(
+          orderId,
+          userOrderId,
+          'Yêu cầu hủy đơn bị từ chối',
+          `Yêu cầu hủy đơn hàng #${orderId} đã bị từ chối. Lý do: ${rejectNote}`,
+          NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED
+        )
+      }
+
       return { message: 'Đã từ chối yêu cầu hủy đơn hàng, trạng thái đơn hàng quay về Đang xử lý.' }
     }
   }

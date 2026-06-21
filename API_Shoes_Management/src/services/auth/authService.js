@@ -218,11 +218,58 @@ const logout = async (refreshToken) => {
   await userModel.removeRefreshToken(refreshToken)
 }
 
+const refreshAccessToken = async (refreshToken) => {
+  try {
+    // 1. Xác thực refresh token
+    const decoded = JwtProvider.verifyToken(refreshToken, env.JWT_REFRESH_SECRET)
+
+    if (!decoded || !decoded.id) {
+      throw new Error('Refresh token không hợp lệ.')
+    }
+
+    // 2. Lấy thông tin user
+    const user = await userModel.getLoginUserById(decoded.id)
+    if (!user) {
+      throw new Error('Người dùng không tồn tại.')
+    }
+
+    // 3. Kiểm tra refresh token có khớp với token trong DB không - Sử dụng Model
+    const isValid = await userModel.verifyRefreshToken(decoded.id, refreshToken)
+    if (!isValid) {
+      throw new Error('Refresh token không hợp lệ hoặc đã bị thu hồi.')
+    }
+
+    // 4. Tạo access token mới
+    const userInfo = {
+      id: user.id,
+      email: user.email,
+      roleId: user.role_id
+    }
+
+    const newAccessToken = JwtProvider.generateToken(
+      userInfo,
+      env.JWT_ACCESS_SECRET,
+      env.JWT_ACCESS_EXPIRE
+    )
+
+    return { accessToken: newAccessToken }
+  } catch (error) {
+    if (error.message.includes('jwt expired')) {
+      throw new Error('Refresh token đã hết hạn. Vui lòng đăng nhập lại.')
+    }
+    if (error.message.includes('invalid token')) {
+      throw new Error('Refresh token không hợp lệ. Vui lòng đăng nhập lại.')
+    }
+    throw error
+  }
+}
+
 export const authService = {
   register,
   verifyOtp,
   login,
   forgotPassword,
   resetPassword,
-  logout
+  logout,
+  refreshAccessToken
 }

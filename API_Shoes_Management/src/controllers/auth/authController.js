@@ -40,11 +40,14 @@ const login = async (req, res) => {
   try {
     const result = await authService.login(req.body)
 
-    // Cấu hình Cookie an toàn chống XSS và CSRF
+    // Phân biệt môi trường
+    const isProduction = process.env.NODE_ENV === 'production'
+
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
     }
 
     // Đưa cả 2 token vào cookie
@@ -105,7 +108,7 @@ const resetPassword = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken
+    const refreshToken = req.cookies?.refreshToken
 
     if (!refreshToken) {
       return res.status(400).json({ message: 'Refresh Token là bắt buộc để đăng xuất.' })
@@ -113,10 +116,12 @@ const logout = async (req, res) => {
 
     await authService.logout(refreshToken)
 
+    const isProduction = process.env.NODE_ENV === 'production'
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
     }
 
     res.clearCookie('accessToken', cookieOptions)
@@ -128,11 +133,61 @@ const logout = async (req, res) => {
   }
 }
 
+const refreshAccessToken = async (req, res) => {
+  try {
+    // Lấy refresh token từ cookie
+    const refreshToken = req.cookies?.refreshToken
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Không tìm thấy refresh token. Vui lòng đăng nhập lại.' })
+    }
+
+    const result = await authService.refreshAccessToken(refreshToken)
+
+    const isProduction = process.env.NODE_ENV === 'production'
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/'
+    }
+
+    res.cookie('accessToken', result.accessToken, {
+      ...cookieOptions,
+      maxAge: ms(env.JWT_ACCESS_EXPIRE)
+    })
+
+    return res.status(200).json({
+      message: 'Refresh token thành công!',
+      accessToken: result.accessToken
+    })
+  } catch (error) {
+    // Nếu refresh token không hợp lệ, xóa cookie
+    if (error.message.includes('không hợp lệ') ||
+        error.message.includes('hết hạn') ||
+        error.message.includes('đã bị thu hồi')) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      const cookieOptions = {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        path: '/'
+      }
+      res.clearCookie('accessToken', cookieOptions)
+      res.clearCookie('refreshToken', cookieOptions)
+
+      return res.status(401).json({ message: error.message })
+    }
+    return res.status(500).json({ message: `Lỗi hệ thống refresh token: ${error.message}` })
+  }
+}
+
 export const authController = {
   register,
   verifyOtp,
   login,
   forgotPassword,
   resetPassword,
-  logout
+  logout,
+  refreshAccessToken
 }

@@ -28,16 +28,17 @@ import { vendorReviewRouter } from '~/routes/vendor/vendorReviewRoute'
 import { vendorFavoriteRouter } from '~/routes/vendor/vendorFavoriteRoute'
 import { vendorAnalyticsRouter } from '~/routes/vendor/vendorAnalyticsRoute'
 import { vendorPayoutRouter } from '~/routes/vendor/vendorPayoutRoute'
+import { vendorAppealRouter } from '~/routes/vendor/vendorAppealRoute'
 
 // import ManagerRoutes
 import { managerStoreRouter } from '~/routes/manager/managerStoreRoute'
 import { managerProductRouter } from '~/routes/manager/managerProductRoute'
 import { managerReviewRouter } from '~/routes/manager/managerReviewRoute'
+import { managerAppealRouter } from '~/routes/manager/managerAppealRoute'
 
 // Định tuyến hệ thống API cho ADMIN (Quản trị viên)
 import { adminUserRouter } from '~/routes/admin/adminUserRoute'
 import { adminStoreRouter } from '~/routes/admin/adminStoreRoute'
-import { adminAppealRouter } from '~/routes/admin/adminAppealRoute'
 import { adminCategoryRouter } from '~/routes/admin/adminCategoryRoute'
 import { adminAttributeRouter } from '~/routes/admin/adminAttributeRoute'
 import { adminFinancialRouter } from '~/routes/admin/adminFinancialRoute'
@@ -95,16 +96,17 @@ const START_SERVER = () => {
   app.use('/api/vendor/favorites', vendorFavoriteRouter)
   app.use('/api/vendor/analytics', vendorAnalyticsRouter)
   app.use('/api/vendor/payouts', vendorPayoutRouter)
+  app.use('/api/vendor/appeals', vendorAppealRouter)
 
   // Định tuyến hệ thống API cho MANAGER (Quản lý)
   app.use('/api/manager/stores', managerStoreRouter)
   app.use('/api/manager/products', managerProductRouter)
   app.use('/api/manager/reviews', managerReviewRouter)
+  app.use('/api/manager/appeals', managerAppealRouter)
 
   // Định tuyến hệ thống API cho ADMIN (Quản trị viên)
   app.use('/api/admin/users', adminUserRouter)
   app.use('/api/admin/stores', adminStoreRouter)
-  app.use('/api/admin/appeals', adminAppealRouter)
   app.use('/api/admin/categories', adminCategoryRouter)
   app.use('/api/admin/attributes', adminAttributeRouter)
   app.use('/api/admin/financial', adminFinancialRouter)

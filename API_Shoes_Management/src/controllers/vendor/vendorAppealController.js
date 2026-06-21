@@ -1,4 +1,4 @@
-import { adminAppealService } from '~/services/admin/adminAppealService'
+import { vendorAppealService } from '~/services/vendor/vendorAppealService'
 
 const submitStoreAppeal = async (req, res) => {
   try {
@@ -6,7 +6,7 @@ const submitStoreAppeal = async (req, res) => {
     const { appealReason } = req.body
     const evidenceFiles = req.files || []
 
-    const result = await adminAppealService.submitStoreAppeal({
+    const result = await vendorAppealService.submitStoreAppeal({
       userId,
       appealReason,
       evidenceFiles
@@ -17,29 +17,29 @@ const submitStoreAppeal = async (req, res) => {
   }
 }
 
-const getAppealsList = async (req, res) => {
+const getMyAppeals = async (req, res) => {
   try {
-    const result = await adminAppealService.getAppealsList(req.query)
+    const userId = req.jwtDecoded.id
+    const result = await vendorAppealService.getMyAppeals(userId, req.query)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({ message: `Lỗi tải danh sách đơn cứu xét: ${error.message}` })
   }
 }
 
-const processStoreAppeal = async (req, res) => {
+const getAppealDetail = async (req, res) => {
   try {
+    const userId = req.jwtDecoded.id
     const { id } = req.params
-    const { status, managerNote } = req.body
-
-    const result = await adminAppealService.processStoreAppeal(Number(id), { status, managerNote })
+    const result = await vendorAppealService.getAppealDetail(userId, Number(id))
     return res.status(200).json(result)
   } catch (error) {
-    return res.status(500).json({ message: `Lỗi thực thi duyệt đơn cứu xét: ${error.message}` })
+    return res.status(500).json({ message: `Lỗi lấy chi tiết đơn cứu xét: ${error.message}` })
   }
 }
 
-export const adminAppealController = {
+export const vendorAppealController = {
   submitStoreAppeal,
-  getAppealsList,
-  processStoreAppeal
+  getMyAppeals,
+  getAppealDetail
 }

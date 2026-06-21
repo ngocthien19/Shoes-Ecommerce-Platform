@@ -28,7 +28,7 @@ const updateCartQuantity = async (userId, variantId, quantity) => {
   return result
 }
 
-// 5. Lấy danh sách giỏ hàng của User kèm thông tin chi tiết sản phẩm để hiển thị UI
+// 5. Lấy danh sách giỏ hàng của User kèm thông tin chi tiết sản phẩm (kèm ảnh từ variants)
 const getCartByUserId = async (userId) => {
   const query = `
     SELECT 
@@ -38,14 +38,26 @@ const getCartByUserId = async (userId) => {
       pv.size,
       pv.color,
       pv.stock AS current_stock,
+      pv.image AS variant_image,
       p.id AS product_id,
       p.name AS product_name,
       p.slug AS product_slug,
       p.price AS base_price,
-      p.images,
+      p.images AS product_images,
       s.id AS store_id,
       s.name AS store_name,
-      s.logo AS store_logo
+      s.logo AS store_logo,
+      -- Lấy thông tin khuyến mãi
+      (
+        SELECT pr.discount_value 
+        FROM promotions pr
+        JOIN product_promotions pp ON pr.id = pp.promotion_id
+        WHERE pp.product_id = p.id 
+          AND pr.is_active = TRUE 
+          AND NOW() BETWEEN pr.start_date AND pr.end_date
+        ORDER BY pr.discount_value DESC
+        LIMIT 1
+      ) AS discount_percentage
     FROM cart c
     INNER JOIN product_variants pv ON c.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id

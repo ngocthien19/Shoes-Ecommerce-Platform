@@ -119,9 +119,30 @@ const validateSlugParam = async (req, res, next) => {
   }
 }
 
+const validateProductIdParam = async (req, res, next) => {
+  const correctCondition = Joi.object({
+    id: Joi.number().integer().positive().required().messages({
+      'number.base': 'Mã định danh sản phẩm phải là định dạng số.',
+      'number.positive': 'Mã sản phẩm phải là số dương.',
+      'any.required': 'Mã sản phẩm là bắt buộc.'
+    })
+  })
+
+  try {
+    await correctCondition.validateAsync(req.params)
+    next()
+  } catch (error) {
+    return res.status(422).json({
+      message: 'Tham số đường dẫn sản phẩm không hợp lệ.',
+      errors: error.details ? error.details.map(err => err.message) : error.message
+    })
+  }
+}
+
 export const managerProductValidation = {
   validateGetProductsFilters,
   validateToggleProductActiveBody,
   validateToggleProductsActiveBulkBody,
-  validateSlugParam
+  validateSlugParam,
+  validateProductIdParam
 }
