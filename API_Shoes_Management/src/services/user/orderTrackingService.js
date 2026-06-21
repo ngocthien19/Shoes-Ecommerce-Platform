@@ -1,9 +1,64 @@
 import { orderTrackingModel } from '~/models/user/order/orderTrackingModel'
 import { orderModel } from '~/models/user/order/orderModel'
-import { ORDER_STATUS } from '~/utils/constants'
+import { ORDER_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import pool from '~/config/db'
+import { notificationService } from '~/services/notification/notificationService'
 
-// 1. USER: Lấy lịch sử mua hàng kèm theo mảng sản phẩm bên trong mỗi đơn
+// Hàm gửi thông báo cho Vendor
+const sendNotificationToVendor = async (storeId, orderId, buyerName, totalAmount, reason, type, title) => {
+  try {
+    const [storeRows] = await pool.execute('SELECT owner_id, name FROM stores WHERE id = ?', [storeId])
+    if (storeRows.length === 0) return
+
+    const ownerId = storeRows[0].owner_id
+    const storeName = storeRows[0].name
+    const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+
+    let message = ''
+    if (type === NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED) {
+      message = `Khách hàng ${buyerName} đã gửi yêu cầu hủy đơn hàng #${orderId} với lý do: "${reason}". Tổng tiền: ${formattedAmount}. Vui lòng xem xét và duyệt yêu cầu.`
+    } else if (type === NOTIFICATION_TYPES.ORDER_CANCELLED) {
+      message = `Đơn hàng #${orderId} từ khách hàng ${buyerName} đã bị hủy trực tiếp với lý do: "${reason}". Tổng tiền: ${formattedAmount}.`
+    }
+
+    await notificationService.createAndPushNotification({
+      userId: ownerId,
+      title: title,
+      content: JSON.stringify({
+        message: message,
+        orderId: orderId,
+        storeName: storeName,
+        buyerName: buyerName,
+        amount: totalAmount,
+        reason: reason
+      }),
+      type: type,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo cho Vendor về đơn hàng #${orderId}:`, error)
+  }
+}
+
+// Hàm gửi thông báo cho User
+const sendNotificationToUser = async (userId, orderId, title, message, type) => {
+  try {
+    await notificationService.createAndPushNotification({
+      userId: userId,
+      title: title,
+      content: JSON.stringify({
+        message: message,
+        orderId: orderId
+      }),
+      type: type,
+      referenceId: orderId
+    })
+  } catch (error) {
+    console.error(`Lỗi gửi thông báo cho User về đơn hàng #${orderId}:`, error)
+  }
+}
+
+// 1. USER: Lấy lịch sử mua hàng
 const getOrderHistory = async (userId, query) => {
   const page = Math.max(1, Number(query.page) || 1)
   const limit = Math.max(1, Number(query.limit) || 5)
@@ -38,52 +93,192 @@ const getOrderHistory = async (userId, query) => {
   }
 }
 
-// 2. USER: Xử lý logic hủy đơn hàng (Đồng bộ an toàn dữ liệu và Hoàn kho) - Có lưu lý do hủy
+// 2. USER: Xử lý logic hủy đơn hàng
 const cancelOrderByUser = async (userId, orderId, cancelReason) => {
-  const order = await orderTrackingModel.getOrderById(orderId)
+  const connection = await pool.getConnection()
 
-  if (!order) throw new Error('Đơn hàng không tồn tại.')
-  if (order.user_id !== userId) throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
+  try {
+    await connection.beginTransaction()
 
-  if ([ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.CANCEL_REQUESTED].includes(order.status)) {
-    throw new Error('Đơn hàng đã thay đổi trạng thái, không thể thực hiện yêu cầu hủy.')
-  }
+    const order = await orderTrackingModel.getOrderById(orderId)
 
-  const orderTime = new Date(order.created_at).getTime()
-  const currentTime = new Date().getTime()
-  const differenceInMinutes = (currentTime - orderTime) / (1000 * 60)
-
-  // Lý do hủy (nếu không có thì dùng mặc định)
-  const finalCancelReason = cancelReason || 'Khách hàng yêu cầu hủy đơn'
-
-  if (order.status === ORDER_STATUS.PENDING && differenceInMinutes <= 30) {
-    // Hủy trực tiếp - Cập nhật status và lưu lý do
-    await orderTrackingModel.updateOrderStatusWithReason(orderId, ORDER_STATUS.CANCELLED, finalCancelReason)
-
-    const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
-    for (const item of items) {
-      await orderModel.decreaseVariantStock(pool, item.variant_id, -item.quantity)
+    if (!order) {
+      throw new Error('Đơn hàng không tồn tại.')
     }
 
-    return {
-      status: ORDER_STATUS.CANCELLED,
-      message: 'Đơn hàng của bạn đã được hủy trực tiếp thành công. Số lượng sản phẩm đã được hoàn lại vào kho hàng.'
+    if (order.user_id !== userId) {
+      throw new Error('Bạn không có quyền can thiệp vào đơn hàng này.')
     }
-  } else {
-    // Gửi yêu cầu hủy - Lưu lý do vào cancel_reason khi gửi yêu cầu
-    await orderTrackingModel.updateOrderStatusWithReason(orderId, ORDER_STATUS.CANCEL_REQUESTED, finalCancelReason)
-    return {
-      status: ORDER_STATUS.CANCEL_REQUESTED,
-      message: 'Đã gửi yêu cầu hủy đơn hàng đến cửa hàng để chờ duyệt.'
+
+    // Chỉ cho phép hủy khi đơn hàng ở trạng thái PENDING hoặc PROCESSING
+    if ([ORDER_STATUS.SHIPPED, ORDER_STATUS.DELIVERED, ORDER_STATUS.CANCELLED, ORDER_STATUS.CANCEL_REQUESTED].includes(order.status)) {
+      throw new Error('Đơn hàng đã thay đổi trạng thái, không thể thực hiện yêu cầu hủy.')
     }
+
+    // Lấy thông tin user và store để gửi thông báo
+    const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
+    const buyerName = userRows.length > 0 ? userRows[0].fullname : 'Khách hàng'
+    const [storeRows] = await pool.execute('SELECT owner_id, name FROM stores WHERE id = ?', [order.store_id])
+    const storeOwnerId = storeRows.length > 0 ? storeRows[0].owner_id : null
+    const storeName = storeRows.length > 0 ? storeRows[0].name : 'Cửa hàng'
+
+    // Kiểm tra nếu đơn hàng đã ở trạng thái PROCESSING thì gửi yêu cầu hủy
+    if (order.status === ORDER_STATUS.PROCESSING) {
+      const finalCancelReason = cancelReason || 'Khách hàng yêu cầu hủy đơn (đang xử lý)'
+
+      await orderTrackingModel.updateOrderStatusWithReason(
+        orderId,
+        ORDER_STATUS.CANCEL_REQUESTED,
+        finalCancelReason,
+        connection
+      )
+
+      await connection.commit()
+
+      // Gửi thông báo cho Vendor về yêu cầu hủy
+      if (storeOwnerId) {
+        await sendNotificationToVendor(
+          order.store_id,
+          orderId,
+          buyerName,
+          order.total_amount,
+          finalCancelReason,
+          NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED,
+          'Yêu cầu hủy đơn hàng'
+        )
+      }
+
+      // Gửi thông báo cho User
+      await sendNotificationToUser(
+        userId,
+        orderId,
+        'Đã gửi yêu cầu hủy đơn',
+        `Yêu cầu hủy đơn hàng #${orderId} đã được gửi đến ${storeName}. Vui lòng chờ cửa hàng xác nhận.`,
+        NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED
+      )
+
+      return {
+        status: ORDER_STATUS.CANCEL_REQUESTED,
+        message: 'Đã gửi yêu cầu hủy đơn hàng đến cửa hàng để chờ duyệt.'
+      }
+    }
+
+    // Nếu là PENDING
+    if (order.status === ORDER_STATUS.PENDING) {
+      const orderTime = new Date(order.created_at).getTime()
+      const currentTime = new Date().getTime()
+      const differenceInMinutes = (currentTime - orderTime) / (1000 * 60)
+
+      // Nếu quá 30 phút thì chuyển sang gửi yêu cầu hủy
+      if (differenceInMinutes > 30) {
+        const finalCancelReason = cancelReason || 'Khách hàng yêu cầu hủy đơn (quá 30 phút)'
+
+        await orderTrackingModel.updateOrderStatusWithReason(
+          orderId,
+          ORDER_STATUS.CANCEL_REQUESTED,
+          finalCancelReason,
+          connection
+        )
+
+        await connection.commit()
+
+        // Gửi thông báo cho Vendor về yêu cầu hủy
+        if (storeOwnerId) {
+          await sendNotificationToVendor(
+            order.store_id,
+            orderId,
+            buyerName,
+            order.total_amount,
+            finalCancelReason,
+            NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED,
+            'Yêu cầu hủy đơn hàng (quá 30 phút)'
+          )
+        }
+
+        // Gửi thông báo cho User
+        await sendNotificationToUser(
+          userId,
+          orderId,
+          'Đã gửi yêu cầu hủy đơn',
+          `Đơn hàng #${orderId} đã quá 30 phút, yêu cầu hủy đã được gửi đến ${storeName}. Vui lòng chờ cửa hàng xác nhận.`,
+          NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED
+        )
+
+        return {
+          status: ORDER_STATUS.CANCEL_REQUESTED,
+          message: 'Đơn hàng đã quá 30 phút kể từ khi tạo, yêu cầu hủy đã được gửi đến cửa hàng để chờ duyệt.'
+        }
+      }
+
+      // Trong 30 phút - Hủy trực tiếp và hoàn lại stock
+      const finalCancelReason = cancelReason || 'Khách hàng yêu cầu hủy đơn (trong 30 phút)'
+
+      await orderTrackingModel.updateOrderStatusWithReason(
+        orderId,
+        ORDER_STATUS.CANCELLED,
+        finalCancelReason,
+        connection
+      )
+
+      const items = await orderTrackingModel.getOrderItemsByOrderId(orderId, connection)
+
+      for (const item of items) {
+        if (!item.variant_id) {
+          throw new Error(`Item ${item.item_id} không có variant_id`)
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          throw new Error(`Item ${item.item_id} có số lượng không hợp lệ: ${item.quantity}`)
+        }
+
+        await orderModel.decreaseVariantStock(connection, item.variant_id, -item.quantity)
+      }
+
+      await connection.commit()
+
+      // Gửi thông báo cho Vendor về việc đơn hàng đã bị hủy trực tiếp
+      if (storeOwnerId) {
+        await sendNotificationToVendor(
+          order.store_id,
+          orderId,
+          buyerName,
+          order.total_amount,
+          finalCancelReason,
+          NOTIFICATION_TYPES.ORDER_CANCELLED,
+          'Đơn hàng đã bị hủy'
+        )
+      }
+
+      // Gửi thông báo cho User
+      await sendNotificationToUser(
+        userId,
+        orderId,
+        'Đơn hàng đã được hủy',
+        `Đơn hàng #${orderId} đã được hủy thành công. Số lượng sản phẩm đã được hoàn lại vào kho.`,
+        NOTIFICATION_TYPES.ORDER_CANCELLED
+      )
+
+      return {
+        status: ORDER_STATUS.CANCELLED,
+        message: 'Đơn hàng của bạn đã được hủy trực tiếp thành công. Số lượng sản phẩm đã được hoàn lại vào kho hàng.'
+      }
+    }
+
+    throw new Error(`Không thể xử lý hủy đơn với trạng thái hiện tại: ${order.status}`)
+
+  } catch (error) {
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
   }
 }
 
-// 3. HỆ THỐNG: Hàm trung gian để gọi lệnh chạy ngầm Cron Job
+// 3. HỆ THỐNG: Cron Job tự động xác nhận đơn hàng
 const handleAutoConfirmOrders = async () => {
   return await orderTrackingModel.autoConfirmOrders()
 }
 
+// 4. Rút yêu cầu hủy
 const withdrawCancelRequest = async (userId, orderId) => {
   const order = await orderTrackingModel.getOrderById(orderId)
   if (!order) throw new Error('Đơn hàng không tồn tại trên hệ thống.')
@@ -96,12 +291,22 @@ const withdrawCancelRequest = async (userId, orderId) => {
   // Khi rút yêu cầu hủy, xóa lý do hủy
   await orderTrackingModel.withdrawCancelOrderAndClearReason(orderId)
 
+  // Gửi thông báo cho User khi rút yêu cầu hủy thành công
+  await sendNotificationToUser(
+    userId,
+    orderId,
+    'Đã rút yêu cầu hủy đơn',
+    `Bạn đã rút lại yêu cầu hủy đơn hàng #${orderId}. Đơn hàng đã được đưa trở lại trạng thái đang xử lý.`,
+    NOTIFICATION_TYPES.ORDER_PROCESSING
+  )
+
   return {
     status: ORDER_STATUS.PROCESSING,
     message: 'Rút lại yêu cầu hủy đơn thành công! Đơn hàng đã được đưa quay trở lại danh sách chuẩn bị hàng.'
   }
 }
 
+// 5. Lấy chi tiết đơn hàng
 const getOrderDetail = async (userId, orderId) => {
   const order = await orderTrackingModel.getOrderDetailByIdAndUser(orderId, userId)
 
