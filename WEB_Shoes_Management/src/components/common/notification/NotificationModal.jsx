@@ -228,11 +228,9 @@ export const NotificationModal = ({ isOpen, onClose, userRole, onUnreadCountChan
               ) : (
                 <>
                   {notifications.map((notif) => {
-                    // 🆕 Sử dụng getIconByType từ helper
                     const { icon: Icon, color, bg } = getIconByType(notif.type)
                     const contentData = parseContent(notif.content)
                     const isUnread = !notif.is_read
-                    // 🆕 Sử dụng getLinkByType từ helper
                     const link = getLinkByType(notif, userRole)
                     const imageUrl = contentData.image
 

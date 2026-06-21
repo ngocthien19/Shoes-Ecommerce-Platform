@@ -44,8 +44,9 @@ export const getIconByType = (type) => {
     return { icon: FiTruck, color: 'text-indigo-500', bg: 'bg-indigo-50' }
   case NOTIFICATION_TYPES.ORDER_DELIVERED:
     return { icon: FiCheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' }
-  case NOTIFICATION_TYPES.ORDER_CANCELLED:
   case NOTIFICATION_TYPES.ORDER_CANCEL_REQUESTED:
+    return { icon: FiAlertCircle, color: 'text-orange-500', bg: 'bg-orange-50' }
+  case NOTIFICATION_TYPES.ORDER_CANCELLED:
     return { icon: FiXCircle, color: 'text-red-500', bg: 'bg-red-50' }
   default:
     return { icon: FiBell, color: 'text-gray-500', bg: 'bg-gray-50' }
