@@ -1,12 +1,8 @@
-<<<<<<< Updated upstream
-export const DEV_API_URL = 'http://localhost:3000'
-=======
 export const DEV_API_URL = import.meta.env.PROD
   ? import.meta.env.VITE_API_URL || 'https://shoes-api-backend.onrender.com'
   : window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
     : 'http://backend:3000'
->>>>>>> Stashed changes
 
 export const ROLE_ID = {
   ADMIN: 1,
