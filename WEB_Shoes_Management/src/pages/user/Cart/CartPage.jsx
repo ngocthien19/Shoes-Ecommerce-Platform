@@ -134,25 +134,12 @@ export const CartPage = () => {
     }
   }
 
-  const handleUpdateQuantity = async (variantId, newQuantity) => {
-  // 1. Cập nhật UI ngay lập tức (optimistic)
-    const previousItems = [...cartItems]
-    setCartItems(prev =>
-      prev.map(item =>
-        item.variant_id === variantId
-          ? { ...item, cart_quantity: newQuantity }
-          : item
-      )
-    )
-
+  const handleUpdateQuantity = async (variantId, newQty) => {
     try {
-    // 2. Gọi API cập nhật số lượng
-      await cartApiService.updateCartItem(variantId, newQuantity)
-    // 3. Có thể gọi lại API để lấy dữ liệu mới nhất (tùy chọn)
+      const res = await cartApiService.updateQuantity(variantId, newQty)
+      if (res) fetchCartData()
     } catch (error) {
-    // 4. Nếu lỗi, rollback về trạng thái cũ
-      setCartItems(previousItems)
-      toast.error('Cập nhật thất bại')
+      toast.error(error.response?.data?.message || 'Lỗi cập nhật số lượng!')
     }
   }
 
