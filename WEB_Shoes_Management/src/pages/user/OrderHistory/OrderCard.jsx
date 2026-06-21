@@ -174,7 +174,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
               <TooltipTrigger asChild>
                 <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 border border-orange-200 text-[11px] font-bold px-2.5 py-1 rounded-full cursor-default">
                   <FiAlertCircle size={12} />
-                  Lý do hủy
+            Lý do hủy
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[240px] text-center text-xs">
@@ -188,24 +188,35 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
           to={`/orders/${order.order_id}`}
           className="px-4 py-2 bg-white border border-brand-secondary text-gray-700 font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-secondary hover:text-white hover:border-brand-secondary cursor-pointer active:scale-95"
         >
-          Xem chi tiết
+    Xem chi tiết
         </Link>
 
+        {/* ✅ Nút hủy cho PENDING */}
         {order.status === ORDER_STATUS.PENDING && (
           <button
-            onClick={() => onCancelOrder(order.order_id)}
+            onClick={() => onCancelOrder(order)}
             className="px-4 py-2 bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-            Hủy đơn hàng
+      Hủy đơn hàng
+          </button>
+        )}
+
+        {/* ✅ Nút gửi yêu cầu hủy cho PROCESSING */}
+        {order.status === ORDER_STATUS.PROCESSING && (
+          <button
+            onClick={() => onCancelOrder(order)}
+            className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-orange-600 cursor-pointer shadow-sm active:scale-95"
+          >
+      Gửi yêu cầu hủy
           </button>
         )}
 
         {order.status === ORDER_STATUS.CANCEL_REQUESTED && (
           <button
             onClick={() => onWithdrawCancel(order.order_id)}
-            className="px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-orange-600 cursor-pointer shadow-sm active:scale-95"
+            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-blue-700 cursor-pointer shadow-sm active:scale-95"
           >
-            Rút yêu cầu hủy
+      Rút yêu cầu hủy
           </button>
         )}
 
@@ -219,7 +230,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
                       disabled
                       className="px-4 py-2 bg-gray-100 text-gray-400 font-semibold rounded-lg text-sm border border-gray-200 pointer-events-none"
                     >
-              Đã đánh giá
+                Đã đánh giá
                     </button>
                   </span>
                 </TooltipTrigger>
@@ -233,7 +244,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
               onClick={() => onReviewOrder && onReviewOrder(order)}
               className="px-4 py-2 border border-brand-primary text-brand-primary font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-brand-primary hover:text-white cursor-pointer shadow-sm active:scale-95"
             >
-      Đánh giá ngay
+        Đánh giá ngay
             </button>
           )
         )}
@@ -243,7 +254,7 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
             to={`/product/${order.items[0]?.slug}`}
             className="px-4 py-2 flex items-center justify-center bg-brand-primary text-white font-semibold rounded-lg text-sm transition-all duration-300 ease-in-out hover:bg-[#c73652] cursor-pointer shadow-sm active:scale-95"
           >
-            Mua lại
+      Mua lại
           </Link>
         )}
       </div>
