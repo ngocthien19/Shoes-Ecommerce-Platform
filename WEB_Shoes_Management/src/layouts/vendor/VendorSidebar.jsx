@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiPieChart, FiBox, FiHeart, FiShoppingCart,
   FiTag, FiStar, FiCreditCard, FiLogOut, FiChevronDown, FiList,
-  FiMessageCircle, FiAlertCircle
+  FiMessageCircle, FiAlertCircle, FiMenu, FiX
 } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import { logoutSuccess } from '~/redux/user/userSlice'
 import { chatApiService } from '~/services/chat/chatApiService'
 
-export const VendorSidebar = ({ isBanned = false }) => {
+export const VendorSidebar = ({ isBanned = false, isMobileOpen = false, onMobileClose = () => {} }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -126,19 +126,20 @@ export const VendorSidebar = ({ isBanned = false }) => {
     return location.pathname.startsWith(path)
   }
 
-  return (
-    <aside className="w-74 bg-gradient-to-br from-sidebar-bg-start to-sidebar-bg-end border-r border-sidebar-border flex flex-col h-screen sticky top-0 shadow-lg z-40">
+  // Nội dung sidebar
+  const sidebarContent = (
+    <>
       {/* Logo Kênh Người Bán */}
-      <div className="h-20 flex items-center px-5 border-b border-sidebar-border shrink-0">
-        <Link to="/vendor/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 transition-all duration-300">
+      <div className="h-16 md:h-20 flex items-center px-3 md:px-5 border-b border-sidebar-border shrink-0">
+        <Link to="/vendor/dashboard" className="flex items-center gap-2 md:gap-2.5 group">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white font-black text-lg md:text-xl shadow-md group-hover:scale-105 transition-all duration-300">
             S
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-extrabold text-gray-800 tracking-tight leading-tight group-hover:text-brand-secondary transition-all duration-300">
+            <span className="text-base md:text-lg font-extrabold text-gray-800 tracking-tight leading-tight group-hover:text-brand-secondary transition-all duration-300">
               ShoesStore
             </span>
-            <span className="text-[10px] font-bold text-brand-primary tracking-widest uppercase">
+            <span className="text-[8px] md:text-[10px] font-bold text-brand-primary tracking-widest uppercase">
               Kênh Người Bán
             </span>
           </div>
@@ -146,20 +147,20 @@ export const VendorSidebar = ({ isBanned = false }) => {
       </div>
 
       {/* Menu Links */}
-      <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1.5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto py-4 md:py-6 px-2 md:px-4 space-y-1 custom-scrollbar">
         {menuItems.map((item, index) => {
           if (item.isSubmenu) {
             return (
               <div key={index} className="flex flex-col">
                 <button
                   onClick={() => item.setIsOpen(!item.isOpen)}
-                  className={`cursor-pointer w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 ${
+                  className={`cursor-pointer w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 rounded-xl transition-all duration-300 text-sm md:text-base ${
                     item.children.some(child => checkIsActive(child.path))
                       ? 'bg-sidebar-item-active text-brand-primary font-bold'
                       : 'text-sidebar-text hover:text-sidebar-text-hover hover:bg-sidebar-item-hover font-semibold'
                   } hover:translate-x-1 group`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 md:gap-3">
                     <span className="transition-all duration-300 group-hover:scale-110">
                       {item.icon}
                     </span>
@@ -182,14 +183,15 @@ export const VendorSidebar = ({ isBanned = false }) => {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="flex flex-col gap-1 mt-1 ml-4 pl-4 border-l-2 border-sidebar-border">
+                      <div className="flex flex-col gap-1 mt-1 ml-2 md:ml-4 pl-2 md:pl-4 border-l-2 border-sidebar-border">
                         {item.children.map((child, cIdx) => {
                           const isChildActive = checkIsActive(child.path, child.exact)
                           return (
                             <Link
                               key={cIdx}
                               to={child.path}
-                              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-300 text-sm group ${
+                              onClick={onMobileClose}
+                              className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-lg transition-all duration-300 text-xs md:text-sm group ${
                                 isChildActive
                                   ? 'bg-sidebar-item-active text-brand-primary font-bold'
                                   : 'text-sidebar-text hover:text-sidebar-text-hover hover:bg-sidebar-item-hover font-medium'
@@ -220,7 +222,8 @@ export const VendorSidebar = ({ isBanned = false }) => {
             <Link
               key={index}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
+              onClick={onMobileClose}
+              className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-xl transition-all duration-300 text-sm md:text-base group ${
                 isActive
                   ? 'bg-sidebar-item-active text-brand-primary font-bold'
                   : 'text-sidebar-text hover:text-sidebar-text-hover hover:bg-sidebar-item-hover font-semibold'
@@ -231,7 +234,6 @@ export const VendorSidebar = ({ isBanned = false }) => {
               </span>
               <span className="flex-1">{item.name}</span>
 
-              {/* Badge hiển thị số tin nhắn chưa đọc */}
               {item.badge > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
@@ -251,15 +253,59 @@ export const VendorSidebar = ({ isBanned = false }) => {
       </div>
 
       {/* Nút Đăng xuất ở đáy */}
-      <div className="p-4 border-t border-sidebar-border shrink-0">
+      <div className="p-3 md:p-4 border-t border-sidebar-border shrink-0">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-red-500 hover:bg-red-50 hover:text-sidebar-text-hover rounded-xl font-bold transition-all duration-300 cursor-pointer group hover:translate-x-1"
+          className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 text-red-500 hover:bg-red-50 hover:text-sidebar-text-hover rounded-xl font-bold transition-all duration-300 cursor-pointer group hover:translate-x-1 text-sm md:text-base"
         >
           <FiLogOut size={18} className="transition-all duration-300 group-hover:scale-110" />
           <span>Đăng xuất</span>
         </button>
       </div>
-    </aside>
+    </>
+  )
+
+  // Mobile Sidebar (Overlay)
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-64 xl:w-74 bg-gradient-to-br from-sidebar-bg-start to-sidebar-bg-end border-r border-sidebar-border flex-col h-screen sticky top-0 shadow-lg z-40">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar (Overlay) */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onMobileClose}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            />
+
+            {/* Sidebar */}
+            <motion.aside
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed top-0 left-0 z-50 w-[280px] h-screen bg-gradient-to-br from-sidebar-bg-start to-sidebar-bg-end border-r border-sidebar-border shadow-2xl lg:hidden"
+            >
+              {/* Nút đóng */}
+              <button
+                onClick={onMobileClose}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-all duration-300 z-10"
+              >
+                <FiX size={20} className="text-gray-600" />
+              </button>
+              {sidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
