@@ -10,9 +10,9 @@ export const env = {
   DB_PORT: process.env.DB_PORT || 3307,
 
   // Cấu hình Email
-  // EMAIL_USER: process.env.EMAIL_USER,
-  // EMAIL_PASS: process.env.EMAIL_PASS,
-  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_USER: process.env.EMAIL_USER,
+  EMAIL_PASS: process.env.EMAIL_PASS,
+  // RESEND_API_KEY: process.env.RESEND_API_KEY,
 
   // Cấu hình JWT
   JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
