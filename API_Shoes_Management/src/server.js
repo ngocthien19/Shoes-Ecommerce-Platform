@@ -59,6 +59,8 @@ dotenv.config()
 const START_SERVER = () => {
   const app = express()
 
+  app.set('trust proxy', true)
+
   // Wrap Express app bằng http.createServer để tích hợp Socket.io
   const server = http.createServer(app)
 
