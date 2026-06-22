@@ -2,6 +2,7 @@ import { adminPayoutModel } from '~/models/admin/payout/adminPayoutModel'
 import { PAYOUT_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import { notificationService } from '~/services/notification/notificationService'
 import { EmailProvider } from '~/providers/EmailProvider'
+import XLSX from 'xlsx'
 
 // 1. Logic bốc danh sách đơn rút tiền kèm phân trang và tìm kiếm
 const getPayoutList = async (filters) => {
@@ -113,8 +114,65 @@ const processPayout = async (payoutId, { targetStatus, adminNote }) => {
   }
 }
 
+const exportPayoutList = async (filters) => {
+  const status = filters.status || null
+  const search = filters.search || null
+
+  // Lấy toàn bộ dữ liệu
+  const payouts = await adminPayoutModel.getAllPayoutRequestsForExport({ status, search })
+
+  if (!payouts || payouts.length === 0) {
+    throw new Error('Không có dữ liệu yêu cầu rút tiền để xuất file Excel.')
+  }
+
+  // Map dữ liệu sang định dạng Excel
+  const statusMap = {
+    'pending': 'Đang chờ duyệt',
+    'approved': 'Đã duyệt',
+    'rejected': 'Đã từ chối'
+  }
+
+  const excelData = payouts.map(item => ({
+    'Mã lệnh': item.id,
+    'Cửa hàng': item.store_name,
+    'Chủ shop': item.vendor_name,
+    'Email vendor': item.vendor_email,
+    'Số tiền': Number(item.amount),
+    'Ngân hàng': item.bank_name,
+    'Số tài khoản': item.account_number,
+    'Chủ tài khoản': item.account_name,
+    'Trạng thái': statusMap[item.status] || item.status,
+    'Ghi chú Admin': item.admin_note || '',
+    'Ngày tạo': new Date(item.created_at).toLocaleString('vi-VN')
+  }))
+
+  // Tạo file Excel
+  const workBook = XLSX.utils.book_new()
+  const workSheet = XLSX.utils.json_to_sheet(excelData)
+
+  // Định dạng cột
+  workSheet['!cols'] = [
+    { wch: 12 }, // Mã lệnh
+    { wch: 22 }, // Cửa hàng
+    { wch: 20 }, // Chủ shop
+    { wch: 28 }, // Email vendor
+    { wch: 18 }, // Số tiền
+    { wch: 22 }, // Ngân hàng
+    { wch: 18 }, // Số tài khoản
+    { wch: 28 }, // Chủ tài khoản
+    { wch: 16 }, // Trạng thái
+    { wch: 30 }, // Ghi chú Admin
+    { wch: 22 } // Ngày tạo
+  ]
+
+  XLSX.utils.book_append_sheet(workBook, workSheet, 'Danh sách rút tiền')
+
+  return XLSX.write(workBook, { type: 'buffer', bookType: 'xlsx' })
+}
+
 export const adminPayoutService = {
   getPayoutList,
   getPayoutDetail,
-  processPayout
+  processPayout,
+  exportPayoutList
 }
