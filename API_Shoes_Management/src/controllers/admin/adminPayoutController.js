@@ -35,8 +35,27 @@ const processPayout = async (req, res) => {
   }
 }
 
+// 4. GET: Export Excel danh sách yêu cầu rút tiền
+const exportPayoutList = async (req, res) => {
+  try {
+    const { status, search } = req.query
+    const excelBuffer = await adminPayoutService.exportPayoutList({ status, search })
+
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const fileName = `DanhSachRutTien_${dateStr}.xlsx`
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+
+    return res.send(excelBuffer)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xuất file Excel: ${error.message}` })
+  }
+}
+
 export const adminPayoutController = {
   getPayoutList,
   getPayoutDetail,
-  processPayout
+  processPayout,
+  exportPayoutList
 }
