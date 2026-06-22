@@ -16,5 +16,12 @@ export const vendorPayoutApiService = {
   createPayoutRequest: async (data) => {
     const response = await authorizedAxiosInstance.post(`${DEV_API_URL}/api/vendor/payouts/request`, data)
     return response.data
+  },
+
+  exportPayoutHistory: async () => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/vendor/payouts/export`, {
+      responseType: 'blob'
+    })
+    return response.data
   }
 }
