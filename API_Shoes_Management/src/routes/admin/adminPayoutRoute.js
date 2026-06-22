@@ -9,6 +9,8 @@ router.use(authGuard.isAuthorized)
 
 router.get('/', adminPayoutValidation.getPayoutList, adminPayoutController.getPayoutList)
 
+router.get('/export', adminPayoutController.exportPayoutList)
+
 router.get('/:id', adminPayoutValidation.getPayoutDetail, adminPayoutController.getPayoutDetail)
 
 router.put('/:id/process', adminPayoutValidation.processPayout, adminPayoutController.processPayout)
