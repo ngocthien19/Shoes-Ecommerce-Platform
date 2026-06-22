@@ -11,4 +11,6 @@ router.post('/request', vendorPayoutValidation.createPayoutRequest, vendorPayout
 
 router.get('/history', vendorPayoutValidation.getPayoutHistory, vendorPayoutController.getPayoutHistory)
 
+router.get('/export', vendorPayoutController.exportPayoutHistory)
+
 export const vendorPayoutRouter = router

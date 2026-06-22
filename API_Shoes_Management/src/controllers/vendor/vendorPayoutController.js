@@ -22,7 +22,28 @@ const getPayoutHistory = async (req, res) => {
   }
 }
 
+// 3. GET: Export Excel lịch sử rút tiền
+const exportPayoutHistory = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const excelBuffer = await vendorPayoutService.exportPayoutHistory(userId)
+
+    // Tên file theo ngày hiện tại
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const fileName = `LichSuRutTien_${dateStr}.xlsx`
+
+    // Set header để download file
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+
+    return res.send(excelBuffer)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xuất file Excel: ${error.message}` })
+  }
+}
+
 export const vendorPayoutController = {
   createPayoutRequest,
-  getPayoutHistory
+  getPayoutHistory,
+  exportPayoutHistory
 }
