@@ -14,13 +14,13 @@ import {
 
 // 1. Cấu hình các thiết lập cho Redux Persist
 const persistConfig = {
-  key: 'root', // Khóa định danh root lưu dưới localStorage
+  key: 'root',
   storage: {
     getItem: (key) => Promise.resolve(window.localStorage.getItem(key)),
     setItem: (key, value) => Promise.resolve(window.localStorage.setItem(key, value)),
     removeItem: (key) => Promise.resolve(window.localStorage.removeItem(key))
   },
-  whitelist: ['user', 'cart'] // CHỈ định danh những slice nào muốn lưu lại khi F5
+  whitelist: ['user', 'cart']
 }
 
 // 2. Gom tất cả các reducers lại
@@ -32,7 +32,7 @@ const rootReducer = combineReducers({
 // 3. Tạo một reducer đã được bọc tính năng Persist
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-// 4. Khởi tạo Store cấu hình kèm Middleware để tránh lỗi check non-serializable của Redux Toolkit
+// 4. Khởi tạo Store
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
@@ -43,5 +43,5 @@ export const store = configureStore({
     })
 })
 
-// 5. Khởi tạo đối tượng persistor để đồng bộ dữ liệu
+// 5. Khởi tạo đối tượng persistor
 export const persistor = persistStore(store)
