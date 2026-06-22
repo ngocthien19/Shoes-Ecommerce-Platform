@@ -121,10 +121,10 @@ export const VendorPayoutPage = () => {
           <button
             onClick={handleExportExcel}
             disabled={isExporting || !data || data.history?.length === 0}
-            className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 font-bold text-sm px-5 py-3 rounded-xl shadow-sm hover:bg-gray-50 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-white border border-brand-primary/30 text-brand-primary font-bold text-sm px-5 py-3 rounded-xl shadow-sm hover:bg-brand-primary/5 hover:border-brand-primary hover:text-brand-primary hover:shadow-md transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isExporting ? (
-              <span className="animate-spin border-2 border-gray-700 border-t-transparent rounded-full w-4 h-4" />
+              <span className="animate-spin border-2 border-brand-primary border-t-transparent rounded-full w-4 h-4" />
             ) : (
               <FiDownload size={16} />
             )}
