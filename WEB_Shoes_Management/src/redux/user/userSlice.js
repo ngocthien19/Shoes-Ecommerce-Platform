@@ -7,8 +7,7 @@ const userSlice = createSlice({
     accessToken: null,
     refreshToken: null,
     isAuthenticated: false,
-    favoriteIds: [],
-    loading: true
+    favoriteIds: []
   },
   reducers: {
     loginSuccess: (state, action) => {
@@ -16,7 +15,6 @@ const userSlice = createSlice({
       state.accessToken = action.payload.accessToken
       state.refreshToken = action.payload.refreshToken
       state.isAuthenticated = true
-      state.loading = false
     },
     logoutSuccess: (state) => {
       state.userInfo = null
@@ -24,7 +22,6 @@ const userSlice = createSlice({
       state.refreshToken = null
       state.isAuthenticated = false
       state.favoriteIds = []
-      state.loading = false
     },
     setFavorites: (state, action) => {
       state.favoriteIds = action.payload
@@ -42,30 +39,10 @@ const userSlice = createSlice({
         ...state.userInfo,
         ...action.payload
       }
-    },
-    setLoading: (state, action) => {
-      state.loading = action.payload
-    },
-    rehydrateUser: (state, action) => {
-      if (action.payload) {
-        state.userInfo = action.payload.userInfo || null
-        state.isAuthenticated = action.payload.isAuthenticated || false
-        state.favoriteIds = action.payload.favoriteIds || []
-        state.loading = false
-      }
     }
   }
 })
 
-export const {
-  loginSuccess,
-  logoutSuccess,
-  setFavorites,
-  addToFavorites,
-  removeFromFavorites,
-  updateUserFields,
-  setLoading,
-  rehydrateUser
-} = userSlice.actions
-
+export const { loginSuccess, logoutSuccess, setFavorites,
+  addToFavorites, removeFromFavorites, updateUserFields } = userSlice.actions
 export default userSlice.reducer
