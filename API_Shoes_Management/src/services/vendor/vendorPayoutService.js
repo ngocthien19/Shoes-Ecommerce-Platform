@@ -2,6 +2,7 @@ import { vendorPayoutModel } from '~/models/vendor/payout/vendorPayoutModel'
 import { userModel } from '~/models/user/userModel'
 import { notificationService } from '~/services/notification/notificationService'
 import { NOTIFICATION_TYPES } from '~/utils/constants'
+import XLSX from 'xlsx'
 
 // Hàm kiểm tra tính chính chủ và trạng thái hoạt động của ví cửa hàng
 const getVerifiedStoreWallet = async (userId) => {
@@ -88,7 +89,60 @@ const getPayoutHistory = async (userId, queryParams) => {
   }
 }
 
+// 3. Xử lý export Excel lịch sử rút tiền
+const exportPayoutHistory = async (userId) => {
+  // 1. Lấy thông tin store của vendor
+  const store = await getVerifiedStoreWallet(userId)
+
+  // 2. Lấy toàn bộ lịch sử rút tiền (không phân trang)
+  const history = await vendorPayoutModel.getAllVendorPayoutHistory(store.id)
+
+  if (!history || history.length === 0) {
+    throw new Error('Không có dữ liệu lịch sử rút tiền để xuất file Excel.')
+  }
+
+  // 3. Map dữ liệu sang định dạng Excel
+  const statusMap = {
+    'pending': 'Đang xử lý',
+    'approved': 'Đã duyệt',
+    'rejected': 'Bị từ chối'
+  }
+
+  const excelData = history.map(item => ({
+    'Mã lệnh': item.id,
+    'Số tiền': Number(item.amount),
+    'Ngân hàng': item.bank_name,
+    'Số tài khoản': item.account_number,
+    'Chủ tài khoản': item.account_name,
+    'Trạng thái': statusMap[item.status] || item.status,
+    'Ngày yêu cầu': new Date(item.created_at).toLocaleString('vi-VN'),
+    'Ghi chú': item.admin_note || ''
+  }))
+
+  // 4. Tạo file Excel
+  const workBook = XLSX.utils.book_new()
+  const workSheet = XLSX.utils.json_to_sheet(excelData)
+
+  // Định dạng cột (độ rộng)
+  workSheet['!cols'] = [
+    { wch: 12 }, // Mã lệnh
+    { wch: 18 }, // Số tiền
+    { wch: 22 }, // Ngân hàng
+    { wch: 18 }, // Số tài khoản
+    { wch: 28 }, // Chủ tài khoản
+    { wch: 16 }, // Trạng thái
+    { wch: 22 }, // Ngày yêu cầu
+    { wch: 30 } // Ghi chú
+  ]
+
+  XLSX.utils.book_append_sheet(workBook, workSheet, 'Lịch sử rút tiền')
+
+  // 5. Trả về buffer
+  return XLSX.write(workBook, { type: 'buffer', bookType: 'xlsx' })
+}
+
 export const vendorPayoutService = {
   createPayoutRequest,
-  getPayoutHistory
+  getPayoutHistory,
+  exportPayoutHistory
 }
