@@ -32,7 +32,8 @@
     "nodemailer": "^8.0.7",
     "qs": "^6.15.2",
     "slugify": "^1.6.9",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

@@ -68,9 +68,29 @@ const countVendorPayoutHistory = async (storeId) => {
   return rows[0]?.total || 0
 }
 
+const getAllVendorPayoutHistory = async (storeId) => {
+  const query = `
+    SELECT 
+      id, 
+      amount, 
+      bank_name, 
+      account_number, 
+      account_name, 
+      status, 
+      admin_note, 
+      created_at
+    FROM payout_requests
+    WHERE store_id = ?
+    ORDER BY created_at DESC
+  `
+  const [rows] = await pool.execute(query, [storeId])
+  return rows
+}
+
 export const vendorPayoutModel = {
   getStoreWalletDetail,
   createPayoutRequestTransaction,
   getVendorPayoutHistory,
-  countVendorPayoutHistory
+  countVendorPayoutHistory,
+  getAllVendorPayoutHistory
 }
