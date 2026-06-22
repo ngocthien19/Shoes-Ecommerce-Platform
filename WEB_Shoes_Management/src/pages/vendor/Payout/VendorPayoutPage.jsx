@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { motion } from 'framer-motion'
-import { FiDollarSign, FiPlus } from 'react-icons/fi'
+import { FiDollarSign, FiPlus, FiDownload } from 'react-icons/fi'
 
 import { vendorPayoutApiService } from '~/services/vendor/vendorPayoutApiService'
 import { PayoutOverviewWidgets } from './PayoutOverviewWidgets'
@@ -22,6 +22,7 @@ export const VendorPayoutPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const page = Number(searchParams.get('page')) || 1
   const limit = Number(searchParams.get('limit')) || 10
@@ -63,6 +64,30 @@ export const VendorPayoutPage = () => {
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      const blob = await vendorPayoutApiService.exportPayoutHistory()
+
+      // Tạo link tải file
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      const dateStr = new Date().toISOString().slice(0, 10)
+      link.setAttribute('download', `LichSuRutTien_${dateStr}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Xuất file Excel thành công!')
+    } catch (error) {
+      toast.error(error.message || 'Xuất file thất bại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   // Tính thống kê theo status
   const getStats = () => {
     if (!data?.history) {
@@ -92,13 +117,28 @@ export const VendorPayoutPage = () => {
             <p className="text-xs text-gray-400 font-semibold mt-0.5">Quản lý số dư và yêu cầu rút tiền về tài khoản ngân hàng</p>
           </div>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          disabled={!data || data.currentBalance < 50000}
-          className="inline-flex items-center gap-2 bg-brand-primary text-white font-bold text-sm px-5 py-3 rounded-xl shadow-md shadow-brand-primary/20 hover:bg-[#c73652] cursor-pointer transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <FiPlus size={16} /> Tạo yêu cầu rút tiền
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting || !data || data.history?.length === 0}
+            className="inline-flex items-center gap-2 bg-white border border-gray-200 text-gray-700 font-bold text-sm px-5 py-3 rounded-xl shadow-sm hover:bg-gray-50 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <span className="animate-spin border-2 border-gray-700 border-t-transparent rounded-full w-4 h-4" />
+            ) : (
+              <FiDownload size={16} />
+            )}
+            Xuất Excel
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={!data || data.currentBalance < 50000}
+            className="inline-flex items-center gap-2 bg-brand-primary text-white font-bold text-sm px-5 py-3 rounded-xl shadow-md shadow-brand-primary/20 hover:bg-[#c73652] transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiPlus size={16} /> Tạo yêu cầu rút tiền
+          </button>
+        </div>
       </div>
 
       {/* Widget thống kê */}
