@@ -140,36 +140,38 @@ export const AdminPayoutsPage = () => {
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.1, duration: 0.4 }}
-        className="flex items-center gap-4"
-      >
-        <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-          <FiDollarSign className="text-emerald-500" size={20} />
-        </div>
-        <div>
-          <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Quản lý Rút tiền</h2>
-          <p className="text-xs text-gray-400 font-semibold mt-0.5">Quản lý các yêu cầu rút tiền từ cửa hàng</p>
-        </div>
-      </motion.div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="flex items-center gap-4"
+        >
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <FiDollarSign className="text-emerald-500" size={20} />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Quản lý Rút tiền</h2>
+            <p className="text-xs text-gray-400 font-semibold mt-0.5">Quản lý các yêu cầu rút tiền từ cửa hàng</p>
+          </div>
+        </motion.div>
 
-      <motion.button
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
-        onClick={handleExportExcel}
-        disabled={isExporting || !data || data.payouts?.length === 0}
-        className="inline-flex items-center gap-2 bg-white border border-emerald-500/30 text-emerald-600 font-bold text-sm px-5 py-3 rounded-xl shadow-sm hover:bg-emerald-500/5 hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-      >
-        {isExporting ? (
-          <span className="animate-spin border-2 border-emerald-500 border-t-transparent rounded-full w-4 h-4" />
-        ) : (
-          <FiDownload size={16} />
-        )}
+        <motion.button
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          onClick={handleExportExcel}
+          disabled={isExporting || !data || data.payouts?.length === 0}
+          className="inline-flex items-center gap-2 bg-white border border-emerald-500/30 text-emerald-600 font-bold text-sm px-5 py-3 rounded-xl shadow-sm hover:bg-emerald-500/5 hover:border-emerald-500 hover:text-emerald-700 hover:shadow-md transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isExporting ? (
+            <span className="animate-spin border-2 border-emerald-500 border-t-transparent rounded-full w-4 h-4" />
+          ) : (
+            <FiDownload size={16} />
+          )}
           Xuất Excel
-      </motion.button>
+        </motion.button>
+      </div>
 
       {/* Overview Widgets */}
       {data?.payouts && (
