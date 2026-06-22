@@ -127,9 +127,62 @@ const processPayoutTransaction = async (payoutId, storeId, amount, targetStatus,
   }
 }
 
+// E. Lấy TOÀN BỘ lịch sử rút tiền để export
+const getAllPayoutRequestsForExport = async ({ status, search }) => {
+  let query = `
+    SELECT 
+      pr.id,
+      pr.amount,
+      pr.bank_name,
+      pr.account_number,
+      pr.account_name,
+      pr.status,
+      pr.admin_note,
+      pr.created_at,
+      s.name AS store_name,
+      u.fullname AS vendor_name,
+      u.email AS vendor_email
+    FROM payout_requests pr
+    JOIN stores s ON pr.store_id = s.id
+    JOIN users u ON s.owner_id = u.id
+    WHERE 1=1
+  `
+  const queryParams = []
+
+  if (status) {
+    query += ' AND pr.status = ?'
+    queryParams.push(status)
+  }
+
+  if (search) {
+    query += ' AND ('
+    query += ' pr.id LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR s.name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.bank_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_number LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR pr.account_name LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR u.fullname LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ' OR u.email LIKE ?'
+    queryParams.push(`%${search}%`)
+    query += ')'
+  }
+
+  query += ' ORDER BY pr.created_at DESC'
+
+  const [rows] = await pool.execute(query, queryParams)
+  return rows
+}
+
 export const adminPayoutModel = {
   getPayoutRequests,
   countPayoutRequests,
   getPayoutDetail,
-  processPayoutTransaction
+  processPayoutTransaction,
+  getAllPayoutRequestsForExport
 }
