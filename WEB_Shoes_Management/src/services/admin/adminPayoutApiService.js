@@ -27,5 +27,17 @@ export const adminPayoutApiService = {
       { targetStatus, adminNote }
     )
     return response.data
+  },
+
+  exportPayouts: async (filters = {}) => {
+    const params = new URLSearchParams()
+    if (filters.status) params.append('status', filters.status)
+    if (filters.search) params.append('search', filters.search)
+
+    const response = await authorizedAxiosInstance.get(
+      `${DEV_API_URL}/api/admin/payouts/export?${params.toString()}`,
+      { responseType: 'blob' }
+    )
+    return response.data
   }
 }
