@@ -47,9 +47,25 @@ const getOrderDetail = async (req, res) => {
   }
 }
 
+const deletePendingOrders = async (req, res) => {
+  try {
+    const { orderIds } = req.body
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp danh sách orderId cần xóa' })
+    }
+
+    const result = await orderTrackingService.deletePendingOrders(orderIds)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi xóa đơn hàng pending: ${error.message}` })
+  }
+}
+
 export const orderTrackingController = {
   getOrderHistory,
   cancelOrderByUser,
   withdrawCancelRequest,
-  getOrderDetail
+  getOrderDetail,
+  deletePendingOrders
 }

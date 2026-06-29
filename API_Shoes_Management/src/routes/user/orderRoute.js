@@ -28,6 +28,7 @@ router.put('/cancel/:orderId', orderTrackingValidation.checkOrderIdParam,
   orderTrackingController.cancelOrderByUser)
 router.put('/cancel-withdraw/:orderId', orderTrackingValidation.checkOrderIdParam,
   orderTrackingController.withdrawCancelRequest)
+router.delete('/pending-orders', orderTrackingController.deletePendingOrders)
 
 router.post('/:orderId/reviews', reviewValidation.validateProductReviewBody,
   CloudinaryProvider.uploadReviewFields, reviewController.createReview)

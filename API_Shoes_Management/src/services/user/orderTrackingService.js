@@ -354,10 +354,58 @@ const getOrderDetail = async (userId, orderId) => {
   return order
 }
 
+const deletePendingOrders = async (orderIds) => {
+  const connection = await pool.getConnection()
+
+  try {
+    await connection.beginTransaction()
+
+    for (const orderId of orderIds) {
+      // Kiểm tra đơn hàng có tồn tại và đang ở trạng thái pending không
+      const order = await orderTrackingModel.getOrderById(orderId)
+
+      if (!order) {
+        throw new Error(`Đơn hàng #${orderId} không tồn tại`)
+      }
+
+      if (order.status !== ORDER_STATUS.PENDING) {
+        // Nếu không phải pending, chỉ cần xóa (không hoàn stock)
+        await connection.execute('DELETE FROM order_items WHERE order_id = ?', [orderId])
+        await connection.execute('DELETE FROM orders WHERE id = ?', [orderId])
+        continue
+      }
+
+      // Lấy items và hoàn stock
+      const items = await orderTrackingModel.getOrderItemsByOrderId(orderId, connection)
+
+      for (const item of items) {
+        // Hoàn stock
+        await connection.execute(
+          'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+          [item.quantity, item.variant_id]
+        )
+      }
+
+      // Xóa order_items và order
+      await connection.execute('DELETE FROM order_items WHERE order_id = ?', [orderId])
+      await connection.execute('DELETE FROM orders WHERE id = ?', [orderId])
+    }
+
+    await connection.commit()
+    return { success: true, message: 'Đã xóa các đơn hàng pending' }
+  } catch (error) {
+    await connection.rollback()
+    throw error
+  } finally {
+    connection.release()
+  }
+}
+
 export const orderTrackingService = {
   getOrderHistory,
   cancelOrderByUser,
   handleAutoConfirmOrders,
   withdrawCancelRequest,
-  getOrderDetail
+  getOrderDetail,
+  deletePendingOrders
 }

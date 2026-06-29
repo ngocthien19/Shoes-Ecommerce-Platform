@@ -91,6 +91,24 @@ const getOrderWithUserId = async (orderId) => {
   return rows[0] || null
 }
 
+const clearCartByOrderIds = async (orderIds) => {
+  if (!orderIds || orderIds.length === 0) return
+
+  // Lấy tất cả variant_id từ các order
+  const placeholders = orderIds.map(() => '?').join(',')
+  const query = `
+    DELETE FROM cart 
+    WHERE user_id IN (
+      SELECT DISTINCT user_id FROM orders WHERE id IN (${placeholders})
+    )
+    AND variant_id IN (
+      SELECT DISTINCT variant_id FROM order_items WHERE order_id IN (${placeholders})
+    )
+  `
+  const [result] = await pool.execute(query, [...orderIds, ...orderIds])
+  return result
+}
+
 export const orderModel = {
   getCartItemsForCheckout,
   createOrder,
@@ -100,5 +118,6 @@ export const orderModel = {
   clearUserCart,
   updatePaymentStatusBulk,
   getOrderUserId,
-  getOrderWithUserId
+  getOrderWithUserId,
+  clearCartByOrderIds
 }

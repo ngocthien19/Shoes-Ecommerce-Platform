@@ -8,7 +8,7 @@ import { PAYMENT_METHODS, PAYMENT_STATUS, ORDER_STATUS, NOTIFICATION_TYPES } fro
 import { notificationService } from '~/services/notification/notificationService'
 
 // Tạo đơn hàng và trừ kho (Dùng chung cho cả COD và Online)
-const coreCreateOrderTransaction = async (userId, data) => {
+const coreCreateOrderTransaction = async (userId, data, skipClearCart = false) => {
   const cartItems = await orderModel.getCartItemsForCheckout(userId)
   if (!cartItems || cartItems.length === 0) throw new Error('Giỏ hàng của bạn đang trống rỗng.')
 
@@ -63,7 +63,10 @@ const coreCreateOrderTransaction = async (userId, data) => {
       }
     }
 
-    await orderModel.clearUserCart(connection, userId)
+    if (!skipClearCart) {
+      await orderModel.clearUserCart(connection, userId)
+    }
+
     await connection.commit()
     return { createdOrderIds, totalAllShops, itemsByStore }
   } catch (error) {
@@ -129,7 +132,7 @@ const sendNotificationToUser = async (userId, orderId, title, message, type) => 
 
 // 1. Luồng thanh toán COD
 const createOrderCOD = async (userId, payload) => {
-  const { createdOrderIds, itemsByStore } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD })
+  const { createdOrderIds, itemsByStore } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD }, false)
 
   // Lấy tên người đặt
   const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
@@ -162,7 +165,7 @@ const createOrderCOD = async (userId, payload) => {
 
 // 2. Luồng thanh toán Online (VNPAY)
 const createOrderOnline = async (userId, payload, ipAddr) => {
-  const { createdOrderIds, totalAllShops, itemsByStore } = await coreCreateOrderTransaction(userId, payload)
+  const { createdOrderIds, totalAllShops, itemsByStore } = await coreCreateOrderTransaction(userId, payload, true)
   const txnRef = createdOrderIds.join('_') + '_' + Date.now()
 
   let paymentUrl = ''
@@ -223,6 +226,8 @@ const vnpayIPN = async (vnp_Params) => {
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
+      await orderModel.clearCartByOrderIds(orderIds)
+
       // Gửi thông báo cho User và Vendor khi thanh toán VNPAY thành công
       for (const orderId of orderIds) {
         const userId = await orderModel.getOrderUserId(orderId)
@@ -279,6 +284,8 @@ const momoIPN = async (reqBody) => {
       const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+
+      await orderModel.clearCartByOrderIds(orderIds)
 
       // Gửi thông báo cho User và Vendor khi thanh toán MoMo thành công
       for (const orderId of orderIds) {
