@@ -91,8 +91,19 @@ const updateStoreProfile = async (req, res) => {
   }
 }
 
+const checkStoreRegistrationStatus = async (req, res) => {
+  try {
+    const userId = req.jwtDecoded?.id
+    const result = await vendorStoreService.checkStoreRegistrationStatus(userId)
+    return res.status(200).json(result)
+  } catch (error) {
+    return res.status(500).json({ message: `Lỗi kiểm tra trạng thái cửa hàng: ${error.message}` })
+  }
+}
+
 export const vendorStoreController = {
   registerStore,
   getStoreProfile,
-  updateStoreProfile
+  updateStoreProfile,
+  checkStoreRegistrationStatus
 }
