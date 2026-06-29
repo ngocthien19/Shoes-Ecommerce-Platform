@@ -106,7 +106,7 @@ export const CategoryTable = ({
                         {category.totalProducts || 0}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-4 px-4 text-center min-w-[150px]">
                       {getStatusBadge(category.is_active)}
                     </td>
                     <td className="py-4 px-4 text-center">

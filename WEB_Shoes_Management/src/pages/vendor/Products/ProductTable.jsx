@@ -179,7 +179,7 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                       <ModerationBadge status={p.status} rejectReason={p.reject_reason} />
                     </td>
 
-                    <td className="py-4 px-4 text-center min-w-[140px]">
+                    <td className="py-4 px-4 text-center min-w-[170px]">
                       {p.status === PRODUCT_MODERATION_STATUS.APPROVED ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

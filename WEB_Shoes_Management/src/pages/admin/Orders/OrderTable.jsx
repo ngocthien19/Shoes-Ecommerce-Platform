@@ -172,7 +172,7 @@ export const OrderTable = ({ orders, onForceCancel }) => {
                         <p className="text-[10px] text-red-400">-{formatPrice(order.discount_amount)}</p>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-4 px-4 text-center min-w-[130px]">
                       {getPaymentStatusBadge(order.payment_status)}
                     </td>
                     <td className="py-4 px-4 text-center">

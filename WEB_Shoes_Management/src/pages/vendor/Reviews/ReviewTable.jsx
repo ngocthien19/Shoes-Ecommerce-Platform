@@ -129,7 +129,7 @@ export const ReviewTable = ({
                     <td className="py-4 px-4 text-center">
                       <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-4 px-4 text-center min-w-[200px]">
                       <div className="flex items-center justify-center gap-1.5">
                         {review.is_active === 1 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-black">
