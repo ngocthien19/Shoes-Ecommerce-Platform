@@ -58,7 +58,7 @@ const deletePendingOrders = async (req, res) => {
       })
     }
 
-    const result = await orderTrackingService.deletePendingOrders(userId, orderIds)
+    const result = await orderTrackingService.deletePendingOrders(userId, orderIds, true)
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({
