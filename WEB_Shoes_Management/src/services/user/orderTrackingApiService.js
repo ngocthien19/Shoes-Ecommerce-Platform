@@ -25,5 +25,10 @@ export const orderTrackingApiService = {
   getOrderDetail: async (orderId) => {
     const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/orders/detail/${orderId}`)
     return response.data
+  },
+
+  deletePendingOrders: async (orderIds) => {
+    const response = await authorizedAxiosInstance.delete('/orders/pending-orders', { data: { orderIds } })
+    return response.data
   }
 }

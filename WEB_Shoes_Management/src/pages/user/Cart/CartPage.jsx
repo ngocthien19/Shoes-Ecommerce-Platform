@@ -4,10 +4,18 @@ import { useSelector, useDispatch } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cartApiService } from '~/services/user/cartService'
 import { orderApiService } from '~/services/user/orderService'
-import { setCartCount } from '~/redux/user/cartSlice'
+import { orderTrackingApiService } from '~/services/user/orderTrackingApiService'
+import {
+  setCart,
+  setCartCount,
+  setSelectedItems,
+  setPendingOrderIds,
+  clearPendingOrderIds,
+  restorePendingOrderIds
+} from '~/redux/user/cartSlice'
 import { toast } from 'react-toastify'
 import { FiShoppingBag } from 'react-icons/fi'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { CartItemList } from './CartItemList'
 import { CheckoutForm } from './CheckoutForm'
@@ -19,18 +27,20 @@ import { usePageTitle } from '~/hooks/usePageTitle'
 export const CartPage = () => {
   usePageTitle('Giỏ hàng', 'Xem và quản lý giỏ hàng của bạn tại Shoes Platform')
   const dispatch = useDispatch()
-  const userInfo = useSelector((state) => state.user.userInfo)
-
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  const [cartItems, setCartItems] = useState([])
-  const [selectedItems, setSelectedItems] = useState([])
+  const userInfo = useSelector((state) => state.user.userInfo)
+  const cartItems = useSelector((state) => state.cart?.cartItems) || []
+  const selectedItems = useSelector((state) => state.cart?.selectedItems) || []
+  const pendingOrderIds = useSelector((state) => state.cart?.pendingOrderIds) || []
+
   const [paymentMethod, setPaymentMethod] = useState('COD')
-
   const [storeVouchers, setStoreVouchers] = useState({})
   const [loadingOrder, setLoadingOrder] = useState(false)
+  const [isProcessingPaymentFailure, setIsProcessingPaymentFailure] = useState(false)
 
-  // ── STATES QUẢN LÝ MODAL XÓA ──
+  // STATES QUẢN LÝ MODAL XÓA
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [pendingDeleteIds, setPendingDeleteIds] = useState([])
 
@@ -46,37 +56,96 @@ export const CartPage = () => {
     try {
       const data = await cartApiService.getCart()
       if (Array.isArray(data)) {
-        setCartItems(data)
-        const totalItems = data.reduce((sum, item) => sum + item.cart_quantity, 0)
-        dispatch(setCartCount(totalItems))
+        dispatch(setCart(data))
+
+        // Khôi phục selected items nếu có
+        const savedSelected = JSON.parse(localStorage.getItem('selected_items') || '[]')
+        if (savedSelected.length > 0) {
+          const validSelected = savedSelected.filter(id =>
+            data.some(item => item.variant_id === id)
+          )
+          dispatch(setSelectedItems(validSelected))
+        }
       }
     } catch (err) {
-      console.error(err)
+      console.error('Lỗi fetch cart:', err)
     }
   }
 
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment')
+    const paymentError = searchParams.get('error')
+
+    // Khôi phục pending order ids từ localStorage
+    dispatch(restorePendingOrderIds())
+
+    // Nếu thanh toán thất bại hoặc bị hủy
+    if (paymentStatus === 'failed' || paymentError === 'failed') {
+      handlePaymentFailure()
+    }
+  }, [searchParams])
+
+  const handlePaymentFailure = async () => {
+    // Tránh gọi nhiều lần
+    if (isProcessingPaymentFailure) return
+    setIsProcessingPaymentFailure(true)
+
+    try {
+      const orderIds = pendingOrderIds.length > 0
+        ? pendingOrderIds
+        : JSON.parse(localStorage.getItem('pending_order_ids') || '[]')
+
+      if (orderIds.length > 0) {
+        // Gọi API xóa đơn hàng pending và hoàn stock
+        await orderTrackingApiService.deletePendingOrders(orderIds)
+
+        // Xóa pending order ids khỏi Redux và localStorage
+        dispatch(clearPendingOrderIds())
+
+        toast.warning('Thanh toán thất bại hoặc bị hủy. Vui lòng thử lại!')
+      }
+
+      // Xóa param khỏi URL
+      window.history.replaceState({}, '', '/cart')
+
+      // Refresh cart để đảm bảo dữ liệu chính xác
+      await fetchCartData()
+    } catch (error) {
+      console.error('Lỗi xóa đơn hàng pending:', error)
+      toast.error('Có lỗi xảy ra khi xử lý thanh toán thất bại. Vui lòng kiểm tra lại giỏ hàng.')
+    } finally {
+      setIsProcessingPaymentFailure(false)
+    }
+  }
+
+  // Lưu selected items vào localStorage khi thay đổi
+  useEffect(() => {
+    if (selectedItems && Array.isArray(selectedItems)) {
+      localStorage.setItem('selected_items', JSON.stringify(selectedItems))
+    }
+  }, [selectedItems])
+
+  useEffect(() => {
+    fetchCartData()
+  }, [])
+
   const handleReloadAndScrollTop = () => {
     fetchCartData()
-
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     })
   }
 
-  useEffect(() => {
-    fetchCartData()
-  }, [])
-
-  // ── Xóa 1 sản phẩm lẻ (Bấm từ icon thùng rác từng dòng) ──
+  // ── Xóa 1 sản phẩm lẻ ──
   const handleRequestRemoveSingle = (variantId) => {
     setPendingDeleteIds([variantId])
     setIsDeleteModalOpen(true)
   }
 
-  // ── Xóa hàng loạt sản phẩm (Bấm từ nút Xóa mục đã chọn ở tiêu đề) ──
+  // ── Xóa hàng loạt sản phẩm ──
   const handleRequestRemoveSelectedBulk = () => {
-    if (selectedItems.length === 0) return
+    if (!selectedItems || selectedItems.length === 0) return
     setPendingDeleteIds(selectedItems)
     setIsDeleteModalOpen(true)
   }
@@ -91,7 +160,11 @@ export const CartPage = () => {
       if (res) {
         toast.success(pendingDeleteIds.length > 1 ? 'Đã xóa tất cả sản phẩm thành công!' : 'Đã gỡ sản phẩm khỏi giỏ.')
 
-        setSelectedItems(prev => prev.filter(id => !pendingDeleteIds.includes(id)))
+        // Cập nhật selected items - KIỂM TRA AN TOÀN
+        const updatedSelected = Array.isArray(selectedItems)
+          ? selectedItems.filter(id => !pendingDeleteIds.includes(id))
+          : []
+        dispatch(setSelectedItems(updatedSelected))
 
         setStoreVouchers(v => {
           const copy = { ...v }
@@ -111,26 +184,33 @@ export const CartPage = () => {
 
   // Xử lý Checkbox chọn hàng lẻ
   const handleToggleSelect = (variantId) => {
-    setSelectedItems(prev => {
-      const isRemoving = prev.includes(variantId)
-      if (isRemoving) {
-        setStoreVouchers(v => {
-          const copy = { ...v }
-          delete copy[variantId]
-          return copy
-        })
-      }
-      return isRemoving ? prev.filter(id => id !== variantId) : [...prev, variantId]
-    })
+    const currentSelected = Array.isArray(selectedItems) ? selectedItems : []
+    const isRemoving = currentSelected.includes(variantId)
+
+    if (isRemoving) {
+      setStoreVouchers(v => {
+        const copy = { ...v }
+        delete copy[variantId]
+        return copy
+      })
+    }
+
+    dispatch(setSelectedItems(
+      isRemoving
+        ? currentSelected.filter(id => id !== variantId)
+        : [...currentSelected, variantId]
+    ))
   }
 
   // Chọn toàn bộ giỏ hàng
   const handleToggleSelectAll = () => {
-    if (selectedItems.length === cartItems.length) {
-      setSelectedItems([])
+    const currentSelected = Array.isArray(selectedItems) ? selectedItems : []
+
+    if (currentSelected.length === cartItems.length) {
+      dispatch(setSelectedItems([]))
       setStoreVouchers({})
     } else {
-      setSelectedItems(cartItems.map(item => item.variant_id))
+      dispatch(setSelectedItems(cartItems.map(item => item.variant_id)))
     }
   }
 
@@ -138,25 +218,26 @@ export const CartPage = () => {
     const oldItem = cartItems.find(item => item.variant_id === variantId)
     const oldQty = oldItem?.cart_quantity || 1
 
-    setCartItems(prev =>
-      prev.map(item =>
-        item.variant_id === variantId
-          ? { ...item, cart_quantity: newQty }
-          : item
-      )
+    // Update UI ngay lập tức
+    const updatedCart = cartItems.map(item =>
+      item.variant_id === variantId
+        ? { ...item, cart_quantity: newQty }
+        : item
     )
+    dispatch(setCart(updatedCart))
 
     try {
       await cartApiService.updateQuantity(variantId, newQty)
-      // fetchCartData()
+      // Cập nhật lại count
+      const totalItems = updatedCart.reduce((sum, item) => sum + item.cart_quantity, 0)
+      dispatch(setCartCount(totalItems))
     } catch (error) {
-      setCartItems(prev =>
-        prev.map(item =>
-          item.variant_id === variantId
-            ? { ...item, cart_quantity: oldQty }
-            : item
-        )
-      )
+      // Rollback nếu lỗi
+      dispatch(setCart(cartItems.map(item =>
+        item.variant_id === variantId
+          ? { ...item, cart_quantity: oldQty }
+          : item
+      )))
       toast.error(error.response?.data?.message || 'Lỗi cập nhật số lượng!')
     }
   }
@@ -168,7 +249,12 @@ export const CartPage = () => {
     }))
   }
 
-  const selectedCartObjects = cartItems.filter(item => selectedItems.includes(item.variant_id))
+  const safeSelectedItems = Array.isArray(selectedItems) ? selectedItems : []
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : []
+
+  const selectedCartObjects = safeCartItems.filter(item =>
+    safeSelectedItems.includes(item.variant_id)
+  )
 
   const subTotal = selectedCartObjects.reduce((sum, item) => {
     return sum + (Number(item.base_price) * item.cart_quantity)
@@ -190,7 +276,7 @@ export const CartPage = () => {
 
   // XỬ LÝ ĐẶT HÀNG
   const handleCheckoutProcess = handleSubmit(async (formData) => {
-    if (selectedItems.length === 0) {
+    if (!safeSelectedItems || safeSelectedItems.length === 0) {
       toast.warning('Vui lòng tích chọn ít nhất một đôi giày để tiến hành thanh toán!')
       return
     }
@@ -259,6 +345,11 @@ export const CartPage = () => {
         const data = await orderApiService.createOrderOnline(orderPayload)
 
         if (data?.paymentUrl) {
+          // Lưu orderIds vào Redux và localStorage
+          if (data.orderIds) {
+            dispatch(setPendingOrderIds(data.orderIds))
+          }
+
           toast.info('Đang chuyển hướng sang cổng thanh toán an toàn...')
           window.location.href = data.paymentUrl
         } else {
@@ -307,12 +398,12 @@ export const CartPage = () => {
           >
             <h2 className="text-xl font-extrabold text-brand-secondary uppercase tracking-tight flex items-center gap-2.5 after:content-[''] after:inline-block after:w-20 after:h-[5px] after:bg-brand-primary/60 after:rounded-full">
               <FiShoppingBag size={24} className="text-brand-primary shrink-0" />
-              <span>Giỏ hàng của bạn ({cartItems.length} sản phẩm)</span>
+              <span>Giỏ hàng của bạn ({safeCartItems.length} sản phẩm)</span>
             </h2>
           </motion.div>
 
           <AnimatePresence mode="wait">
-            {cartItems.length === 0 ? (
+            {safeCartItems.length === 0 ? (
               <motion.div
                 key="empty-cart"
                 variants={emptyStateVariants}
@@ -349,8 +440,8 @@ export const CartPage = () => {
               >
                 <motion.div variants={leftColumnVariants} className="lg:col-span-2">
                   <CartItemList
-                    cartItems={cartItems}
-                    selectedItems={selectedItems}
+                    cartItems={safeCartItems}
+                    selectedItems={safeSelectedItems}
                     onToggleSelect={handleToggleSelect}
                     onToggleSelectAll={handleToggleSelectAll}
                     onUpdateQuantity={handleUpdateQuantity}
@@ -373,7 +464,7 @@ export const CartPage = () => {
                     subTotal={subTotal}
                     discountAmount={totalDiscountAmount}
                     finalTotal={finalTotal}
-                    hasSelectedItems={selectedItems.length > 0}
+                    hasSelectedItems={safeSelectedItems.length > 0}
                     onSubmitOrder={handleCheckoutProcess}
                     loadingOrder={loadingOrder}
                   />
@@ -383,7 +474,7 @@ export const CartPage = () => {
           </AnimatePresence>
 
           {/* Sản phẩm gợi ý khi giỏ hàng trống */}
-          {cartItems.length === 0 && (
+          {safeCartItems.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -406,7 +497,7 @@ export const CartPage = () => {
         message={pendingDeleteIds.length > 1
           ? `Bạn có chắc chắn muốn xóa hoàn toàn ${pendingDeleteIds.length} sản phẩm đang được tick chọn này ra khỏi giỏ hàng không?`
           : 'Hành động này sẽ xóa hoàn toàn sản phẩm và các mã giảm giá đang áp dụng của đôi giày này khỏi giỏ hàng hiện tại.'}
-        productInfo={pendingDeleteIds.length === 1 ? cartItems.find(item => item.variant_id === pendingDeleteIds[0]) : null}
+        productInfo={pendingDeleteIds.length === 1 ? safeCartItems.find(item => item.variant_id === pendingDeleteIds[0]) : null}
         onClose={() => {
           setIsDeleteModalOpen(false)
           setPendingDeleteIds([])
