@@ -44,13 +44,20 @@ const createOrderOnline = async (req, res) => {
 const vnpayReturn = async (req, res) => {
   try {
     const result = await orderService.vnpayIPN(req.query)
-    if (result.code === '00') {
-      const txnRef = req.query.vnp_TxnRef
-      const orderIds = txnRef.split('_').slice(0, -1).join(',')
+    const txnRef = req.query.vnp_TxnRef
 
-      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=VNPAY`)
+    // Kiểm tra isSuccess thay vì result.code === '00'
+    if (result.isSuccess) {
+      const orderIds = txnRef.split('_').slice(0, -1).join(',')
+      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=VNPAY&payment=success`)
     }
-    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed`)
+
+    // Thanh toán thất bại hoặc bị hủy
+    let orderIds = ''
+    if (txnRef) {
+      orderIds = txnRef.split('_').slice(0, -1).join(',')
+    }
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed${orderIds ? `&orderIds=${orderIds}` : ''}`)
   } catch (error) {
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }
@@ -59,13 +66,20 @@ const vnpayReturn = async (req, res) => {
 const momoReturn = async (req, res) => {
   try {
     const result = await orderService.processMoMoReturn(req.query)
-    if (result.isSuccess) {
-      const orderIdQuery = req.query.orderId
-      const orderIds = orderIdQuery.split('_').slice(0, -1).join(',')
+    const orderIdQuery = req.query.orderId
 
-      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=MOMO`)
+    // Kiểm tra isSuccess
+    if (result.isSuccess) {
+      const orderIds = orderIdQuery.split('_').slice(0, -1).join(',')
+      return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=MOMO&payment=success`)
     }
-    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed`)
+
+    // Thanh toán thất bại hoặc bị hủy
+    let orderIds = ''
+    if (orderIdQuery) {
+      orderIds = orderIdQuery.split('_').slice(0, -1).join(',')
+    }
+    return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed${orderIds ? `&orderIds=${orderIds}` : ''}`)
   } catch (error) {
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }

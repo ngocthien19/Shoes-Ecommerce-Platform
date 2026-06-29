@@ -354,22 +354,28 @@ const getOrderDetail = async (userId, orderId) => {
   return order
 }
 
-const deletePendingOrders = async (orderIds) => {
+const deletePendingOrders = async (userId, orderIds) => {
   const connection = await pool.getConnection()
 
   try {
     await connection.beginTransaction()
 
     for (const orderId of orderIds) {
-      // Kiểm tra đơn hàng có tồn tại và đang ở trạng thái pending không
+      // Kiểm tra đơn hàng có tồn tại
       const order = await orderTrackingModel.getOrderById(orderId)
 
       if (!order) {
         throw new Error(`Đơn hàng #${orderId} không tồn tại`)
       }
 
+      // Kiểm tra quyền sở hữu
+      if (order.user_id !== userId) {
+        throw new Error(`Bạn không có quyền xóa đơn hàng #${orderId}`)
+      }
+
+      // Chỉ xóa đơn hàng đang ở trạng thái pending
       if (order.status !== ORDER_STATUS.PENDING) {
-        // Nếu không phải pending, chỉ cần xóa (không hoàn stock)
+        // Nếu không phải pending, chỉ xóa order (không hoàn stock)
         await connection.execute('DELETE FROM order_items WHERE order_id = ?', [orderId])
         await connection.execute('DELETE FROM orders WHERE id = ?', [orderId])
         continue
@@ -379,11 +385,19 @@ const deletePendingOrders = async (orderIds) => {
       const items = await orderTrackingModel.getOrderItemsByOrderId(orderId, connection)
 
       for (const item of items) {
-        // Hoàn stock
-        await connection.execute(
-          'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
-          [item.quantity, item.variant_id]
-        )
+        if (item.variant_id) {
+          // Hoàn lại stock
+          await connection.execute(
+            'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+            [item.quantity, item.variant_id]
+          )
+
+          // Trừ sold (vì đã cộng khi tạo đơn)
+          await connection.execute(
+            'UPDATE products SET sold = sold - ? WHERE id = (SELECT product_id FROM product_variants WHERE id = ?)',
+            [item.quantity, item.variant_id]
+          )
+        }
       }
 
       // Xóa order_items và order
@@ -392,7 +406,10 @@ const deletePendingOrders = async (orderIds) => {
     }
 
     await connection.commit()
-    return { success: true, message: 'Đã xóa các đơn hàng pending' }
+    return {
+      success: true,
+      message: `Đã xóa ${orderIds.length} đơn hàng pending và hoàn lại kho`
+    }
   } catch (error) {
     await connection.rollback()
     throw error
