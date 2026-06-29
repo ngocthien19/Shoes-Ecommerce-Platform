@@ -169,7 +169,7 @@ export const StoreTable = ({
                       <td className="py-4 px-4 text-center">
                         <span className="font-bold text-amber-500">{Number(store.rating_average || 0).toFixed(1)}</span>
                       </td>
-                      <td className="py-4 px-4 text-center">
+                      <td className="py-4 px-4 text-center min-w-[150px]">
                         {getStatusBadge(store)}
                       </td>
                       <td className="py-4 px-4 text-center">

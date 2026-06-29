@@ -100,7 +100,7 @@ export const PromotionTable = ({ promotions, selectedIds, onSelectRow, onSelectA
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-center min-w-[140px]">
+                    <td className="py-4 px-4 text-center min-w-[160px]">
                       {!expired ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

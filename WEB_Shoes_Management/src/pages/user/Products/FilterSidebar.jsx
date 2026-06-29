@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { FiChevronDown, FiStar, FiZap } from 'react-icons/fi'
 import { categoryService } from '~/services/user/categoryService'
 import { attributeService } from '~/services/user/attributeService'
+
 export const FilterSidebar = ({ filters, setFilters }) => {
   const [categories, setCategories] = useState([])
   const [sizesList, setSizesList] = useState([])
@@ -24,7 +25,6 @@ export const FilterSidebar = ({ filters, setFilters }) => {
         ])
 
         setCategories(catData)
-
         setSizesList(attrData.sizes)
         setColorsList(attrData.colors)
       } catch (error) {
@@ -34,7 +34,65 @@ export const FilterSidebar = ({ filters, setFilters }) => {
     fetchSidebarData()
   }, [])
 
-  // Hàm xử lý chung cho các filter dạng mảng (categories, sizes, colors, ratings)
+  const handleToggleParentCategory = (parentCategory) => {
+    const currentCategories = filters.categories || []
+
+    // Lấy tất cả slug của category cha và các con
+    const getAllCategorySlugs = (cat) => {
+      const slugs = [cat.slug]
+      if (cat.children && cat.children.length > 0) {
+        cat.children.forEach(child => {
+          slugs.push(child.slug)
+        })
+      }
+      return slugs
+    }
+
+    const categorySlugs = getAllCategorySlugs(parentCategory)
+
+    // Kiểm tra xem tất cả các slug đã có trong currentCategories chưa
+    const allChecked = categorySlugs.every(slug => currentCategories.includes(slug))
+
+    let newCategories
+    if (allChecked) {
+      // Nếu đã check hết thì bỏ check tất cả
+      newCategories = currentCategories.filter(slug => !categorySlugs.includes(slug))
+    } else {
+      // Nếu chưa check hết thì check tất cả
+      const slugsToAdd = categorySlugs.filter(slug => !currentCategories.includes(slug))
+      newCategories = [...currentCategories, ...slugsToAdd]
+    }
+
+    setFilters({ ...filters, categories: newCategories, page: 1 })
+  }
+
+  const handleToggleChildCategory = (childSlug, parentCategory) => {
+    const currentCategories = filters.categories || []
+
+    // Toggle child
+    let newCategories = currentCategories.includes(childSlug)
+      ? currentCategories.filter(slug => slug !== childSlug)
+      : [...currentCategories, childSlug]
+
+    // Kiểm tra xem sau khi toggle, parent có còn đủ điều kiện để check không
+    if (parentCategory && parentCategory.children) {
+      const childSlugs = parentCategory.children.map(child => child.slug)
+      const allChildrenChecked = childSlugs.every(slug => newCategories.includes(slug))
+
+      // Nếu tất cả children đều được check và parent chưa có trong list thì thêm parent vào
+      if (allChildrenChecked && !newCategories.includes(parentCategory.slug)) {
+        newCategories = [...newCategories, parentCategory.slug]
+      }
+      // Nếu không phải tất cả children đều được check và parent đang có trong list thì xóa parent
+      else if (!allChildrenChecked && newCategories.includes(parentCategory.slug)) {
+        newCategories = newCategories.filter(slug => slug !== parentCategory.slug)
+      }
+    }
+
+    setFilters({ ...filters, categories: newCategories, page: 1 })
+  }
+
+  // Hàm xử lý chung cho các filter dạng mảng (sizes, colors, ratings, prices)
   const handleToggleArrayFilter = (field, value) => {
     const currentArray = filters[field] || []
     const newArray = currentArray.includes(value)
@@ -44,18 +102,37 @@ export const FilterSidebar = ({ filters, setFilters }) => {
     setFilters({ ...filters, [field]: newArray, page: 1 })
   }
 
-  // Hàm xử lý riêng cho khoảng giá (vì nó liên quan 2 biến minPrice và maxPrice)
-  const handlePriceChange = (min, max) => {
-    if (filters.minPrice === min && filters.maxPrice === max) {
-      setFilters({ ...filters, minPrice: null, maxPrice: null, page: 1 })
-    } else {
-      setFilters({ ...filters, minPrice: min, maxPrice: max, page: 1 })
-    }
-  }
-
   // Hàm xử lý toggle giảm giá
   const handleDiscountChange = (e) => {
     setFilters({ ...filters, isDiscounted: e.target.checked, page: 1 })
+  }
+
+  const isParentChecked = (parentCategory) => {
+    const currentCategories = filters.categories || []
+    const getAllCategorySlugs = (cat) => {
+      const slugs = [cat.slug]
+      if (cat.children && cat.children.length > 0) {
+        cat.children.forEach(child => {
+          slugs.push(child.slug)
+        })
+      }
+      return slugs
+    }
+    const categorySlugs = getAllCategorySlugs(parentCategory)
+    return categorySlugs.every(slug => currentCategories.includes(slug))
+  }
+
+  const isChildChecked = (childSlug) => {
+    return (filters.categories || []).includes(childSlug)
+  }
+
+  const findParentCategory = (childSlug) => {
+    for (const parent of categories) {
+      if (parent.children && parent.children.some(child => child.slug === childSlug)) {
+        return parent
+      }
+    }
+    return null
   }
 
   return (
@@ -75,8 +152,8 @@ export const FilterSidebar = ({ filters, setFilters }) => {
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={(filters.categories || []).includes(parent.slug)}
-                  onChange={() => handleToggleArrayFilter('categories', parent.slug)}
+                  checked={isParentChecked(parent)}
+                  onChange={() => handleToggleParentCategory(parent)}
                   className="w-5 h-5 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
                 />
                 <span className="text-gray-800 font-semibold group-hover:text-brand-primary transition-colors">
@@ -91,8 +168,8 @@ export const FilterSidebar = ({ filters, setFilters }) => {
                     <label key={child.id} className="flex items-center gap-3 cursor-pointer group">
                       <input
                         type="checkbox"
-                        checked={(filters.categories || []).includes(child.slug)}
-                        onChange={() => handleToggleArrayFilter('categories', child.slug)}
+                        checked={isChildChecked(child.slug)}
+                        onChange={() => handleToggleChildCategory(child.slug, parent)}
                         className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
                       />
                       <span className="text-gray-600 text-sm group-hover:text-brand-primary transition-colors">

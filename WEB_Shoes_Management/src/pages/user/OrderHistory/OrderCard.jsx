@@ -165,7 +165,6 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
         </div>
       </div>
 
-      {/* Footer / Buttons hành động */}
       <div className="p-4 bg-gray-50/50 flex justify-end items-center gap-3 border-t border-gray-100">
 
         {order.status === ORDER_STATUS.CANCELLED && (
@@ -191,7 +190,6 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
     Xem chi tiết
         </Link>
 
-        {/* ✅ Nút hủy cho PENDING */}
         {order.status === ORDER_STATUS.PENDING && (
           <button
             onClick={() => onCancelOrder(order)}
@@ -201,7 +199,6 @@ export const OrderCard = ({ order, onCancelOrder, onWithdrawCancel, onReviewOrde
           </button>
         )}
 
-        {/* ✅ Nút gửi yêu cầu hủy cho PROCESSING */}
         {order.status === ORDER_STATUS.PROCESSING && (
           <button
             onClick={() => onCancelOrder(order)}

@@ -93,7 +93,7 @@ export const PayoutHistoryTable = ({ history }) => {
                     <td className="py-4 px-4">
                       <span className="text-sm font-semibold text-gray-700 uppercase line-clamp-1">{item.account_name}</span>
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-4 px-4 text-center min-w-[150px]">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${StatusBadge.className}`}>
                         <StatusBadge.icon size={12} />
                         {StatusBadge.label}
