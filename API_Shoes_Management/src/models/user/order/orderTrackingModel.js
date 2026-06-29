@@ -48,7 +48,8 @@ const getOrderItemsByOrderId = async (orderId, conn = null) => {
       p.name AS product_name, 
       p.images AS product_images, 
       p.slug,
-      pv.id AS variant_id
+      pv.id AS variant_id,
+      p.id AS product_id
     FROM order_items oi
     INNER JOIN product_variants pv ON oi.variant_id = pv.id
     INNER JOIN products p ON pv.product_id = p.id
@@ -79,6 +80,7 @@ const getOrderItemsByOrderId = async (orderId, conn = null) => {
     return {
       ...item,
       variant_id: item.variant_id || null,
+      product_id: item.product_id || null,
       quantity: item.quantity || 0,
       variant_image: parsedVariantImage,
       product_images: parsedProductImages

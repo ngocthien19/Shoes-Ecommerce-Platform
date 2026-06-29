@@ -204,54 +204,57 @@ const vnpayIPN = async (vnp_Params) => {
   if (secureHash === signed) {
     const vnp_ResponseCode = vnp_Params['vnp_ResponseCode']
 
-    // Thanh toán thành công
     if (vnp_ResponseCode === '00') {
-      const txnRef = vnp_Params['vnp_TxnRef']
-      const parts = txnRef.split('_')
-      const orderIds = parts.slice(0, parts.length - 1).map(Number)
+      try {
+        const txnRef = vnp_Params['vnp_TxnRef']
+        const parts = txnRef.split('_')
+        const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
-      for (const orderId of orderIds) {
-        const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
-        for (const item of items) {
-          if (item.variant_id) {
-            await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
-            await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+        // Trừ stock và tăng sold cho từng order
+        for (const orderId of orderIds) {
+          const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+          for (const item of items) {
+            if (item.variant_id && item.product_id) {
+              await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+              await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+            }
           }
         }
-      }
-      await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
-      await orderModel.clearCartByOrderIds(orderIds)
 
-      // Gửi thông báo
-      for (const orderId of orderIds) {
-        const userId = await orderModel.getOrderUserId(orderId)
-        if (userId) {
-          const [orderRows] = await pool.execute(`
-            SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            WHERE o.id = ?
-          `, [orderId])
+        await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+        await orderModel.clearCartByOrderIds(orderIds)
 
-          if (orderRows.length > 0) {
-            const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+        // Gửi thông báo
+        for (const orderId of orderIds) {
+          const userId = await orderModel.getOrderUserId(orderId)
+          if (userId) {
+            const [orderRows] = await pool.execute(`
+              SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+              FROM orders o 
+              JOIN users u ON o.user_id = u.id 
+              WHERE o.id = ?
+            `, [orderId])
 
-            await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
-            await sendNotificationToUser(
-              userId,
-              orderId,
-              'Thanh toán thành công',
-              `Đơn hàng #${orderId} đã được thanh toán thành công qua VNPAY. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-              NOTIFICATION_TYPES.ORDER_PAID
-            )
+            if (orderRows.length > 0) {
+              const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+
+              await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+              await sendNotificationToUser(
+                userId,
+                orderId,
+                'Thanh toán thành công',
+                `Đơn hàng #${orderId} đã được thanh toán thành công qua VNPAY. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+                NOTIFICATION_TYPES.ORDER_PAID
+              )
+            }
           }
         }
-      }
 
-      // Trả về isSuccess: true
-      return { code: '00', message: 'Confirm Success', isSuccess: true }
+        return { code: '00', message: 'Confirm Success', isSuccess: true }
+      } catch (error) {
+        return { code: '00', message: 'Error processing', isSuccess: false }
+      }
     } else {
-      // Thanh toán thất bại - Trả về isSuccess: false
       return {
         code: vnp_ResponseCode,
         message: `Payment failed or cancelled: ${vnp_ResponseCode}`,
@@ -275,54 +278,56 @@ const momoIPN = async (reqBody) => {
 
   if (signature === expectedSignature) {
     if (resultCode === 0) {
-      const parts = orderId.split('_')
-      const orderIds = parts.slice(0, parts.length - 1).map(Number)
+      try {
+        const parts = orderId.split('_')
+        const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
-      for (const orderId of orderIds) {
-        const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
-        for (const item of items) {
-          if (item.variant_id) {
-            await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
-            await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+        // Trừ stock và tăng sold
+        for (const orderId of orderIds) {
+          const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+          for (const item of items) {
+            if (item.variant_id && item.product_id) {
+              await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+              await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+            }
           }
         }
-      }
-      await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
-      await orderModel.clearCartByOrderIds(orderIds)
+        await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+        await orderModel.clearCartByOrderIds(orderIds)
 
-      // Gửi thông báo cho User và Vendor khi thanh toán MoMo thành công
-      for (const orderId of orderIds) {
-        const userId = await orderModel.getOrderUserId(orderId)
-        if (userId) {
-          // Lấy thông tin đơn hàng và tên khách hàng
-          const [orderRows] = await pool.execute(`
-            SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            WHERE o.id = ?
-          `, [orderId])
+        // Gửi thông báo
+        for (const orderId of orderIds) {
+          const userId = await orderModel.getOrderUserId(orderId)
+          if (userId) {
+            const [orderRows] = await pool.execute(`
+              SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+              FROM orders o 
+              JOIN users u ON o.user_id = u.id 
+              WHERE o.id = ?
+            `, [orderId])
 
-          if (orderRows.length > 0) {
-            const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
-            const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
+            if (orderRows.length > 0) {
+              const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+              const formattedAmount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalAmount)
 
-            // Gửi thông báo cho Vendor
-            await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
-
-            // Gửi thông báo cho User
-            await sendNotificationToUser(
-              userId,
-              orderId,
-              'Thanh toán thành công',
-              `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo với số tiền ${formattedAmount}. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-              NOTIFICATION_TYPES.ORDER_PAID
-            )
+              await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+              await sendNotificationToUser(
+                userId,
+                orderId,
+                'Thanh toán thành công',
+                `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo với số tiền ${formattedAmount}. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+                NOTIFICATION_TYPES.ORDER_PAID
+              )
+            }
           }
         }
-      }
 
-      return { success: true }
+        return { success: true }
+      } catch (error) {
+        console.error('Error processing MoMo IPN success:', error)
+        throw error
+      }
     }
   }
   throw new Error('Giao dịch MoMo thất bại hoặc sai chữ ký bảo mật.')
@@ -332,57 +337,66 @@ const momoIPN = async (reqBody) => {
 const processMoMoReturn = async (queryData) => {
   const { resultCode, message, orderId } = queryData
 
-  // resultCode === '0' là thành công
   if (resultCode === '0') {
-    const parts = orderId.split('_')
-    const orderIds = parts.slice(0, parts.length - 1).map(Number)
+    try {
+      const parts = orderId.split('_')
+      const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
-    for (const orderId of orderIds) {
-      const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
-      for (const item of items) {
-        if (item.variant_id) {
-          await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
-          await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+      // Trừ stock và tăng sold
+      for (const orderId of orderIds) {
+        const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+        for (const item of items) {
+          if (item.variant_id && item.product_id) {
+            await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+            await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+          }
         }
       }
-    }
-    await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
-    await orderModel.clearCartByOrderIds(orderIds)
 
-    // Gửi thông báo
-    for (const orderId of orderIds) {
-      const userId = await orderModel.getOrderUserId(orderId)
-      if (userId) {
-        const [orderRows] = await pool.execute(`
-          SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
-          FROM orders o 
-          JOIN users u ON o.user_id = u.id 
-          WHERE o.id = ?
-        `, [orderId])
+      await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
+      await orderModel.clearCartByOrderIds(orderIds)
 
-        if (orderRows.length > 0) {
-          const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+      // Gửi thông báo
+      for (const orderId of orderIds) {
+        const userId = await orderModel.getOrderUserId(orderId)
+        if (userId) {
+          const [orderRows] = await pool.execute(`
+            SELECT o.store_id, o.total_amount, u.fullname as buyer_name 
+            FROM orders o 
+            JOIN users u ON o.user_id = u.id 
+            WHERE o.id = ?
+          `, [orderId])
 
-          await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
-          await sendNotificationToUser(
-            userId,
-            orderId,
-            'Thanh toán thành công',
-            `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
-            NOTIFICATION_TYPES.ORDER_PAID
-          )
+          if (orderRows.length > 0) {
+            const { store_id: storeId, total_amount: totalAmount, buyer_name: buyerName } = orderRows[0]
+
+            await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PAID, 'Đơn hàng đã thanh toán')
+            await sendNotificationToUser(
+              userId,
+              orderId,
+              'Thanh toán thành công',
+              `Đơn hàng #${orderId} đã được thanh toán thành công qua MoMo. Cửa hàng sẽ sớm xác nhận và giao hàng.`,
+              NOTIFICATION_TYPES.ORDER_PAID
+            )
+          }
         }
       }
-    }
 
-    return {
-      isSuccess: true,
-      message: 'Thanh toán MoMo thành công',
-      momoMessage: message
+      return {
+        isSuccess: true,
+        message: 'Thanh toán MoMo thành công',
+        momoMessage: message
+      }
+    } catch (error) {
+      console.error('Error processing MoMo Return success:', error)
+      return {
+        isSuccess: false,
+        message: `Lỗi xử lý thanh toán: ${error.message}`,
+        momoMessage: message
+      }
     }
   }
 
-  // resultCode !== '0' là thất bại
   return {
     isSuccess: false,
     message: 'Giao dịch MoMo thất bại hoặc bị hủy.',
