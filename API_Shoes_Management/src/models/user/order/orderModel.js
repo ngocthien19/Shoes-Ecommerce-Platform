@@ -53,6 +53,9 @@ const createOrderItem = async (connection, { orderId, variantId, quantity, price
 // 4. Trừ số lượng kho của biến thể giày
 const decreaseVariantStock = async (conn, variantId, quantity) => {
   const connection = conn?.execute ? conn : conn
+  if (!variantId) {
+    return
+  }
   const query = 'UPDATE product_variants SET stock = stock - ? WHERE id = ?'
   await connection.execute(query, [quantity, variantId])
 }
