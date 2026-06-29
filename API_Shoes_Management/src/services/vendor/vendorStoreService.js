@@ -2,7 +2,7 @@ import { vendorStoreModel } from '~/models/vendor/store/vendorStoreModel'
 import { systemSettingModel } from '~/models/admin/system/systemSettingModel'
 import { userModel } from '~/models/user/userModel'
 import { notificationService } from '~/services/notification/notificationService'
-import { NOTIFICATION_TYPES } from '~/utils/constants'
+import { NOTIFICATION_TYPES, ROLE_ID } from '~/utils/constants'
 
 const registerStore = async (userId, { name, bio, logo, banner, address }) => {
   const hasStore = await vendorStoreModel.checkStoreExistByOwnerId(userId)
@@ -97,8 +97,64 @@ const updateStoreProfile = async (userId, updateData) => {
   return await vendorStoreModel.getStoreByOwnerId(userId)
 }
 
+const checkStoreRegistrationStatus = async (userId) => {
+  // Lấy thông tin user
+  const user = await userModel.getUserById(userId)
+  if (!user) {
+    throw new Error('Người dùng không tồn tại')
+  }
+
+  // Kiểm tra xem user đã là VENDOR chưa (role_id = 3)
+  if (user.role_id === ROLE_ID.VENDOR) {
+    // Đã là VENDOR, kiểm tra thông tin cửa hàng
+    const store = await vendorStoreModel.getStoreByOwnerId(userId)
+    if (store) {
+      return {
+        status: 'approved',
+        storeId: store.id,
+        storeName: store.name,
+        isActive: store.is_active === 1,
+        message: 'Cửa hàng đã được phê duyệt'
+      }
+    }
+  }
+
+  // Kiểm tra xem user đã gửi đơn đăng ký chưa (dựa vào bảng stores)
+  const store = await vendorStoreModel.getStoreByOwnerId(userId)
+  if (store) {
+    // Có store nhưng chưa được active (is_active = 0)
+    if (store.is_active === 0) {
+      return {
+        status: 'pending',
+        storeId: store.id,
+        storeName: store.name,
+        isActive: false,
+        message: 'Đơn đăng ký cửa hàng đang chờ phê duyệt'
+      }
+    }
+    // Store bị từ chối (có reject_reason)
+    if (store.reject_reason) {
+      return {
+        status: 'rejected',
+        storeId: store.id,
+        storeName: store.name,
+        isActive: false,
+        rejectReason: store.reject_reason,
+        message: 'Đơn đăng ký cửa hàng bị từ chối'
+      }
+    }
+  }
+
+  // Chưa đăng ký
+  return {
+    status: 'not_registered',
+    message: 'Chưa đăng ký cửa hàng'
+  }
+}
+
 export const vendorStoreService = {
   registerStore,
   getStoreProfile,
-  updateStoreProfile
+  updateStoreProfile,
+  checkStoreRegistrationStatus
 }

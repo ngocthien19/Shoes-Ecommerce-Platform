@@ -18,4 +18,6 @@ router.get('/profile', vendorStoreController.getStoreProfile)
 // 3. PUT /api/vendor/stores/profile -> Cập nhật thông tin shop
 router.put('/profile', CloudinaryProvider.uploadStoreFiles, vendorStoreValidation.validateUpdateStoreProfileBody, vendorStoreController.updateStoreProfile)
 
+// 4. GET /api/vendor/stores/status -> Kiểm tra trạng thái đăng ký
+router.get('/status', vendorStoreController.checkStoreRegistrationStatus)
 export const vendorStoreRouter = router
