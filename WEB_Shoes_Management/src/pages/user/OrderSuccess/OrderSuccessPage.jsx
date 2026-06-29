@@ -3,7 +3,7 @@ import { FiCheck } from 'react-icons/fi'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { RecommendedProducts } from '~/components/user/RecommendedProducts'
 import { useDispatch } from 'react-redux'
-import { setCartCount } from '~/redux/user/cartSlice'
+import { setCartCount, clearPendingOrderIds } from '~/redux/user/cartSlice'
 import { cartApiService } from '~/services/user/cartService'
 import { motion } from 'framer-motion'
 import { usePageTitle } from '~/hooks/usePageTitle'
@@ -15,6 +15,9 @@ export const OrderSuccessPage = () => {
   const dispatch = useDispatch()
 
   useEffect(() => {
+    // Xóa pending order ids khi vào trang thành công
+    dispatch(clearPendingOrderIds())
+
     const fetchRemainingCart = async () => {
       try {
         const data = await cartApiService.getCart()
@@ -33,6 +36,16 @@ export const OrderSuccessPage = () => {
   const stateData = location.state?.orderData
   const urlOrderIds = searchParams.get('orderIds')
   const urlMethod = searchParams.get('method')
+  const paymentStatus = searchParams.get('payment')
+
+  // Nếu không có payment=success thì không hiển thị trang thành công
+  // (có thể redirect về cart nếu vào thẳng URL)
+  useEffect(() => {
+    if (paymentStatus !== 'success') {
+      // Nếu không phải thanh toán thành công, redirect về cart
+      window.location.href = '/cart'
+    }
+  }, [paymentStatus])
 
   const displayOrderId = stateData?.orderId || (urlOrderIds ? `#${urlOrderIds.split(',').join(', #')}` : '#ORD-UNKNOWN')
   const displayMethod = stateData?.paymentMethod || (urlMethod === 'VNPAY' ? 'Cổng thanh toán điện tử VNPay' : urlMethod === 'MOMO' ? 'Ví điện tử MoMo' : 'Không xác định')
@@ -43,7 +56,6 @@ export const OrderSuccessPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50/50">
-
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-12 flex flex-col items-center">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -51,7 +63,6 @@ export const OrderSuccessPage = () => {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="bg-white ring ring-brand-primary/50 max-w-[480px] w-full rounded-[32px] p-8 md:p-10 shadow-sm border border-gray-100 flex flex-col items-center text-center mb-12"
         >
-
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
