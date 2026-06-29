@@ -296,16 +296,35 @@ const searchAndFilterProducts = async (filters) => {
     whereClauses += ' AND p.name LIKE ?'
     params.push(`%${search}%`)
   }
+
   if (categorySlugs && categorySlugs.length > 0) {
-    const placeholders = categorySlugs.map(() => '?').join(',')
-    whereClauses += ` AND p.category_id IN (SELECT id FROM categories WHERE slug IN (${placeholders}))`
-    params = [...params, ...categorySlugs]
+    const categoryConditions = categorySlugs.map(() => {
+      return `(
+        p.category_id IN (
+          SELECT id FROM categories 
+          WHERE slug = ? OR parent_id IN (
+            SELECT id FROM categories WHERE slug = ?
+          )
+        )
+      )`
+    }).join(' OR ')
+
+    // Mỗi slug cần được truyền 2 lần (1 cho chính nó, 1 cho parent_id)
+    const flatParams = []
+    categorySlugs.forEach(slug => {
+      flatParams.push(slug, slug)
+    })
+
+    whereClauses += ` AND (${categoryConditions})`
+    params = [...params, ...flatParams]
   }
+
   if (storeIds && storeIds.length > 0) {
     const placeholders = storeIds.map(() => '?').join(',')
     whereClauses += ` AND p.store_id IN (${placeholders})`
     params = [...params, ...storeIds]
   }
+
   // LỌC KHOẢNG GIÁ ĐA ĐIỀU KIỆN
   if (prices && prices.length > 0) {
     const priceConditions = []
@@ -327,14 +346,14 @@ const searchAndFilterProducts = async (filters) => {
     params = [...params, ...ratings]
   }
 
-  // Lọc theo Size (Dùng Subquery chui vào bảng product_variants)
+  // Lọc theo Size
   if (sizes && sizes.length > 0) {
     const placeholders = sizes.map(() => '?').join(',')
     whereClauses += ` AND p.id IN (SELECT product_id FROM product_variants WHERE size IN (${placeholders}))`
     params = [...params, ...sizes]
   }
 
-  // Lọc theo Màu (Dùng Subquery chui vào bảng product_variants)
+  // Lọc theo Màu
   if (colors && colors.length > 0) {
     const placeholders = colors.map(() => '?').join(',')
     whereClauses += ` AND p.id IN (SELECT product_id FROM product_variants WHERE color IN (${placeholders}))`
@@ -351,51 +370,48 @@ const searchAndFilterProducts = async (filters) => {
     )`
   }
 
-  let orderByClause = ' ORDER BY p.created_at DESC' // Mặc định nếu không truyền gì là Mới nhất
+  let orderByClause = ' ORDER BY p.created_at DESC'
 
   switch (sortBy) {
     case 'latest':
-      orderByClause = ' ORDER BY p.created_at DESC' // Mới nhất
+      orderByClause = ' ORDER BY p.created_at DESC'
       break
     case 'sold_desc':
-      orderByClause = ' ORDER BY p.sold DESC' // Bán chạy nhất
+      orderByClause = ' ORDER BY p.sold DESC'
       break
     case 'views_desc':
-      orderByClause = ' ORDER BY p.view_count DESC' // Xem nhiều nhất
+      orderByClause = ' ORDER BY p.view_count DESC'
       break
     case 'price_asc':
-      orderByClause = ' ORDER BY p.price ASC' // Giá tăng dần
+      orderByClause = ' ORDER BY p.price ASC'
       break
     case 'price_desc':
-      orderByClause = ' ORDER BY p.price DESC' // Giá giảm dần
+      orderByClause = ' ORDER BY p.price DESC'
       break
     case 'rating_desc':
-      orderByClause = ' ORDER BY p.rating_avg DESC' // Đánh giá cao nhất
+      orderByClause = ' ORDER BY p.rating_avg DESC'
       break
     case 'name_asc':
-      orderByClause = ' ORDER BY p.name ASC' // Theo tên từ A - Z
+      orderByClause = ' ORDER BY p.name ASC'
       break
     default:
       orderByClause = ' ORDER BY p.created_at DESC'
   }
 
-  // Ghép nối điều kiện WHERE và mệnh đề ORDER BY động vào chuỗi SQL chính
   queryData += whereClauses + orderByClause + ' LIMIT ? OFFSET ?'
   queryCount += whereClauses
 
-  // Tính tổng số lượng dòng để phân trang
   const [countRows] = await pool.execute(queryCount, params)
   const total = countRows[0].total
 
   const finalParams = [...params, String(limit), String(offset)]
   const [products] = await pool.execute(queryData, finalParams)
 
-  // Parse variants từ JSON string sang array
+  // Parse variants
   const parsedProducts = products.map(product => {
     if (product.variants) {
       try {
         product.variants = typeof product.variants === 'string' ? JSON.parse(product.variants) : product.variants
-        // Parse image trong từng variant
         product.variants = product.variants.map(variant => {
           if (variant.image && typeof variant.image === 'string') {
             try {
