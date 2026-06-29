@@ -23,5 +23,10 @@ export const vendorStoreApiService = {
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )
     return response.data
+  },
+
+  getStoreRegistrationStatus: async () => {
+    const response = await authorizedAxiosInstance.get(`${DEV_API_URL}/api/vendor/stores/status`)
+    return response.data
   }
 }
