@@ -36,19 +36,9 @@ export const OrderSuccessPage = () => {
   const stateData = location.state?.orderData
   const urlOrderIds = searchParams.get('orderIds')
   const urlMethod = searchParams.get('method')
-  const paymentStatus = searchParams.get('payment')
-
-  // Nếu không có payment=success thì không hiển thị trang thành công
-  // (có thể redirect về cart nếu vào thẳng URL)
-  useEffect(() => {
-    if (paymentStatus !== 'success') {
-      // Nếu không phải thanh toán thành công, redirect về cart
-      window.location.href = '/cart'
-    }
-  }, [paymentStatus])
 
   const displayOrderId = stateData?.orderId || (urlOrderIds ? `#${urlOrderIds.split(',').join(', #')}` : '#ORD-UNKNOWN')
-  const displayMethod = stateData?.paymentMethod || (urlMethod === 'VNPAY' ? 'Cổng thanh toán điện tử VNPay' : urlMethod === 'MOMO' ? 'Ví điện tử MoMo' : 'Không xác định')
+  const displayMethod = stateData?.paymentMethod || (urlMethod === 'VNPAY' ? 'Cổng thanh toán điện tử VNPay' : urlMethod === 'MOMO' ? 'Ví điện tử MoMo' : 'Thanh toán khi nhận hàng (COD)')
   const displayDate = stateData?.orderDate || new Date().toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })
 
   const categoryIds = location.state?.categoryIds || []

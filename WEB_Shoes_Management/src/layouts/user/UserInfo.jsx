@@ -30,7 +30,7 @@ import { NotificationModal } from '~/components/common/notification/Notification
 import { notificationApiService } from '~/services/notification/notificationApiService'
 import { ROLE_ID, DEV_API_URL } from '~/utils/constant'
 
-// ✅ Hàm lấy chữ cái đầu và cuối của tên
+// Hàm lấy chữ cái đầu và cuối của tên
 const getInitials = (fullname) => {
   if (!fullname) return '?'
 
