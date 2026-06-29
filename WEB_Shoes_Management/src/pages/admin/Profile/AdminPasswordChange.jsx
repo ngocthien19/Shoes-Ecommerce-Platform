@@ -56,7 +56,7 @@ export const AdminPasswordChange = ({ loading, onUpdateProfile }) => {
         <button
           type="button"
           onClick={() => setShowOldPassword(!showOldPassword)}
-          className="absolute right-4 top-[42px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          className="absolute right-4 top-[50px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
         >
           {showOldPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
         </button>
@@ -84,7 +84,7 @@ export const AdminPasswordChange = ({ loading, onUpdateProfile }) => {
         <button
           type="button"
           onClick={() => setShowNewPassword(!showNewPassword)}
-          className="absolute right-4 top-[42px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          className="absolute right-4 top-[50px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
         >
           {showNewPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
         </button>
@@ -106,7 +106,7 @@ export const AdminPasswordChange = ({ loading, onUpdateProfile }) => {
         <button
           type="button"
           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          className="absolute right-4 top-[42px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+          className="absolute right-4 top-[50px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
         >
           {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
         </button>
