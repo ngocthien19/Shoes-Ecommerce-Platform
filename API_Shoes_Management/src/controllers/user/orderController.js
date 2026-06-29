@@ -45,9 +45,10 @@ const vnpayReturn = async (req, res) => {
   try {
     const result = await orderService.vnpayIPN(req.query)
     const txnRef = req.query.vnp_TxnRef
+    const vnp_ResponseCode = req.query.vnp_ResponseCode
 
-    // Kiểm tra isSuccess thay vì result.code === '00'
-    if (result.isSuccess) {
+    // Kiểm tra isSuccess và response code
+    if (result.isSuccess && vnp_ResponseCode === '00') {
       const orderIds = txnRef.split('_').slice(0, -1).join(',')
       return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=VNPAY&payment=success`)
     }
@@ -59,6 +60,7 @@ const vnpayReturn = async (req, res) => {
     }
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed${orderIds ? `&orderIds=${orderIds}` : ''}`)
   } catch (error) {
+    // Lỗi hệ thống -> redirect về cart với error
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }
 }
@@ -67,9 +69,10 @@ const momoReturn = async (req, res) => {
   try {
     const result = await orderService.processMoMoReturn(req.query)
     const orderIdQuery = req.query.orderId
+    const resultCode = req.query.resultCode
 
-    // Kiểm tra isSuccess
-    if (result.isSuccess) {
+    // Kiểm tra isSuccess và resultCode
+    if (result.isSuccess && resultCode === '0') {
       const orderIds = orderIdQuery.split('_').slice(0, -1).join(',')
       return res.redirect(`${env.FRONTEND_URL}/order-success?orderIds=${orderIds}&method=MOMO&payment=success`)
     }
@@ -81,6 +84,7 @@ const momoReturn = async (req, res) => {
     }
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=failed${orderIds ? `&orderIds=${orderIds}` : ''}`)
   } catch (error) {
+    // Lỗi hệ thống -> redirect về cart với error
     return res.redirect(`${env.FRONTEND_URL}/cart?payment=error`)
   }
 }
@@ -94,5 +98,10 @@ const momoReturnIPN = async (req, res) => {
   }
 }
 
-export const orderController = { createOrderCOD, createOrderOnline,
-  vnpayReturn, momoReturn, momoReturnIPN }
+export const orderController = {
+  createOrderCOD,
+  createOrderOnline,
+  vnpayReturn,
+  momoReturn,
+  momoReturnIPN
+}

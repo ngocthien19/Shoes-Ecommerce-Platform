@@ -3,12 +3,13 @@ import crypto from 'crypto'
 import qs from 'qs'
 import { env } from '~/config/environment'
 import { orderModel } from '~/models/user/order/orderModel'
+import { orderTrackingModel } from '~/models/user/order/orderTrackingModel'
 import { PaymentProvider } from '~/providers/PaymentProvider'
 import { PAYMENT_METHODS, PAYMENT_STATUS, ORDER_STATUS, NOTIFICATION_TYPES } from '~/utils/constants'
 import { notificationService } from '~/services/notification/notificationService'
 
 // Tạo đơn hàng và trừ kho (Dùng chung cho cả COD và Online)
-const coreCreateOrderTransaction = async (userId, data, skipClearCart = false) => {
+const coreCreateOrderTransaction = async (userId, data, skipClearCart = false, skipStockDecrease = false) => {
   const cartItems = await orderModel.getCartItemsForCheckout(userId)
   if (!cartItems || cartItems.length === 0) throw new Error('Giỏ hàng của bạn đang trống rỗng.')
 
@@ -57,9 +58,17 @@ const coreCreateOrderTransaction = async (userId, data, skipClearCart = false) =
       createdOrderIds.push(orderId)
 
       for (const item of storeItems) {
-        await orderModel.createOrderItem(connection, { orderId, variantId: item.variant_id, quantity: item.quantity, price: item.price })
-        await orderModel.decreaseVariantStock(connection, item.variant_id, item.quantity)
-        await orderModel.increaseProductSold(connection, item.product_id, item.quantity)
+        await orderModel.createOrderItem(connection, {
+          orderId,
+          variantId: item.variant_id,
+          quantity: item.quantity,
+          price: item.price
+        })
+
+        if (!skipStockDecrease) {
+          await orderModel.decreaseVariantStock(connection, item.variant_id, item.quantity)
+          await orderModel.increaseProductSold(connection, item.product_id, item.quantity)
+        }
       }
     }
 
@@ -132,7 +141,7 @@ const sendNotificationToUser = async (userId, orderId, title, message, type) => 
 
 // 1. Luồng thanh toán COD
 const createOrderCOD = async (userId, payload) => {
-  const { createdOrderIds, itemsByStore } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD }, false)
+  const { createdOrderIds, itemsByStore } = await coreCreateOrderTransaction(userId, { ...payload, paymentMethod: PAYMENT_METHODS.COD }, false, false )
 
   // Lấy tên người đặt
   const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
@@ -165,7 +174,7 @@ const createOrderCOD = async (userId, payload) => {
 
 // 2. Luồng thanh toán Online (VNPAY)
 const createOrderOnline = async (userId, payload, ipAddr) => {
-  const { createdOrderIds, totalAllShops, itemsByStore } = await coreCreateOrderTransaction(userId, payload, true)
+  const { createdOrderIds, totalAllShops, itemsByStore } = await coreCreateOrderTransaction(userId, payload, true, true)
   const txnRef = createdOrderIds.join('_') + '_' + Date.now()
 
   let paymentUrl = ''
@@ -176,36 +185,9 @@ const createOrderOnline = async (userId, payload, ipAddr) => {
     paymentUrl = await PaymentProvider.createMoMoUrl(txnRef, totalAllShops)
   }
 
-  // Lấy tên người đặt
-  const [userRows] = await pool.execute('SELECT fullname FROM users WHERE id = ?', [userId])
-  const buyerName = userRows.length > 0 ? userRows[0].fullname : 'Khách hàng'
-
-  // Gửi thông báo cho user và vendor khi tạo đơn (chờ thanh toán)
-  for (const orderId of createdOrderIds) {
-    // Lấy thông tin đơn hàng
-    const [orderRows] = await pool.execute('SELECT store_id, total_amount FROM orders WHERE id = ?', [orderId])
-    if (orderRows.length > 0) {
-      const storeId = orderRows[0].store_id
-      const totalAmount = orderRows[0].total_amount
-
-      // Gửi thông báo cho Vendor (đang chờ thanh toán)
-      await sendNotificationToVendor(storeId, orderId, buyerName, totalAmount, NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT, 'Đơn hàng chờ thanh toán')
-    }
-
-    // Gửi thông báo cho User
-    await sendNotificationToUser(
-      userId,
-      orderId,
-      'Đơn hàng đang chờ thanh toán',
-      `Đơn hàng #${orderId} đã được tạo. Vui lòng thanh toán để hoàn tất đặt hàng.`,
-      NOTIFICATION_TYPES.ORDER_PENDING_PAYMENT
-    )
-  }
-
   return { message: 'Tạo đơn chờ thanh toán thành công!', orderIds: createdOrderIds, paymentUrl }
 }
 
-// 3. Webhook IPN xử lý giao dịch khi VNPAY gọi về
 // 3. Webhook IPN xử lý giao dịch khi VNPAY gọi về
 const vnpayIPN = async (vnp_Params) => {
   const secureHash = vnp_Params['vnp_SecureHash']
@@ -228,6 +210,15 @@ const vnpayIPN = async (vnp_Params) => {
       const parts = txnRef.split('_')
       const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
+      for (const orderId of orderIds) {
+        const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+        for (const item of items) {
+          if (item.variant_id) {
+            await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+            await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+          }
+        }
+      }
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
       await orderModel.clearCartByOrderIds(orderIds)
 
@@ -287,6 +278,15 @@ const momoIPN = async (reqBody) => {
       const parts = orderId.split('_')
       const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
+      for (const orderId of orderIds) {
+        const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+        for (const item of items) {
+          if (item.variant_id) {
+            await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+            await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+          }
+        }
+      }
       await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
 
       await orderModel.clearCartByOrderIds(orderIds)
@@ -337,6 +337,15 @@ const processMoMoReturn = async (queryData) => {
     const parts = orderId.split('_')
     const orderIds = parts.slice(0, parts.length - 1).map(Number)
 
+    for (const orderId of orderIds) {
+      const items = await orderTrackingModel.getOrderItemsByOrderId(orderId)
+      for (const item of items) {
+        if (item.variant_id) {
+          await orderModel.decreaseVariantStock(pool, item.variant_id, item.quantity)
+          await orderModel.increaseProductSold(pool, item.product_id, item.quantity)
+        }
+      }
+    }
     await orderModel.updatePaymentStatusBulk(orderIds, PAYMENT_STATUS.PAID, ORDER_STATUS.PROCESSING)
     await orderModel.clearCartByOrderIds(orderIds)
 
