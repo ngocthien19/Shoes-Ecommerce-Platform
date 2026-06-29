@@ -49,16 +49,21 @@ const getOrderDetail = async (req, res) => {
 
 const deletePendingOrders = async (req, res) => {
   try {
+    const userId = req.jwtDecoded?.id
     const { orderIds } = req.body
 
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
-      return res.status(400).json({ message: 'Vui lòng cung cấp danh sách orderId cần xóa' })
+      return res.status(400).json({
+        message: 'Vui lòng cung cấp danh sách orderId cần xóa'
+      })
     }
 
-    const result = await orderTrackingService.deletePendingOrders(orderIds)
+    const result = await orderTrackingService.deletePendingOrders(userId, orderIds)
     return res.status(200).json(result)
   } catch (error) {
-    return res.status(500).json({ message: `Lỗi xóa đơn hàng pending: ${error.message}` })
+    return res.status(500).json({
+      message: `Lỗi xóa đơn hàng pending: ${error.message}`
+    })
   }
 }
 
