@@ -72,31 +72,21 @@ export const CartPage = () => {
     }
   }
 
-  useEffect(() => {
-    const paymentStatus = searchParams.get('payment')
-    const paymentError = searchParams.get('error')
-
-    // Khôi phục pending order ids từ localStorage
-    dispatch(restorePendingOrderIds())
-
-    // Nếu thanh toán thất bại hoặc bị hủy
-    if (paymentStatus === 'failed' || paymentError === 'failed') {
-      handlePaymentFailure()
-    }
-  }, [searchParams])
-
-  const handlePaymentFailure = async () => {
+  const handlePaymentFailure = async (orderIdsFromUrl = null) => {
     // Tránh gọi nhiều lần
     if (isProcessingPaymentFailure) return
     setIsProcessingPaymentFailure(true)
 
     try {
-      const orderIds = pendingOrderIds.length > 0
-        ? pendingOrderIds
-        : JSON.parse(localStorage.getItem('pending_order_ids') || '[]')
+      // Ưu tiên orderIds từ URL, sau đó từ Redux, cuối cùng từ localStorage
+      let orderIds = orderIdsFromUrl || pendingOrderIds || []
+
+      if (!orderIds || orderIds.length === 0) {
+        orderIds = JSON.parse(localStorage.getItem('pending_order_ids') || '[]')
+      }
 
       if (orderIds.length > 0) {
-        // Gọi API xóa đơn hàng pending và hoàn stock
+        // Gọi API xóa đơn hàng pending
         await orderTrackingApiService.deletePendingOrders(orderIds)
 
         // Xóa pending order ids khỏi Redux và localStorage
@@ -117,6 +107,31 @@ export const CartPage = () => {
       setIsProcessingPaymentFailure(false)
     }
   }
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment')
+    const paymentError = searchParams.get('error')
+    const orderIdsFromUrl = searchParams.get('orderIds')
+
+    // Khôi phục pending order ids từ localStorage
+    dispatch(restorePendingOrderIds())
+
+    // Xử lý lỗi hệ thống
+    if (paymentStatus === 'error' || paymentError === 'error') {
+      toast.error('Có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại sau!')
+      window.history.replaceState({}, '', '/cart')
+      return
+    }
+
+    // Nếu thanh toán thất bại hoặc bị hủy
+    if (paymentStatus === 'failed' || paymentError === 'failed') {
+      let orderIds = []
+      if (orderIdsFromUrl) {
+        orderIds = orderIdsFromUrl.split(',').map(Number)
+      }
+      handlePaymentFailure(orderIds)
+    }
+  }, [searchParams])
 
   // Lưu selected items vào localStorage khi thay đổi
   useEffect(() => {
