@@ -6,13 +6,14 @@ import { useMaintenance } from '~/hooks/useMaintenance'
 import { MaintenanceModal } from '~/components/common/MaintenanceModal'
 
 export const AdminLayout = () => {
-  const { isMaintenance, maintenanceMessage, loading, handleMaintenanceLogout } = useMaintenance()
+  const { isMaintenance, maintenanceMessage, loading, handleMaintenanceLogout } = useMaintenance(true)
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
+    // Chỉ set state nhưng không hiển thị modal
     if (!loading && isMaintenance) {
-      setShowMaintenanceModal(true)
+      setShowMaintenanceModal(false)
     }
   }, [loading, isMaintenance])
 
@@ -60,9 +61,8 @@ export const AdminLayout = () => {
         </div>
       </div>
 
-      {/* Maintenance Modal */}
       <MaintenanceModal
-        isOpen={showMaintenanceModal}
+        isOpen={false}
         message={maintenanceMessage}
         onClose={handleCloseMaintenance}
         onLogout={handleMaintenanceLogout}
