@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import authorizedAxiosInstance from '~/utils/authorizedAxios'
 import { DEV_API_URL } from '~/utils/constant'
 import { logoutSuccess } from '~/redux/user/userSlice'
-import { ROLE_ID } from '~/utils/constants'
+import { ROLE_ID } from '~/utils/constant'
 
 export const useMaintenance = (skipCheck = false) => {
   const dispatch = useDispatch()
