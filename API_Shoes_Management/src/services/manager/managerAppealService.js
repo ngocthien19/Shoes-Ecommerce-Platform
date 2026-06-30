@@ -51,8 +51,12 @@ const processStoreAppeal = async (appealId, { status, managerNote }) => {
   if (!appeal) throw new Error('Đơn khiếu nại cứu xét không tồn tại trên hệ thống.')
   if (appeal.status !== APPEAL_STATUS.PENDING) throw new Error('Đơn khiếu nại này đã được xử lý từ trước đó!')
 
+  if (status === APPEAL_STATUS.REJECTED && (!managerNote || managerNote.trim() === '')) {
+    throw new Error('Vui lòng nhập lý do từ chối đơn cứu xét.')
+  }
+
   // Cập nhật trạng thái đơn
-  await managerAppealModel.updateAppealStatus(appealId, status, managerNote)
+  await managerAppealModel.updateAppealStatus(appealId, status, managerNote || null)
 
   let emailSubject = ''
   let emailHtml = ''
