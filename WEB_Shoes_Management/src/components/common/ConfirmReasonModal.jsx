@@ -11,12 +11,13 @@ export const ConfirmReasonModal = ({
   placeholder,
   isLoading,
   hideReasonInput = false,
-  type = 'danger'
+  type = 'danger',
+  required = true
 }) => {
   const [reason, setReason] = useState('')
 
   const handleConfirm = () => {
-    if (!hideReasonInput && !reason.trim()) {
+    if (required && !reason.trim()) {
       return
     }
     onConfirm(reason)
@@ -92,13 +93,27 @@ export const ConfirmReasonModal = ({
 
               {/* Chỉ hiển thị textarea nếu không ẩn */}
               {!hideReasonInput && (
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder={placeholder}
-                  rows={4}
-                  className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10 resize-none"
-                />
+                <>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder={placeholder}
+                    rows={4}
+                    className={`w-full rounded-xl border p-3 text-sm focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/10 resize-none
+                      ${required && !reason.trim() ? 'border-gray-200' : 'border-gray-200'}`}
+                  />
+                  {required && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      <span className="text-red-500 font-bold">*</span>
+                      Bắt buộc nhập lý do
+                    </p>
+                  )}
+                  {!required && (
+                    <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+                      <span className="text-gray-400">(không bắt buộc)</span>
+                    </p>
+                  )}
+                </>
               )}
 
               <div className="flex gap-3 mt-5">
@@ -110,7 +125,7 @@ export const ConfirmReasonModal = ({
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={isLoading || (!hideReasonInput && !reason.trim())}
+                  disabled={isLoading || (required && !reason.trim())}
                   className={`cursor-pointer flex-1 px-4 py-2 ${getButtonColor()} text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isLoading ? (

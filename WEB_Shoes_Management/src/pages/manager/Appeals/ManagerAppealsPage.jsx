@@ -31,7 +31,8 @@ export const ManagerAppealsPage = () => {
     appealId: null,
     title: '',
     message: '',
-    placeholder: ''
+    placeholder: '',
+    required: true
   })
   const [isLoading, setIsLoading] = useState(false)
 
@@ -93,45 +94,59 @@ export const ManagerAppealsPage = () => {
     }
   }
 
-  // Mở modal approve
   const handleApprove = (appealId) => {
     setModalConfig({
       isOpen: true,
       type: 'approve',
-      appealId,
+      appealId: appealId,
       title: 'Phê duyệt đơn cứu xét',
-      message: 'Vui lòng nhập ghi chú cho đơn cứu xét này. Ghi chú sẽ được gửi đến chủ shop.',
-      placeholder: 'Nhập ghi chú phê duyệt...'
+      message: 'Bạn có thể nhập ghi chú cho chủ shop (không bắt buộc).',
+      placeholder: 'Nhập ghi chú phê duyệt (không bắt buộc)...',
+      required: false
     })
   }
 
-  // Mở modal reject
   const handleReject = (appealId) => {
     setModalConfig({
       isOpen: true,
       type: 'reject',
-      appealId,
+      appealId: appealId,
       title: 'Từ chối đơn cứu xét',
       message: 'Vui lòng nhập lý do từ chối đơn cứu xét. Lý do này sẽ được gửi đến chủ shop qua email.',
-      placeholder: 'Nhập lý do từ chối...'
+      placeholder: 'Nhập lý do từ chối (bắt buộc)...',
+      required: true
     })
   }
 
   const handleModalConfirm = async (reason) => {
-    if (!reason || reason.trim() === '') {
-      toast.error('Vui lòng nhập ghi chú / lý do phản hồi')
+    if (modalConfig.type === 'reject' && (!reason || reason.trim() === '')) {
+      toast.error('Vui lòng nhập lý do từ chối')
       return
     }
+
+    const finalReason = reason?.trim() || ''
 
     setIsLoading(true)
     try {
       const status = modalConfig.type === 'approve' ? APPEAL_STATUS.APPROVED : APPEAL_STATUS.REJECTED
-      const res = await managerAppealApiService.processAppeal(modalConfig.appealId, status, reason)
+      const res = await managerAppealApiService.processAppeal(
+        modalConfig.appealId,
+        status,
+        finalReason
+      )
       toast.success(res.message)
       fetchAppeals()
-      setModalConfig({ isOpen: false, type: null })
+      setModalConfig({
+        isOpen: false,
+        type: null,
+        appealId: null,
+        title: '',
+        message: '',
+        placeholder: '',
+        required: true
+      })
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.response?.data?.message || error.message || 'Có lỗi xảy ra')
     } finally {
       setIsLoading(false)
     }
@@ -205,13 +220,22 @@ export const ManagerAppealsPage = () => {
 
       <ConfirmReasonModal
         isOpen={modalConfig.isOpen}
-        onClose={() => setModalConfig({ isOpen: false, type: null })}
+        onClose={() => setModalConfig({
+          isOpen: false,
+          type: null,
+          appealId: null,
+          title: '',
+          message: '',
+          placeholder: '',
+          required: true
+        })}
         onConfirm={handleModalConfirm}
         title={modalConfig.title}
         message={modalConfig.message}
         placeholder={modalConfig.placeholder}
         isLoading={isLoading}
         type={modalConfig.type || 'reject'}
+        required={modalConfig.required}
       />
     </div>
   )
