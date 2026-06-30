@@ -1,4 +1,5 @@
 import pool from '~/config/db'
+import { APPEAL_STATUS } from '~/utils/constants'
 
 // Lấy thông tin cửa hàng theo owner_id
 const getStoreByOwnerId = async (ownerId) => {
@@ -7,10 +8,11 @@ const getStoreByOwnerId = async (ownerId) => {
   return rows[0] || null
 }
 
-// Kiểm tra đơn pending
+// Kiểm tra đơn pending - SỬA LẠI
 const getPendingAppealByStoreId = async (storeId) => {
-  const query = 'SELECT id FROM store_appeals WHERE store_id = ? AND status = "pending"'
-  const [rows] = await pool.execute(query, [storeId])
+  // Sử dụng prepared statement với placeholder
+  const query = 'SELECT id FROM store_appeals WHERE store_id = ? AND status = ?'
+  const [rows] = await pool.execute(query, [storeId, APPEAL_STATUS.PENDING])
   return rows[0] || null
 }
 
@@ -24,7 +26,7 @@ const createAppeal = async ({ storeId, appealReason, evidenceImages }) => {
   return result.insertId
 }
 
-// Lấy danh sách đơn của cửa hàng - SỬA THEO CÁCH CỦA MANAGER
+// Lấy danh sách đơn của cửa hàng
 const getAppealsByStoreId = async (storeId, { limit, offset }) => {
   const query = `
     SELECT id, appeal_reason, evidence_images, status, manager_note, created_at, updated_at
