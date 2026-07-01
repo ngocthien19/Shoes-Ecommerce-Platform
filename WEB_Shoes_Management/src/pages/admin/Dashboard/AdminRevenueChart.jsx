@@ -4,17 +4,29 @@ import {
   LinearScale,
   BarElement,
   LineElement,
+  LineController,
   PointElement,
   Title,
   Tooltip,
   Legend,
   Filler
 } from 'chart.js'
-import { Bar } from 'react-chartjs-2'
+import { Chart } from 'react-chartjs-2'
 import { FiBarChart2, FiTrendingUp } from 'react-icons/fi'
 import { formatPrice } from '~/utils/formatters'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  LineController,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 export const AdminRevenueChart = ({ data }) => {
   if (!data || data.length === 0) {
@@ -220,7 +232,7 @@ export const AdminRevenueChart = ({ data }) => {
 
       {/* Chart */}
       <div className="flex-1 w-full relative px-4 pb-5" style={{ height: 300 }}>
-        <Bar data={chartData} options={options} />
+        <Chart type="bar" data={chartData} options={options} />
       </div>
     </div>
   )
