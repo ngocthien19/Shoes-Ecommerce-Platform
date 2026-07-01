@@ -72,9 +72,9 @@ const validateResolveReviewsBulkBody = async (req, res, next) => {
       'array.min': 'Vui lòng tích chọn tối thiểu 1 đánh giá để thực thi lệnh phân xử.'
     }),
 
-    // Khống chế nghiêm ngặt hành động: approved (bác đơn - mở lại bài) hoặc banned (chấp thuận đơn - ẩn bài)
-    action: Joi.string().valid('approved', 'banned').required().messages({
-      'any.only': 'Hành động phân xử (action) không hợp lệ. Chỉ chấp nhận approved hoặc banned.',
+    // SỬA: Đồng bộ action với service - chỉ chấp nhận 'approved' hoặc 'rejected'
+    action: Joi.string().valid('approved', 'rejected').required().messages({
+      'any.only': 'Hành động phân xử (action) không hợp lệ. Chỉ chấp nhận approved hoặc rejected.',
       'any.required': 'Hành động phân xử là thông tin bắt buộc.'
     })
   })
