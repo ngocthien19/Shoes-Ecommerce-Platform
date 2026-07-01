@@ -63,11 +63,27 @@ export const ManagerStoresPage = () => {
 
   const handleFilterChange = (key, value) => {
     const newParams = new URLSearchParams(searchParams)
-    if (value === null || value === undefined || value === '') {
-      newParams.delete(key)
+
+    // Xử lý đặc biệt cho dateRange
+    if (key === 'dateRange') {
+      if (value === null || value === undefined) {
+      // Xóa cả 2 params
+        newParams.delete('startDate')
+        newParams.delete('endDate')
+      } else {
+      // Set cả 2 params
+        newParams.set('startDate', value.startDate)
+        newParams.set('endDate', value.endDate)
+      }
     } else {
-      newParams.set(key, String(value))
+    // Xử lý các filter khác
+      if (value === null || value === undefined || value === '') {
+        newParams.delete(key)
+      } else {
+        newParams.set(key, String(value))
+      }
     }
+
     if (key !== 'page') newParams.set('page', '1')
     setSearchParams(newParams)
   }

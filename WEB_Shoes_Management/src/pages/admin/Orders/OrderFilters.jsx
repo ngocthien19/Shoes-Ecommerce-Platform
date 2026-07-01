@@ -336,22 +336,6 @@ export const OrderFilters = ({ filters, onFilterChange, onReset }) => {
                 {isDateValid ? 'Áp dụng lọc theo ngày' : 'Chọn đầy đủ ngày hợp lệ'}
               </TooltipContent>
             </Tooltip>
-
-            {/* Nút Xóa lọc ngày */}
-            {(filters.startDate || filters.endDate) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={handleClearDateFilter}
-                    className="px-4 py-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2"
-                  >
-                    <FiX size={14} />
-                    <span className="text-sm font-bold">Xóa</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="font-semibold">Xóa lọc ngày</TooltipContent>
-              </Tooltip>
-            )}
           </div>
 
           {/* Hiển thị lỗi */}
