@@ -1,7 +1,7 @@
 import pool from '~/config/db'
 
-// 1. Lấy danh sách đơn cứu xét (giống pattern của Store)
-const getAppealsForManager = async ({ status, search, limit, offset }) => {
+// 1. Lấy danh sách đơn cứu xét
+const getAppealsForManager = async ({ status, search, startDate, endDate, limit, offset }) => {
   let query = `
     SELECT a.id, a.store_id, a.appeal_reason, a.evidence_images, a.status, a.manager_note,
            a.created_at, a.updated_at,
@@ -26,6 +26,17 @@ const getAppealsForManager = async ({ status, search, limit, offset }) => {
     queryParams.push(`%${search}%`, `%${search}%`)
   }
 
+  // Thêm filter theo ngày
+  if (startDate) {
+    query += ' AND DATE(a.created_at) >= ?'
+    queryParams.push(startDate)
+  }
+
+  if (endDate) {
+    query += ' AND DATE(a.created_at) <= ?'
+    queryParams.push(endDate)
+  }
+
   query += ' ORDER BY a.created_at DESC LIMIT ? OFFSET ?'
   queryParams.push(String(limit), String(offset))
 
@@ -33,8 +44,8 @@ const getAppealsForManager = async ({ status, search, limit, offset }) => {
   return rows
 }
 
-// 2. Đếm tổng số đơn (giống pattern của Store)
-const countAppealsForManager = async ({ status, search }) => {
+// 2. Đếm tổng số đơn
+const countAppealsForManager = async ({ status, search, startDate, endDate }) => {
   let query = `
     SELECT COUNT(*) as total 
     FROM store_appeals a
@@ -52,6 +63,17 @@ const countAppealsForManager = async ({ status, search }) => {
   if (search) {
     query += ' AND (s.name LIKE ? OR u.fullname LIKE ?)'
     queryParams.push(`%${search}%`, `%${search}%`)
+  }
+
+  // Thêm filter theo ngày
+  if (startDate) {
+    query += ' AND DATE(a.created_at) >= ?'
+    queryParams.push(startDate)
+  }
+
+  if (endDate) {
+    query += ' AND DATE(a.created_at) <= ?'
+    queryParams.push(endDate)
   }
 
   const [rows] = await pool.execute(query, queryParams)

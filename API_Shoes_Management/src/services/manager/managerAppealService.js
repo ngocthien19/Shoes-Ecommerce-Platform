@@ -13,6 +13,8 @@ const getAppealsList = async (filters) => {
   const filterParams = {
     status: filters.status || null,
     search: filters.search || null,
+    startDate: filters.startDate || null,
+    endDate: filters.endDate || null,
     limit,
     offset
   }
