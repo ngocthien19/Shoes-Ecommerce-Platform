@@ -27,7 +27,7 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
   }, [searchTxt])
 
   const statusOptions = [
-    { value: '', label: 'Tất cả trạng thái' },
+    { value: null, label: 'Tất cả trạng thái' },
     { value: 1, label: 'Đang hoạt động' },
     { value: 0, label: 'Đã khóa' }
   ]
@@ -49,8 +49,16 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
     'Phí hoa hồng': FiPercent
   }
 
-  const currentStatusLabel = statusOptions.find(s => s.value === Number(filters.isActive))?.label || 'Tất cả trạng thái'
+  // Fix: Xác định đúng label cho status
+  const getCurrentStatusLabel = () => {
+    if (filters.isActive === null || filters.isActive === undefined || filters.isActive === '') {
+      return 'Tất cả trạng thái'
+    }
+    const status = statusOptions.find(s => s.value === Number(filters.isActive))
+    return status?.label || 'Tất cả trạng thái'
+  }
 
+  // Fix: Xác định đúng label cho sort
   const getCurrentSortLabel = () => {
     const sortKey = filters.sortBy || 'created_at'
     const sortOrder = filters.sortOrder || 'DESC'
@@ -65,17 +73,24 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
     return option?.label || 'Sắp xếp'
   }
 
+  const currentStatusLabel = getCurrentStatusLabel()
+  const currentSortLabel = getCurrentSortLabel()
+
+  // Fix: Active badges - chỉ hiển thị khi có filter thực sự
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
-  if (filters.isActive !== null) {
+
+  if (filters.isActive !== null && filters.isActive !== undefined && filters.isActive !== '') {
     const status = statusOptions.find(s => s.value === Number(filters.isActive))
-    if (status) activeBadges.push({ key: 'isActive', label: `Trạng thái: ${status.label}` })
-  }
-  if (filters.sortBy) {
-    const sortLabel = getCurrentSortLabel()
-    if (sortLabel !== 'Sắp xếp') {
-      activeBadges.push({ key: 'sortBy', label: `Sắp xếp: ${sortLabel}` })
+    if (status && status.label !== 'Tất cả trạng thái') {
+      activeBadges.push({ key: 'isActive', label: `Trạng thái: ${status.label}` })
     }
+  }
+
+  // Fix: Chỉ hiển thị badge sort khi không phải default
+  const sortLabel = getCurrentSortLabel()
+  if (filters.sortBy && filters.sortBy !== 'created_at') {
+    activeBadges.push({ key: 'sortBy', label: `Sắp xếp: ${sortLabel}` })
   }
 
   const handleRemoveFilter = (key) => {
@@ -85,6 +100,8 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
       newParams.delete('sortOrder')
       newParams.set('page', '1')
       setSearchParams(newParams)
+    } else if (key === 'isActive') {
+      onFilterChange('isActive', null)
     } else {
       onFilterChange(key, null)
     }
@@ -138,6 +155,7 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+          {/* Bộ lọc trạng thái */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[140px]">
@@ -148,8 +166,8 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
               {statusOptions.map(option => (
                 <DropdownMenuItem
-                  key={option.value || 'all'}
-                  onClick={() => onFilterChange('isActive', option.value !== '' ? option.value : null)}
+                  key={option.value === null ? 'all' : option.value}
+                  onClick={() => onFilterChange('isActive', option.value)}
                   className="text-xs font-semibold cursor-pointer rounded-lg"
                 >
                   {option.label}
@@ -158,11 +176,12 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Bộ lọc sắp xếp */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors min-w-[160px]">
                 <FiFilter size={12} className="text-gray-400" />
-                <span>{getCurrentSortLabel()}</span>
+                <span>{currentSortLabel}</span>
                 <FiChevronDown size={14} className="text-gray-400" />
               </button>
             </DropdownMenuTrigger>
@@ -178,14 +197,27 @@ export const StoreFilters = ({ filters, onFilterChange, onReset }) => {
                     </div>
                     {options.map((option) => {
                       const Icon = option.icon
+                      // Fix: Xác định option đang được chọn
+                      const isSelected = (() => {
+                        const sortKey = filters.sortBy || 'created_at'
+                        const sortOrder = filters.sortOrder || 'DESC'
+                        if (sortOrder === 'ASC') {
+                          return option.value === `${sortKey}_asc`
+                        }
+                        return option.value === sortKey
+                      })()
+
                       return (
                         <DropdownMenuItem
                           key={option.value}
                           onClick={() => handleSortChange(option.value)}
-                          className="text-xs font-semibold cursor-pointer rounded-lg pl-6 flex items-center gap-2"
+                          className={`text-xs font-semibold cursor-pointer rounded-lg pl-6 flex items-center gap-2 ${
+                            isSelected ? 'text-emerald-600 bg-emerald-50' : ''
+                          }`}
                         >
-                          <Icon size={12} className="text-gray-400" />
+                          <Icon size={12} className={isSelected ? 'text-emerald-600' : 'text-gray-400'} />
                           {option.label}
+                          {isSelected && <span className="ml-auto text-emerald-600">✓</span>}
                         </DropdownMenuItem>
                       )
                     })}
