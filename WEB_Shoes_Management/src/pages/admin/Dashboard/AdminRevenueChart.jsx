@@ -17,23 +17,26 @@ import { formatPrice } from '~/utils/formatters'
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler)
 
 export const AdminRevenueChart = ({ data }) => {
-  if (!data || data.length === 0) return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-[420px] flex items-center justify-center">
-      <div className="text-center space-y-3">
-        <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto">
-          <FiBarChart2 size={28} className="text-gray-300" />
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-[420px] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto">
+            <FiBarChart2 size={28} className="text-gray-300" />
+          </div>
+          <p className="text-sm font-semibold text-gray-400">Chưa có dữ liệu</p>
         </div>
-        <p className="text-sm font-semibold text-gray-400">Chưa có dữ liệu</p>
       </div>
-    </div>
-  )
+    )
+  }
 
   const labels = data.map(item =>
     new Date(item.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
   )
-  const revenues = data.map(item => item.revenue)
-  const commissions = data.map(item => item.commission)
-  const orders = data.map(item => item.orders)
+
+  const revenues = data.map(item => item.revenue || 0)
+  const commissions = data.map(item => item.commission || 0)
+  const orders = data.map(item => item.orders || 0)
 
   const totalRevenue = revenues.reduce((a, b) => a + b, 0)
   const totalOrders = orders.reduce((a, b) => a + b, 0)
@@ -56,29 +59,26 @@ export const AdminRevenueChart = ({ data }) => {
         },
         borderRadius: { topLeft: 6, topRight: 6 },
         borderSkipped: false,
+        barPercentage: 0.5,
+        categoryPercentage: 0.7,
         yAxisID: 'y',
-        order: 2,
-        barPercentage: 0.65,
-        categoryPercentage: 0.75
+        order: 2
       },
       {
         label: 'Hoa hồng',
         data: commissions,
-        backgroundColor: (ctx) => {
-          const chart = ctx.chart
-          const { ctx: c, chartArea } = chart
-          if (!chartArea) return '#f59e0b'
-          const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
-          gradient.addColorStop(0, 'rgba(245, 158, 11, 0.9)')
-          gradient.addColorStop(1, 'rgba(245, 158, 11, 0.4)')
-          return gradient
-        },
-        borderRadius: { topLeft: 6, topRight: 6 },
-        borderSkipped: false,
+        type: 'line',
+        borderColor: 'rgb(245, 158, 11)',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgb(245, 158, 11)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
         yAxisID: 'y1',
-        order: 1,
-        barPercentage: 0.65,
-        categoryPercentage: 0.75
+        order: 1
       }
     ]
   }
@@ -86,7 +86,10 @@ export const AdminRevenueChart = ({ data }) => {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -100,10 +103,8 @@ export const AdminRevenueChart = ({ data }) => {
         callbacks: {
           title: ([ctx]) => `Thời gian: ${ctx.label}`,
           label: (ctx) => {
-            if (ctx.dataset.yAxisID === 'y') {
-              return `  Doanh thu: ${formatPrice(ctx.raw)}`
-            }
-            return `  Hoa hồng: ${formatPrice(ctx.raw)}`
+            const label = ctx.dataset.label || ''
+            return `${label}: ${formatPrice(ctx.raw)}`
           }
         }
       }
@@ -123,12 +124,24 @@ export const AdminRevenueChart = ({ data }) => {
         display: true,
         position: 'left',
         grid: { color: '#f1f5f9', drawBorder: false },
-        border: { display: false, dash: [4, 4] },
+        border: { display: false },
         ticks: {
-          callback: (v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}K`,
+          callback: (v) => {
+            if (v === 0) return '0'
+            if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+            if (v >= 1_000) return `${(v / 1000).toFixed(0)}K`
+            return `${v}`
+          },
           font: { size: 11, weight: '600' },
           color: '#94a3b8',
           maxTicksLimit: 6
+        },
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Doanh thu',
+          color: '#10b981',
+          font: { size: 10, weight: 'bold' }
         }
       },
       y1: {
@@ -138,10 +151,22 @@ export const AdminRevenueChart = ({ data }) => {
         grid: { drawOnChartArea: false },
         border: { display: false },
         ticks: {
-          callback: (v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${(v / 1000).toFixed(0)}K`,
+          callback: (v) => {
+            if (v === 0) return '0'
+            if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+            if (v >= 1_000) return `${(v / 1000).toFixed(0)}K`
+            return `${v}`
+          },
           font: { size: 11, weight: '600' },
           color: '#94a3b8',
           maxTicksLimit: 6
+        },
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Hoa hồng',
+          color: '#f59e0b',
+          font: { size: 10, weight: 'bold' }
         }
       }
     }
@@ -162,7 +187,7 @@ export const AdminRevenueChart = ({ data }) => {
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Summary Stats */}
         <div className="flex items-center gap-4">
           <div className="text-right">
             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Tổng DT</p>
@@ -181,7 +206,7 @@ export const AdminRevenueChart = ({ data }) => {
         </div>
       </div>
 
-      {/* Legend dots */}
+      {/* Legend */}
       <div className="px-6 pb-3 flex items-center gap-4">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
