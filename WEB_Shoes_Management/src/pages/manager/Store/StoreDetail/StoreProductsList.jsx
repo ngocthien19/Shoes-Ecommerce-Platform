@@ -2,10 +2,16 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { FiPackage, FiEye, FiStar, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiRefreshCw, FiInfo } from 'react-icons/fi'
+import { FiPackage, FiEye, FiStar, FiCheckCircle, FiXCircle, FiClock, FiAlertCircle, FiRefreshCw, FiInfo, FiMoreVertical } from 'react-icons/fi'
 import { FaBan } from 'react-icons/fa'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
-import { formatPrice, formatDateTime, getImageUrl } from '~/utils/formatters'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '~/components/ui/dropdown-menu'
+import { formatPrice, formatDateTime, getImageUrl, getFirstVariantImage } from '~/utils/formatters'
 import { managerProductApiService } from '~/services/manager/managerProductApiService'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
 import { ConfirmReasonModal } from '~/components/common/ConfirmReasonModal'
@@ -15,7 +21,15 @@ export const StoreProductsList = ({ storeId, storeName }) => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0, limit: 10 })
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: null, productId: null, productName: '', title: '', message: '', placeholder: '' })
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: null,
+    productId: null,
+    productName: '',
+    title: '',
+    message: '',
+    placeholder: ''
+  })
   const [isLoading, setIsLoading] = useState(false)
 
   const fetchProducts = async (page = 1) => {
@@ -54,11 +68,27 @@ export const StoreProductsList = ({ storeId, storeName }) => {
   }
 
   const openRejectModal = (productId, productName) => {
-    setModalConfig({ isOpen: true, type: 'reject', productId, productName, title: 'Từ chối sản phẩm', message: 'Vui lòng nhập lý do từ chối sản phẩm.', placeholder: 'Nhập lý do từ chối...' })
+    setModalConfig({
+      isOpen: true,
+      type: 'reject',
+      productId,
+      productName,
+      title: 'Từ chối sản phẩm',
+      message: 'Vui lòng nhập lý do từ chối sản phẩm.',
+      placeholder: 'Nhập lý do từ chối...'
+    })
   }
 
   const openBanModal = (productId, productName) => {
-    setModalConfig({ isOpen: true, type: 'ban', productId, productName, title: 'Khóa sản phẩm', message: 'Vui lòng nhập lý do khóa sản phẩm.', placeholder: 'Nhập lý do khóa...' })
+    setModalConfig({
+      isOpen: true,
+      type: 'ban',
+      productId,
+      productName,
+      title: 'Khóa sản phẩm',
+      message: 'Vui lòng nhập lý do khóa sản phẩm.',
+      placeholder: 'Nhập lý do khóa...'
+    })
   }
 
   const handleModalConfirm = async (reason) => {
@@ -69,43 +99,21 @@ export const StoreProductsList = ({ storeId, storeName }) => {
     }
   }
 
-  const getStatusBadge = (status, rejectReason) => {
-    const config = {
-      [PRODUCT_MODERATION_STATUS.APPROVED]: { label: 'ĐÃ DUYỆT', color: 'bg-green-100 text-green-700', icon: FiCheckCircle },
-      [PRODUCT_MODERATION_STATUS.PENDING]: { label: 'CHỜ DUYỆT', color: 'bg-amber-100 text-amber-700', icon: FiClock },
-      [PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL]: { label: 'CHỜ DUYỆT LẠI', color: 'bg-orange-100 text-orange-700', icon: FiRefreshCw },
-      [PRODUCT_MODERATION_STATUS.REJECTED]: { label: 'BỊ TỪ CHỐI', color: 'bg-red-100 text-red-700', icon: FiXCircle },
-      [PRODUCT_MODERATION_STATUS.BANNED]: { label: 'BỊ KHÓA', color: 'bg-gray-100 text-gray-700', icon: FaBan }
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      [PRODUCT_MODERATION_STATUS.PENDING]: { label: 'CHỜ DUYỆT', className: 'bg-amber-50 text-amber-600 border-amber-100' },
+      [PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL]: { label: 'CHỜ DUYỆT LẠI', className: 'bg-orange-50 text-orange-600 border-orange-100' },
+      [PRODUCT_MODERATION_STATUS.APPROVED]: { label: 'ĐÃ DUYỆT', className: 'bg-green-50 text-green-600 border-green-100' },
+      [PRODUCT_MODERATION_STATUS.REJECTED]: { label: 'TỪ CHỐI', className: 'bg-red-50 text-red-600 border-red-100' },
+      [PRODUCT_MODERATION_STATUS.BANNED]: { label: 'ĐÃ KHÓA', className: 'bg-rose-50 text-rose-600 border-rose-100' }
     }
-    const c = config[status] || { label: 'KHÔNG XÁC ĐỊNH', color: 'bg-gray-100 text-gray-500', icon: FiAlertCircle }
-    const Icon = c.icon
-
-    // Nếu là REJECTED hoặc BANNED và có reject_reason, hiển thị badge có tooltip
-    if ((status === PRODUCT_MODERATION_STATUS.REJECTED || status === PRODUCT_MODERATION_STATUS.BANNED) && rejectReason) {
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold cursor-help ${c.color}`}>
-              <Icon size={10} />
-              {c.label}
-              <FiInfo size={10} className="opacity-70" />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
-            <p className="font-semibold mb-1">📝 Lý do:</p>
-            <p className="break-words">{rejectReason}</p>
-          </TooltipContent>
-        </Tooltip>
-      )
-    }
-
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${c.color}`}>
-        <Icon size={10} />
-        {c.label}
-      </span>
-    )
+    const config = statusMap[status] || { label: status.toUpperCase(), className: 'bg-gray-50 text-gray-600 border-gray-100' }
+    return <span className={`${config.className} border px-2.5 py-1 rounded-full text-[10px] font-black`}>{config.label}</span>
   }
+
+  const isPending = (status) => status === PRODUCT_MODERATION_STATUS.PENDING || status === PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL
+  const isApproved = (status) => status === PRODUCT_MODERATION_STATUS.APPROVED
+  const isBannedOrRejected = (status) => status === PRODUCT_MODERATION_STATUS.BANNED || status === PRODUCT_MODERATION_STATUS.REJECTED
 
   // Animation variants
   const containerVariants = {
@@ -168,161 +176,210 @@ export const StoreProductsList = ({ storeId, storeName }) => {
       >
         {/* Header */}
         <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-white">
-          <div className="flex items-center gap-3">
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center"
-            >
-              <FiPackage className="text-brand-primary" size={18} />
-            </motion.div>
-            <div>
-              <h3 className="text-lg font-black text-gray-900">Sản phẩm của cửa hàng</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Tổng số: {pagination.totalItems} sản phẩm</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center"
+              >
+                <FiPackage className="text-brand-primary" size={18} />
+              </motion.div>
+              <div>
+                <h3 className="text-lg font-black text-gray-900">Sản phẩm của cửa hàng</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Tổng số: {pagination.totalItems} sản phẩm</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto min-h-[300px]">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">
-                <th className="py-3 px-4">ID</th>
-                <th className="py-3 px-4">Sản phẩm</th>
-                <th className="py-3 px-4">Giá</th>
-                <th className="py-3 px-4 text-center">Đã bán</th>
-                <th className="py-3 px-4 text-center">Đánh giá</th>
-                <th className="py-3 px-4 text-center min-w-[110px]">Trạng thái</th>
-                <th className="py-3 px-4 text-center">Ngày tạo</th>
-                <th className="py-3 px-4 text-center">Hành động</th>
+              <tr className="bg-brand-secondary/5 border-b border-gray-100 text-xs font-bold text-brand-secondary uppercase tracking-wider">
+                <th className="py-4 px-4">Sản phẩm</th>
+                <th className="py-4 px-4 text-center">Giá</th>
+                <th className="py-4 px-4 text-center">Tồn kho</th>
+                <th className="py-4 px-4 text-center">Đã bán</th>
+                <th className="py-4 px-4 text-center">Đánh giá</th>
+                <th className="py-4 px-4 text-center min-w-[110px]">Trạng thái</th>
+                <th className="py-4 px-4 text-center">Ngày đăng</th>
+                <th className="py-4 px-4 text-center">Hành động</th>
               </tr>
             </thead>
             <motion.tbody
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="divide-y divide-gray-50"
+              className="divide-y divide-gray-50 text-sm font-semibold text-gray-700"
             >
-              {products.map((product) => (
-                <motion.tr
-                  key={product.id}
-                  variants={rowVariants}
-                  whileHover={{ scale: 1.01, backgroundColor: '#f9fafb' }}
-                  transition={{ duration: 0.2 }}
-                  className="transition-all duration-200"
-                >
-                  <td className="py-3 px-4 text-xs font-mono text-gray-500">#{product.id}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <motion.img
-                        whileHover={{ scale: 1.1 }}
-                        transition={{ duration: 0.2 }}
-                        src={getImageUrl(product.images, 'https://placehold.co/40x40')}
-                        alt={product.product_name}
-                        className="w-10 h-10 rounded-lg object-cover border border-gray-100 shadow-sm"
-                      />
-                      <div>
-                        <p className="font-semibold text-gray-800 line-clamp-1">{product.product_name}</p>
-                        <p className="text-[10px] text-gray-400">{product.category_name}</p>
+              {products.map((product) => {
+                const rating = Number(product.rating_avg) || 0
+                const hasVariants = product.variants && product.variants.length > 0
+                const totalStock = hasVariants
+                  ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+                  : product.stock || 0
+                const totalSold = hasVariants
+                  ? product.variants.reduce((sum, v) => sum + (v.sold || 0), 0)
+                  : product.sold || 0
+                const minPrice = hasVariants
+                  ? Math.min(...product.variants.map(v => v.price || 0))
+                  : product.price || 0
+                const maxPrice = hasVariants
+                  ? Math.max(...product.variants.map(v => v.price || 0))
+                  : product.price || 0
+
+                return (
+                  <motion.tr
+                    key={product.id}
+                    variants={rowVariants}
+                    whileHover={{ backgroundColor: '#f9fafb' }}
+                    transition={{ duration: 0.2 }}
+                    className="transition-all duration-200"
+                  >
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <motion.img
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.2 }}
+                          src={getFirstVariantImage(product, 'https://placehold.co/100x100?text=Product')}
+                          alt={product.product_name}
+                          className="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0"
+                        />
+                        <div>
+                          <p className="font-extrabold text-gray-900 line-clamp-1 max-w-[200px]">{product.product_name}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">ID: #{product.id}</p>
+                          <p className="text-[10px] text-gray-400">{product.category_name || 'Chưa có danh mục'}</p>
+                          {hasVariants && (
+                            <span className="text-[9px] text-blue-400 font-semibold">{product.variants.length} biến thể</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 font-bold text-brand-primary">{formatPrice(product.price)}</td>
-                  <td className="py-3 px-4 text-center font-semibold">{product.sold || 0}</td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <FiStar className="text-yellow-500 fill-yellow-500" size={12} />
-                      <span className="font-semibold text-gray-700">{Number(product.rating_avg || 0).toFixed(1)}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-center">{getStatusBadge(product.status, product.reject_reason)}</td>
-                  <td className="py-3 px-4 text-center text-xs text-gray-500">{formatDateTime(product.created_at)}</td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      {/* Xem chi tiết */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            whileHover={{ scale: 1.1, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ type: 'spring', stiffness: 400 }}
-                          >
-                            <Link
-                              to={`/manager/products/detail/${product.id}`}
-                              className="p-2 bg-gray-100 text-gray-600 hover:bg-gray-600 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center"
-                            >
-                              <FiEye size={14} />
-                            </Link>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-gray-800 text-white text-xs rounded-lg">
-                          Xem chi tiết
-                        </TooltipContent>
-                      </Tooltip>
-
-                      {(product.status === PRODUCT_MODERATION_STATUS.PENDING || product.status === PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL) && (
-                        <>
-                          {/* Phê duyệt */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <motion.button
-                                whileHover={{ scale: 1.1, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                transition={{ type: 'spring', stiffness: 400 }}
-                                onClick={() => handleUpdateStatus(product.id, PRODUCT_MODERATION_STATUS.APPROVED)}
-                                className="p-2 bg-green-100 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center cursor-pointer"
-                              >
-                                <FiCheckCircle size={14} />
-                              </motion.button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-green-600 text-white text-xs rounded-lg">
-                              Phê duyệt sản phẩm
-                            </TooltipContent>
-                          </Tooltip>
-
-                          {/* Từ chối */}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <motion.button
-                                whileHover={{ scale: 1.1, y: -2 }}
-                                whileTap={{ scale: 0.95 }}
-                                transition={{ type: 'spring', stiffness: 400 }}
-                                onClick={() => openRejectModal(product.id, product.product_name)}
-                                className="p-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center cursor-pointer"
-                              >
-                                <FiXCircle size={14} />
-                              </motion.button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-red-600 text-white text-xs rounded-lg">
-                              Từ chối sản phẩm
-                            </TooltipContent>
-                          </Tooltip>
-                        </>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {hasVariants && minPrice !== maxPrice ? (
+                        <div>
+                          <span className="font-bold text-brand-primary">{formatPrice(minPrice)}</span>
+                          <span className="text-xs text-gray-400 mx-1">-</span>
+                          <span className="font-bold text-brand-primary">{formatPrice(maxPrice)}</span>
+                        </div>
+                      ) : (
+                        <span className="font-bold text-brand-primary">{formatPrice(product.price)}</span>
                       )}
-
-                      {product.status === PRODUCT_MODERATION_STATUS.APPROVED && (
-                        /* Khóa sản phẩm */
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span className={`font-semibold ${totalStock <= 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                        {totalStock}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span className="font-semibold">{totalSold.toLocaleString() || 0}</span>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <FiStar className="text-yellow-500 fill-yellow-500" size={14} />
+                        <span className="font-bold text-gray-800">{rating.toFixed(1)}</span>
+                        <span className="text-[10px] text-gray-400">/5</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center min-w-[120px]">
+                      <div className="flex items-center justify-center gap-1">
+                        {(product.status === PRODUCT_MODERATION_STATUS.REJECTED || product.status === PRODUCT_MODERATION_STATUS.BANNED) && product.reject_reason ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">
+                                {getStatusBadge(product.status)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs rounded-lg bg-gray-800 text-white text-xs border-none font-normal p-2">
+                              <p className="font-semibold mb-1">Lý do:</p>
+                              <p>{product.reject_reason}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          getStatusBadge(product.status)
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="text-xs">
+                        <p className="font-semibold text-gray-700">{formatDateTime(product.created_at)}</p>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {/* Xem chi tiết */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <motion.button
+                            <motion.div
                               whileHover={{ scale: 1.1, y: -2 }}
                               whileTap={{ scale: 0.95 }}
                               transition={{ type: 'spring', stiffness: 400 }}
-                              onClick={() => openBanModal(product.id, product.product_name)}
-                              className="p-2 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-all duration-200 flex items-center justify-center cursor-pointer"
                             >
-                              <FaBan size={14} />
-                            </motion.button>
+                              <Link
+                                to={`/manager/products/detail/${product.id}`}
+                                className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-600 hover:text-white border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
+                              >
+                                <FiEye size={13} />
+                              </Link>
+                            </motion.div>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="bg-red-600 text-white text-xs rounded-lg">
-                            Khóa sản phẩm
+                          <TooltipContent className="rounded-lg bg-gray-800 text-white text-xs border-none font-semibold">
+                            Xem chi tiết
                           </TooltipContent>
                         </Tooltip>
-                      )}
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+
+                        {/* Dropdown actions */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="inline-flex p-2.5 bg-gray-50 text-gray-600 hover:bg-gray-200 border border-gray-200 rounded-xl cursor-pointer active:scale-90 transition-all duration-200">
+                              <FiMoreVertical size={13} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-gray-100 min-w-[180px]">
+                            {isPending(product.status) && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(product.id, PRODUCT_MODERATION_STATUS.APPROVED)}
+                                  className="text-xs font-bold text-green-600 cursor-pointer py-2 gap-2"
+                                >
+                                  <FiCheckCircle size={14} />
+                                  Phê duyệt sản phẩm
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => openRejectModal(product.id, product.product_name)}
+                                  className="text-xs font-bold text-red-500 cursor-pointer py-2 gap-2"
+                                >
+                                  <FiXCircle size={14} />
+                                  Từ chối
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {isApproved(product.status) && (
+                              <DropdownMenuItem
+                                onClick={() => openBanModal(product.id, product.product_name)}
+                                className="text-xs font-bold text-rose-500 cursor-pointer py-2 gap-2"
+                              >
+                                <FaBan size={14} />
+                                Khóa sản phẩm
+                              </DropdownMenuItem>
+                            )}
+                            {isBannedOrRejected(product.status) && (
+                              <DropdownMenuItem
+                                disabled
+                                className="text-xs font-bold text-gray-400 cursor-not-allowed py-2 gap-2"
+                              >
+                                <FaBan size={14} />
+                                Đã bị khóa/từ chối
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </motion.tbody>
           </table>
         </div>
@@ -348,7 +405,7 @@ export const StoreProductsList = ({ storeId, storeName }) => {
         onClose={() => setModalConfig({ isOpen: false, type: null, productId: null, productName: '' })}
         onConfirm={handleModalConfirm}
         title={modalConfig.title}
-        message={`Từ chối sản phẩm "${modalConfig.productName}"`}
+        message={modalConfig.message}
         placeholder={modalConfig.placeholder}
         isLoading={isLoading}
       />
