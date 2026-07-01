@@ -1,5 +1,5 @@
 import { formatRelativeTime, formatDateTime, getImageUrl } from '~/utils/formatters'
-import { FiStar, FiInfo, FiPackage, FiHome, FiEye, FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { FiStar, FiInfo, FiPackage, FiHome, FiEye, FiCheckCircle, FiXCircle, FiThumbsUp, FiThumbsDown } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { Link } from 'react-router-dom'
 import { REVIEW_TYPES } from '~/utils/constant'
@@ -220,20 +220,29 @@ export const ReviewTable = ({
                               <FiCheckCircle size={13} />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-gray-100 min-w-[200px]">
+                          <DropdownMenuContent align="end" className="rounded-xl shadow-lg border-gray-100 min-w-[220px]">
+                            {/* Phê duyệt tố cáo -> Ẩn đánh giá */}
                             <DropdownMenuItem
                               onClick={() => onResolveSingle?.(review.id, 'approved')}
-                              className="text-xs font-bold text-green-600 cursor-pointer py-2 gap-2"
+                              className="text-xs font-bold text-green-600 cursor-pointer py-2.5 gap-2.5 hover:bg-green-50"
                             >
-                              <FiCheckCircle size={14} />
-                              Bác đơn - Mở lại đánh giá
+                              <FiThumbsUp size={14} />
+                              <div className="flex flex-col items-start">
+                                <span>Phê duyệt tố cáo</span>
+                                <span className="text-[10px] font-normal text-gray-400">Ẩn đánh giá</span>
+                              </div>
                             </DropdownMenuItem>
+
+                            {/* Bác bỏ tố cáo -> Giữ nguyên đánh giá */}
                             <DropdownMenuItem
-                              onClick={() => onResolveSingle?.(review.id, 'banned')}
-                              className="text-xs font-bold text-rose-500 cursor-pointer py-2 gap-2"
+                              onClick={() => onResolveSingle?.(review.id, 'rejected')}
+                              className="text-xs font-bold text-rose-500 cursor-pointer py-2.5 gap-2.5 hover:bg-rose-50"
                             >
-                              <FiXCircle size={14} />
-                              Đồng ý - Ẩn đánh giá
+                              <FiThumbsDown size={14} />
+                              <div className="flex flex-col items-start">
+                                <span>Bác bỏ tố cáo</span>
+                                <span className="text-[10px] font-normal text-gray-400">Giữ nguyên đánh giá</span>
+                              </div>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

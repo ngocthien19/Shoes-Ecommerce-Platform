@@ -1,4 +1,4 @@
-import { FiStar, FiEye, FiFlag, FiCheckCircle, FiXCircle, FiMessageSquare } from 'react-icons/fi'
+import { FiStar, FiEye, FiFlag, FiCheckCircle, FiXCircle, FiMessageSquare, FiRefreshCw, FiClock } from 'react-icons/fi'
 import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
 import { getImageUrl, getReviewImage } from '~/utils/formatters'
 import { Link } from 'react-router-dom'
@@ -132,7 +132,8 @@ export const ReviewTable = ({
                       <span className="text-xs text-gray-500">{formatDate(review.created_at)}</span>
                     </td>
                     <td className="py-4 px-4 text-center min-w-[200px]">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                        {/* Trạng thái hiển thị */}
                         {review.is_active === 1 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-black">
                             <FiCheckCircle size={10} /> Hiển thị
@@ -142,6 +143,8 @@ export const ReviewTable = ({
                             <FiXCircle size={10} /> Đã ẩn
                           </span>
                         )}
+
+                        {/* Trạng thái báo cáo */}
                         {isReported && (
                           <Tooltip>
                             <TooltipTrigger>
@@ -173,6 +176,7 @@ export const ReviewTable = ({
                           </TooltipContent>
                         </Tooltip>
 
+                        {/* Trường hợp 1: Đang hiển thị và chưa bị báo cáo -> Hiển thị nút Báo cáo */}
                         {review.is_active === 1 && !isReported && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -189,6 +193,7 @@ export const ReviewTable = ({
                           </Tooltip>
                         )}
 
+                        {/* Trường hợp 2: Đã ẩn và chưa bị báo cáo -> Hiển thị nút Yêu cầu mở lại */}
                         {isHidden && !isReported && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -196,7 +201,7 @@ export const ReviewTable = ({
                                 onClick={() => onReopen([review.id])}
                                 className="inline-flex p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-100 rounded-xl cursor-pointer active:scale-90 transition-all duration-200"
                               >
-                                <FiCheckCircle size={13} />
+                                <FiRefreshCw size={13} />
                               </button>
                             </TooltipTrigger>
                             <TooltipContent className="rounded-lg bg-blue-600 text-white text-xs border-none font-semibold">
@@ -205,10 +210,20 @@ export const ReviewTable = ({
                           </Tooltip>
                         )}
 
+                        {/* Trường hợp 3: Đã ẩn và đã bị báo cáo -> Hiển thị trạng thái "Đã xử lý" */}
                         {isHidden && isReported && (
-                          <span className="text-[10px] text-gray-400 italic">
-                            Đã xử lý
-                          </span>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-500 rounded-xl text-xs font-semibold border border-gray-200">
+                            <FiClock size={12} />
+                            Đã gửi yêu cầu mở lại
+                          </div>
+                        )}
+
+                        {/* Trường hợp 4: Đang hiển thị nhưng đã bị báo cáo -> Hiển thị "Chờ xử lý" */}
+                        {review.is_active === 1 && isReported && (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-xl text-xs font-semibold border border-amber-200">
+                            <FiClock size={12} />
+                            Chờ xử lý
+                          </div>
                         )}
                       </div>
                     </td>

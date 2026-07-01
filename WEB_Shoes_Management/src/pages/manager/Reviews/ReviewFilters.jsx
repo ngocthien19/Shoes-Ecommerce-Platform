@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiCalendar, FiStar } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiCalendar, FiStar, FiAlertCircle } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -14,10 +14,62 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
   const [searchTxt, setSearchTxt] = useState(filters.search || '')
   const [startDate, setStartDate] = useState(filters.startDate || '')
   const [endDate, setEndDate] = useState(filters.endDate || '')
+  const [errors, setErrors] = useState({ startDate: '', endDate: '' })
+
+  // Helper: Lấy ngày hôm nay dạng YYYY-MM-DD
+  const getTodayString = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  // Validate ngày tháng
+  const validateDates = (start, end) => {
+    const newErrors = { startDate: '', endDate: '' }
+    let isValid = true
+    const today = getTodayString()
+
+    if (start || end) {
+      if (start && start > today) {
+        newErrors.startDate = 'Ngày bắt đầu không thể lớn hơn hôm nay'
+        isValid = false
+      }
+
+      if (end && end > today) {
+        newErrors.endDate = 'Ngày kết thúc không thể lớn hơn hôm nay'
+        isValid = false
+      }
+
+      if (start && end && start > end) {
+        newErrors.startDate = 'Ngày bắt đầu không thể lớn hơn ngày kết thúc'
+        newErrors.endDate = 'Ngày kết thúc phải lớn hơn ngày bắt đầu'
+        isValid = false
+      }
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }
 
   useEffect(() => {
     if (!filters.search) setSearchTxt('')
   }, [filters.search])
+
+  useEffect(() => {
+    setStartDate(filters.startDate || '')
+    if (!filters.startDate) {
+      setErrors(prev => ({ ...prev, startDate: '' }))
+    }
+  }, [filters.startDate])
+
+  useEffect(() => {
+    setEndDate(filters.endDate || '')
+    if (!filters.endDate) {
+      setErrors(prev => ({ ...prev, endDate: '' }))
+    }
+  }, [filters.endDate])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,19 +78,37 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
     return () => clearTimeout(timer)
   }, [searchTxt])
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange('startDate', startDate || null)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [startDate])
+  const handleStartDateChange = (value) => {
+    setStartDate(value)
+    setErrors(prev => ({ ...prev, startDate: '' }))
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange('endDate', endDate || null)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [endDate])
+    if (!value) {
+      onFilterChange('startDate', null)
+      return
+    }
+
+    const isValid = validateDates(value, endDate)
+    if (isValid) {
+      onFilterChange('startDate', value)
+    }
+    // KHÔNG clear filter khi không hợp lệ
+  }
+
+  const handleEndDateChange = (value) => {
+    setEndDate(value)
+    setErrors(prev => ({ ...prev, endDate: '' }))
+
+    if (!value) {
+      onFilterChange('endDate', null)
+      return
+    }
+
+    const isValid = validateDates(startDate, value)
+    if (isValid) {
+      onFilterChange('endDate', value)
+    }
+    // KHÔNG clear filter khi không hợp lệ
+  }
 
   const ratingOptions = [
     { value: '', label: 'Tất cả số sao' },
@@ -62,14 +132,18 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
   const handleRemoveFilter = (key) => {
     if (key === 'startDate') {
       setStartDate('')
+      setErrors(prev => ({ ...prev, startDate: '' }))
       onFilterChange('startDate', null)
     } else if (key === 'endDate') {
       setEndDate('')
+      setErrors(prev => ({ ...prev, endDate: '' }))
       onFilterChange('endDate', null)
     } else {
       onFilterChange(key, null)
     }
   }
+
+  const maxDate = getTodayString()
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
@@ -134,26 +208,48 @@ export const ReviewFilters = ({ filters, onFilterChange, onReset, stores = [] })
           )}
 
           {/* Bộ lọc ngày */}
-          <div className="relative w-[160px]">
-            <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20"
-              placeholder="Từ ngày"
-            />
+          <div className="flex flex-col gap-1">
+            <div className="relative w-[160px]">
+              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <Input
+                type="date"
+                value={startDate}
+                max={maxDate}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                className={`pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20 ${
+                  errors.startDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                }`}
+                placeholder="Từ ngày"
+              />
+            </div>
+            {errors.startDate && (
+              <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-[160px]">
+                <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
+                <span className="leading-tight">{errors.startDate}</span>
+              </div>
+            )}
           </div>
 
-          <div className="relative w-[160px]">
-            <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20"
-              placeholder="Đến ngày"
-            />
+          <div className="flex flex-col gap-1">
+            <div className="relative w-[160px]">
+              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <Input
+                type="date"
+                value={endDate}
+                max={maxDate}
+                onChange={(e) => handleEndDateChange(e.target.value)}
+                className={`pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20 ${
+                  errors.endDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                }`}
+                placeholder="Đến ngày"
+              />
+            </div>
+            {errors.endDate && (
+              <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-[160px]">
+                <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
+                <span className="leading-tight">{errors.endDate}</span>
+              </div>
+            )}
           </div>
 
           <Tooltip>
