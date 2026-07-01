@@ -1,7 +1,6 @@
-// ~/pages/admin/Stores/StoreDetail/StoreProductsList.jsx
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiPackage, FiSearch, FiStar, FiImage } from 'react-icons/fi'
+import { FiPackage, FiSearch, FiStar, FiX } from 'react-icons/fi'
 import { adminStoreApiService } from '~/services/admin/adminStoreApiService'
 import { formatPrice, getImageUrl, formatDateTime } from '~/utils/formatters'
 import { PRODUCT_MODERATION_STATUS } from '~/utils/constant'
@@ -22,13 +21,14 @@ export const StoreProductsList = ({ storeId }) => {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
 
-  const fetchProducts = async (page = 1) => {
+  // Sửa: Nhận tham số searchText để truyền trực tiếp
+  const fetchProducts = async (page = 1, searchText = search) => {
     try {
       setLoading(true)
       const res = await adminStoreApiService.getStoreProducts(storeId, {
         page,
         limit: pagination.limit,
-        search: search || undefined
+        search: searchText || undefined
       })
       setProducts(res.products || [])
       setPagination({
@@ -37,6 +37,8 @@ export const StoreProductsList = ({ storeId }) => {
         totalItems: res.pagination?.totalItems || 0,
         limit: res.pagination?.limit || 10
       })
+      // Cập nhật state search để đồng bộ
+      setSearch(searchText)
     } catch (error) {
       console.error('Lỗi tải sản phẩm:', error)
     } finally {
@@ -46,17 +48,24 @@ export const StoreProductsList = ({ storeId }) => {
 
   useEffect(() => {
     if (storeId) {
-      fetchProducts(1)
+      fetchProducts(1, '')
     }
   }, [storeId])
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput)
-      fetchProducts(1)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [searchInput])
+  // Xử lý khi nhấn Enter
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      // Truyền trực tiếp searchInput vào fetchProducts
+      fetchProducts(1, searchInput)
+    }
+  }
+
+  // Xóa tìm kiếm
+  const handleClearSearch = () => {
+    setSearchInput('')
+    setSearch('')
+    fetchProducts(1, '')
+  }
 
   const getStatusBadge = (status) => {
     const config = {
@@ -160,9 +169,18 @@ export const StoreProductsList = ({ storeId }) => {
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm kiếm sản phẩm..."
-            className="pl-9 rounded-xl border-gray-200 py-2 text-sm focus-visible:ring-emerald-500/20"
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Tìm kiếm sản phẩm... (Enter)"
+            className="pl-9 pr-9 rounded-xl border-gray-200 py-2 text-sm focus-visible:ring-emerald-500/20"
           />
+          {searchInput && (
+            <button
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <FiX size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -170,7 +188,17 @@ export const StoreProductsList = ({ storeId }) => {
       {products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <FiPackage size={40} className="text-gray-300" />
-          <p className="text-gray-400 font-medium">Chưa có sản phẩm nào</p>
+          <p className="text-gray-400 font-medium">
+            {search ? 'Không tìm thấy sản phẩm nào phù hợp' : 'Chưa có sản phẩm nào'}
+          </p>
+          {search && (
+            <button
+              onClick={handleClearSearch}
+              className="text-sm text-emerald-500 hover:text-emerald-600 font-semibold"
+            >
+              Xóa tìm kiếm
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -279,7 +307,7 @@ export const StoreProductsList = ({ storeId }) => {
               <Pagination
                 currentPage={pagination.currentPage}
                 totalPages={pagination.totalPages}
-                onPageChange={(p) => fetchProducts(p)}
+                onPageChange={(p) => fetchProducts(p, search)}
               />
             </div>
           )}
