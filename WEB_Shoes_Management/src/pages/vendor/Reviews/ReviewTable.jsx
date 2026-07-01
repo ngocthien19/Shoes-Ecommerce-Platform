@@ -67,7 +67,9 @@ export const ReviewTable = ({
             ) : (
               reviews.map((review) => {
                 const isChecked = selectedIds.includes(review.id)
-                const canReopen = review.is_active === 0 && review.is_reported === 0
+                const isHidden = review.is_active === 0
+                const isReported = review.is_reported === 1
+                const canReopen = isHidden && !isReported
 
                 return (
                   <tr key={review.id} className={`hover:bg-gray-50/40 transition-colors duration-200 ${isChecked ? 'bg-brand-primary/5' : ''}`}>
@@ -140,7 +142,7 @@ export const ReviewTable = ({
                             <FiXCircle size={10} /> Đã ẩn
                           </span>
                         )}
-                        {review.is_reported === 1 && (
+                        {isReported && (
                           <Tooltip>
                             <TooltipTrigger>
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black">
@@ -156,6 +158,7 @@ export const ReviewTable = ({
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Nút Xem chi tiết - luôn hiển thị */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Link
@@ -166,11 +169,11 @@ export const ReviewTable = ({
                             </Link>
                           </TooltipTrigger>
                           <TooltipContent className="rounded-lg bg-gray-800 text-white text-xs border-none font-semibold">
-    Xem chi tiết
+                            Xem chi tiết
                           </TooltipContent>
                         </Tooltip>
 
-                        {review.is_reported === 0 && (
+                        {review.is_active === 1 && !isReported && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -186,7 +189,7 @@ export const ReviewTable = ({
                           </Tooltip>
                         )}
 
-                        {canReopen && (
+                        {isHidden && !isReported && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -200,6 +203,12 @@ export const ReviewTable = ({
                               Yêu cầu mở lại
                             </TooltipContent>
                           </Tooltip>
+                        )}
+
+                        {isHidden && isReported && (
+                          <span className="text-[10px] text-gray-400 italic">
+                            Đã xử lý
+                          </span>
                         )}
                       </div>
                     </td>

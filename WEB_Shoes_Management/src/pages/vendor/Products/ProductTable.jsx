@@ -171,9 +171,11 @@ export const ProductTable = ({ products, selectedIds, onSelectRow, onSelectAll, 
                     </td>
                     <td className="py-4 px-4 text-brand-primary font-black">{formatPrice(p.price)}</td>
                     <td className="py-4 px-4 text-center text-gray-500 font-bold">{p.sold}</td>
-                    <td className="py-4 px-4 flex justify-center items-center text-center font-bold text-yellow-500 gap-1">
-                      <FiStar fill='yellow' />
-                      {Number(p.rating_avg || 0).toFixed(1)}
+                    <td className="py-4 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1 text-yellow-500 font-bold">
+                        <FiStar className="fill-yellow-400 text-yellow-400" size={16} />
+                        <span>{Number(p.rating_avg || 0).toFixed(1)}</span>
+                      </div>
                     </td>
                     <td className="py-4 px-4 text-center min-w-[150px]">
                       <ModerationBadge status={p.status} rejectReason={p.reject_reason} />

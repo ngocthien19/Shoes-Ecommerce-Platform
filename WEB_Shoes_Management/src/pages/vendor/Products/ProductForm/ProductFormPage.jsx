@@ -40,7 +40,7 @@ export const ProductFormPage = () => {
     }
   })
 
-  const { control, getValues, reset, setValue } = methods
+  const { control, getValues, reset, setValue, formState: { errors } } = methods
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'variants'
@@ -125,6 +125,16 @@ export const ProductFormPage = () => {
 
   // Bắt đầu thêm biến thể mới
   const handleAddVariant = () => {
+    // Kiểm tra nếu đang có biến thể trống thì không cho thêm
+    const variants = getValues('variants')
+    if (variants.length > 0) {
+      const lastVariant = variants[variants.length - 1]
+      if (!lastVariant.size) {
+        toast.warning('Vui lòng hoàn thành biến thể hiện tại trước khi thêm mới!')
+        return
+      }
+    }
+
     append({
       size: '',
       color: '',
@@ -143,60 +153,15 @@ export const ProductFormPage = () => {
     setIsAddingVariant(false)
   }
 
-  // Lưu biến thể (cập nhật)
-  const handleUpdateVariant = async (index) => {
-    const variants = getValues('variants')
-    const variant = variants[index]
-
-    if (!variant.size) {
-      toast.error('Vui lòng chọn kích cỡ (Size)')
-      return
-    }
-    if (variant.stock === undefined || variant.stock === null || variant.stock < 0) {
-      toast.error('Vui lòng nhập số lượng tồn kho hợp lệ')
-      return
-    }
-
-    if (variant.id) {
-      try {
-        setLoading(true)
-
-        const formData = new FormData()
-        formData.append('size', variant.size)
-        formData.append('color', variant.color || '')
-        formData.append('stock', variant.stock)
-        if (variant.imageFile instanceof File) {
-          formData.append('image', variant.imageFile)
-        }
-
-        await vendorProductApiService.updateVariant(id, variant.id, formData)
-
-        toast.success('Cập nhật biến thể thành công!')
-        setEditingVariantIndex(null)
-        setIsAddingVariant(false)
-        await reloadProductData()
-      } catch (error) {
-        toast.error(error.message || 'Cập nhật biến thể thất bại!')
-      } finally {
-        setLoading(false)
-      }
-    } else {
-      if (variant.imageFile) {
-        setValue(`variants.${index}.imageFile`, variant.imageFile)
-      }
-      setEditingVariantIndex(null)
-      setIsAddingVariant(false)
-      toast.success('Biến thể đã được thêm vào danh sách!')
-    }
-  }
-
   // Hủy chỉnh sửa biến thể
   const handleCancelEditVariant = () => {
     const variants = getValues('variants')
 
+    // Nếu đang thêm mới (isAddingVariant) và biến thể cuối cùng chưa có dữ liệu
     if (isAddingVariant && variants.length > 0) {
       const lastVariant = variants[variants.length - 1]
-      if (!lastVariant.size && !lastVariant.color && (lastVariant.stock === 0 || !lastVariant.stock)) {
+      // Nếu chưa có size và stock = 0 hoặc undefined thì xóa
+      if (!lastVariant.size) {
         remove(variants.length - 1)
       }
     }
@@ -227,9 +192,69 @@ export const ProductFormPage = () => {
     }
   }
 
+  const validateVariants = (variants) => {
+    if (!variants || variants.length === 0) {
+      toast.error('Vui lòng thêm ít nhất 1 biến thể cho sản phẩm!')
+      return false
+    }
+
+    // Kiểm tra từng biến thể có đủ thông tin không
+    for (let i = 0; i < variants.length; i++) {
+      const variant = variants[i]
+      if (!variant.size) {
+        toast.error(`Biến thể #${i + 1} chưa chọn kích cỡ (Size)!`)
+        return false
+      }
+      if (variant.stock === undefined || variant.stock === null || variant.stock < 0) {
+        toast.error(`Biến thể #${i + 1} chưa nhập số lượng tồn kho!`)
+        return false
+      }
+    }
+
+    return true
+  }
+
+  const handleUpdateExistingVariants = async (productId, variants) => {
+    // Lọc ra các variant đã có id (đã tồn tại trong DB)
+    const existingVariants = variants.filter(variant => variant.id)
+
+    for (const variant of existingVariants) {
+      // Kiểm tra xem variant này có thay đổi ảnh không
+      const hasImageChange = variant.imageFile instanceof File
+
+      // Kiểm tra xem có thay đổi thông tin khác không
+      const hasInfoChange = variant.size || variant.color || variant.stock !== undefined
+
+      // Nếu không có thay đổi gì thì bỏ qua
+      if (!hasImageChange && !hasInfoChange) continue
+
+      const formData = new FormData()
+      formData.append('size', variant.size)
+      formData.append('color', variant.color || '')
+      formData.append('stock', variant.stock)
+
+      // Nếu có ảnh mới thì append vào formData
+      if (hasImageChange) {
+        formData.append('image', variant.imageFile)
+      }
+
+      try {
+        await vendorProductApiService.updateVariant(productId, variant.id, formData)
+      } catch (error) {
+        console.error(`Lỗi cập nhật biến thể #${variant.id}:`, error)
+        throw new Error(`Không thể cập nhật biến thể ${variant.size}: ${error.message}`)
+      }
+    }
+  }
+
   const onSubmit = async (data) => {
     try {
       setLoading(true)
+
+      if (!validateVariants(data.variants)) {
+        setLoading(false)
+        return
+      }
 
       const payload = {
         name: data.name,
@@ -239,32 +264,31 @@ export const ProductFormPage = () => {
       }
 
       if (isEditMode) {
-      // 1. Cập nhật product
+        // 1. Cập nhật product
         await vendorProductApiService.updateProduct(id, payload)
 
-        // 2. CHỈ xử lý variants MỚI (chưa có id)
-        if (data.variants && data.variants.length > 0) {
-        // Lọc ra các variant chưa có id (mới thêm)
-          const newVariants = data.variants.filter(variant => !variant.id)
+        // 2. Cập nhật các biến thể đã có (có id) - kèm ảnh
+        await handleUpdateExistingVariants(id, data.variants)
 
-          if (newVariants.length > 0) {
-            for (const variant of newVariants) {
-              const variantFormData = new FormData()
-              variantFormData.append('size', variant.size)
-              variantFormData.append('color', variant.color || '')
-              variantFormData.append('stock', variant.stock)
-              if (variant.imageFile instanceof File) {
-                variantFormData.append('image', variant.imageFile)
-              }
-              await vendorProductApiService.createVariant(id, variantFormData)
+        // 3. Tạo các biến thể mới (chưa có id)
+        const newVariants = data.variants.filter(variant => !variant.id)
+        if (newVariants.length > 0) {
+          for (const variant of newVariants) {
+            const variantFormData = new FormData()
+            variantFormData.append('size', variant.size)
+            variantFormData.append('color', variant.color || '')
+            variantFormData.append('stock', variant.stock)
+            if (variant.imageFile instanceof File) {
+              variantFormData.append('image', variant.imageFile)
             }
+            await vendorProductApiService.createVariant(id, variantFormData)
           }
         }
 
         toast.success('Cập nhật sản phẩm thành công!')
         navigate('/vendor/products')
       } else {
-      // Tạo product mới
+        // Tạo product mới
         const resProduct = await vendorProductApiService.createProduct(payload)
         const newProductId = resProduct.insertId
 
@@ -338,11 +362,29 @@ export const ProductFormPage = () => {
               isAddingVariant={isAddingVariant}
               onAddVariant={handleAddVariant}
               onEditVariant={handleEditVariant}
-              onUpdateVariant={handleUpdateVariant}
+              onUpdateVariant={() => {}} // Không cần
               onDeleteVariant={handleDeleteVariant}
               onCancelEdit={handleCancelEditVariant}
             />
 
+            {/* Cảnh báo nếu chưa có biến thể */}
+            {fields.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <FiCheck className="text-amber-600" size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-amber-700">Yêu cầu: Phải có ít nhất 1 biến thể</p>
+                  <p className="text-xs text-amber-600">Vui lòng thêm phân loại kích cỡ (Size) và tồn kho cho sản phẩm.</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Nút Lưu chính */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               className="flex justify-end pt-4"

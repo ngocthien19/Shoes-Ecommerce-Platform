@@ -82,7 +82,6 @@ export const VariantsSection = ({
 
     // Nếu có image từ API (đã lưu)
     if (variant.image) {
-      // Dùng getVariantImageUrl để lấy URL
       const url = getVariantImageUrl(variant)
       if (url) return url
     }
@@ -136,51 +135,44 @@ export const VariantsSection = ({
 
         {/* Hành động */}
         <div className="w-full md:w-auto flex items-end gap-1.5">
-          {hasId && (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    type="button"
-                    onClick={() => onEditVariant(index)}
-                    className="p-2.5 bg-blue-50 text-blue-500 border border-blue-200 hover:bg-blue-500 hover:text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
-                  >
-                    <FiEdit2 size={14} />
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>Sửa biến thể</TooltipContent>
-              </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => onEditVariant(index)}
+                className="p-2.5 bg-blue-50 text-blue-500 border border-blue-200 hover:bg-blue-500 hover:text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
+              >
+                <FiEdit2 size={14} />
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent>Sửa biến thể</TooltipContent>
+          </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    type="button"
-                    onClick={() => handleOpenDeleteModal(index)}
-                    className="p-2.5 bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
-                  >
-                    <FiTrash2 size={14} />
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>Xóa biến thể</TooltipContent>
-              </Tooltip>
-            </>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => handleOpenDeleteModal(index)}
+                className="p-2.5 bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200 cursor-pointer shadow-sm"
+              >
+                <FiTrash2 size={14} />
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent>Xóa biến thể</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     )
   }
 
-  // Component hiển thị form sửa biến thể (chế độ edit)
+  // Component hiển thị form sửa biến thể (chế độ edit) - KHÔNG có nút Lưu
   const VariantEdit = ({ index }) => {
     const variant = watch(`variants.${index}`)
     const imageUrl = getVariantDisplayImage(variant)
-
-    // Kiểm tra xem variant đã có dữ liệu hợp lệ chưa
-    const isValid = variant?.size && variant?.stock !== undefined && variant?.stock !== null && variant?.stock >= 0
 
     return (
       <div className="flex flex-wrap md:flex-nowrap items-start gap-4 p-5 bg-brand-primary/5 rounded-xl border border-brand-primary/30">
@@ -303,28 +295,7 @@ export const VariantsSection = ({
           )}
         </div>
 
-        {/* Nút hành động trong chế độ edit */}
         <div className="w-full md:w-auto flex items-end gap-1.5 pb-1.5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                type="button"
-                onClick={() => onUpdateVariant(index)}
-                disabled={!isValid}
-                className={`p-2.5 rounded-xl transition-all duration-200 cursor-pointer shadow-sm ${
-                  isValid
-                    ? 'bg-green-500 text-white hover:bg-green-600'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <FiCheck size={16} />
-              </motion.button>
-            </TooltipTrigger>
-            <TooltipContent>Lưu biến thể</TooltipContent>
-          </Tooltip>
-
           <Tooltip>
             <TooltipTrigger asChild>
               <motion.button

@@ -405,7 +405,7 @@ export const ProductCard = ({ product, sortBy, onAddToCartSuccess }) => {
                 />
               ))}
             </div>
-            <span>({product?.rating_count || 0})</span>
+            <span>({product?.rating_avg || 0})</span>
             <span>|</span>
             {sortBy === 'views_desc' ? (
               <span className="flex items-center gap-1 text-blue-500 font-medium">
