@@ -26,7 +26,7 @@ export const ProductFilters = ({ filters, onFilterChange, onReset, categories = 
   }, [searchTxt])
 
   const statusOptions = [
-    { value: '', label: 'Tất cả trạng thái' },
+    { value: null, label: 'Tất cả trạng thái' },
     { value: PRODUCT_MODERATION_STATUS.PENDING, label: 'Chờ duyệt' },
     { value: PRODUCT_MODERATION_STATUS.PENDING_REAPPROVAL, label: 'Chờ duyệt lại' },
     { value: PRODUCT_MODERATION_STATUS.APPROVED, label: 'Đã duyệt' },
@@ -34,18 +34,61 @@ export const ProductFilters = ({ filters, onFilterChange, onReset, categories = 
     { value: PRODUCT_MODERATION_STATUS.BANNED, label: 'Bị khóa' }
   ]
 
-  const currentStatusLabel = statusOptions.find(s => s.value === filters.status)?.label || 'Tất cả trạng thái'
-  const currentCategoryLabel = categories.find(c => c.id === Number(filters.categoryId))?.name || 'Tất cả danh mục'
-  const currentStoreLabel = stores.find(s => s.id === Number(filters.storeId))?.name || 'Tất cả cửa hàng'
+  // Fix: Xác định đúng label cho category
+  const getCurrentCategoryLabel = () => {
+    if (filters.categoryId === null || filters.categoryId === undefined || filters.categoryId === '') {
+      return 'Tất cả danh mục'
+    }
+    const category = categories.find(c => c.id === Number(filters.categoryId))
+    return category?.name || 'Tất cả danh mục'
+  }
+
+  // Fix: Xác định đúng label cho store
+  const getCurrentStoreLabel = () => {
+    if (filters.storeId === null || filters.storeId === undefined || filters.storeId === '') {
+      return 'Tất cả cửa hàng'
+    }
+    const store = stores.find(s => s.id === Number(filters.storeId))
+    return store?.name || store?.store_name || 'Tất cả cửa hàng'
+  }
+
+  // Fix: Xác định đúng label cho status
+  const getCurrentStatusLabel = () => {
+    if (filters.status === null || filters.status === undefined || filters.status === '') {
+      return 'Tất cả trạng thái'
+    }
+    const status = statusOptions.find(s => s.value === filters.status)
+    return status?.label || 'Tất cả trạng thái'
+  }
+
+  const currentCategoryLabel = getCurrentCategoryLabel()
+  const currentStoreLabel = getCurrentStoreLabel()
+  const currentStatusLabel = getCurrentStatusLabel()
 
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
-  if (filters.status) {
+
+  if (filters.status !== null && filters.status !== undefined && filters.status !== '') {
     const statusLabel = statusOptions.find(s => s.value === filters.status)?.label
-    activeBadges.push({ key: 'status', label: `Trạng thái: ${statusLabel}` })
+    if (statusLabel && statusLabel !== 'Tất cả trạng thái') {
+      activeBadges.push({ key: 'status', label: `Trạng thái: ${statusLabel}` })
+    }
   }
-  if (filters.categoryId) activeBadges.push({ key: 'categoryId', label: `Danh mục: ${currentCategoryLabel}` })
-  if (filters.storeId) activeBadges.push({ key: 'storeId', label: `Cửa hàng: ${currentStoreLabel}` })
+
+  if (filters.categoryId !== null && filters.categoryId !== undefined && filters.categoryId !== '') {
+    const category = categories.find(c => c.id === Number(filters.categoryId))
+    if (category) {
+      activeBadges.push({ key: 'categoryId', label: `Danh mục: ${category.name}` })
+    }
+  }
+
+  if (filters.storeId !== null && filters.storeId !== undefined && filters.storeId !== '') {
+    const store = stores.find(s => s.id === Number(filters.storeId))
+    if (store) {
+      const storeName = store.name || store.store_name
+      activeBadges.push({ key: 'storeId', label: `Cửa hàng: ${storeName}` })
+    }
+  }
 
   const handleRemoveFilter = (key) => {
     onFilterChange(key, null)
@@ -74,14 +117,19 @@ export const ProductFilters = ({ filters, onFilterChange, onReset, categories = 
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 max-h-64 overflow-y-auto min-w-[180px]">
-              <DropdownMenuItem onClick={() => onFilterChange('categoryId', null)} className="text-xs font-bold cursor-pointer rounded-lg">
+              <DropdownMenuItem
+                onClick={() => onFilterChange('categoryId', null)}
+                className="text-xs font-bold cursor-pointer rounded-lg"
+              >
                 Tất cả danh mục
               </DropdownMenuItem>
               {categories.map(cat => (
                 <DropdownMenuItem
                   key={cat.id}
                   onClick={() => onFilterChange('categoryId', cat.id)}
-                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                  className={`text-xs font-semibold cursor-pointer rounded-lg ${
+                    Number(filters.categoryId) === cat.id ? 'text-brand-primary bg-brand-primary/5' : ''
+                  }`}
                 >
                   {cat.name}
                 </DropdownMenuItem>
@@ -98,16 +146,21 @@ export const ProductFilters = ({ filters, onFilterChange, onReset, categories = 
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 max-h-64 overflow-y-auto min-w-[200px]">
-              <DropdownMenuItem onClick={() => onFilterChange('storeId', null)} className="text-xs font-bold cursor-pointer rounded-lg">
+              <DropdownMenuItem
+                onClick={() => onFilterChange('storeId', null)}
+                className="text-xs font-bold cursor-pointer rounded-lg"
+              >
                 Tất cả cửa hàng
               </DropdownMenuItem>
               {stores.map(store => (
                 <DropdownMenuItem
                   key={store.id}
                   onClick={() => onFilterChange('storeId', store.id)}
-                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                  className={`text-xs font-semibold cursor-pointer rounded-lg ${
+                    Number(filters.storeId) === store.id ? 'text-brand-primary bg-brand-primary/5' : ''
+                  }`}
                 >
-                  {store.store_name}
+                  {store.name || store.store_name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -124,9 +177,11 @@ export const ProductFilters = ({ filters, onFilterChange, onReset, categories = 
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
               {statusOptions.map(s => (
                 <DropdownMenuItem
-                  key={s.value || 'all'}
-                  onClick={() => onFilterChange('status', s.value || null)}
-                  className="text-xs font-semibold cursor-pointer rounded-lg"
+                  key={s.value === null ? 'all' : s.value}
+                  onClick={() => onFilterChange('status', s.value)}
+                  className={`text-xs font-semibold cursor-pointer rounded-lg ${
+                    filters.status === s.value ? 'text-brand-primary bg-brand-primary/5' : ''
+                  }`}
                 >
                   {s.label}
                 </DropdownMenuItem>
