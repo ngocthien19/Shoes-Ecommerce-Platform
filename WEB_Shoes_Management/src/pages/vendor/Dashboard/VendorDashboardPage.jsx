@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { vendorAnalyticsService } from '~/services/vendor/vendorAnalyticsService'
 import { ANALYTICS_TYPES } from '~/utils/constant'
 import { toast } from 'react-toastify'
-import { FiCalendar, FiFilter, FiChevronDown, FiCheck, FiTrendingUp } from 'react-icons/fi'
+import { FiCalendar, FiFilter, FiChevronDown, FiCheck, FiTrendingUp, FiAlertCircle } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { DashboardWidgets } from './DashboardWidgets'
@@ -38,12 +38,61 @@ export const VendorDashboardPage = () => {
   const [filterType, setFilterType] = useState(ANALYTICS_TYPES.ONE_MONTH)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [errors, setErrors] = useState({ startDate: '', endDate: '' })
+
+  // Helper: Lấy ngày hôm nay dạng YYYY-MM-DD
+  const getTodayString = () => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  }
+
+  const validateDates = () => {
+    const newErrors = { startDate: '', endDate: '' }
+    let isValid = true
+
+    if (!startDate) {
+      newErrors.startDate = 'Vui lòng chọn ngày bắt đầu'
+      isValid = false
+    }
+
+    if (!endDate) {
+      newErrors.endDate = 'Vui lòng chọn ngày kết thúc'
+      isValid = false
+    }
+
+    if (startDate && endDate) {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      if (start > end) {
+        newErrors.startDate = 'Ngày bắt đầu không thể lớn hơn ngày kết thúc'
+        newErrors.endDate = 'Ngày kết thúc phải lớn hơn ngày bắt đầu'
+        isValid = false
+      }
+
+      if (end > today) {
+        newErrors.endDate = 'Ngày kết thúc không thể lớn hơn hôm nay'
+        isValid = false
+      }
+
+      if (start > today) {
+        newErrors.startDate = 'Ngày bắt đầu không thể lớn hơn hôm nay'
+        isValid = false
+      }
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }
 
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true)
       const res = await vendorAnalyticsService.getRevenueAnalytics(filterType, startDate, endDate)
       setData(res)
+      setErrors({ startDate: '', endDate: '' }) // Clear errors on success
     } catch (error) {
       toast.error(error.message || 'Lỗi khi tải dữ liệu thống kê.')
     } finally {
@@ -51,15 +100,52 @@ export const VendorDashboardPage = () => {
     }
   }
 
+  // Xử lý khi người dùng thay đổi date
+  const handleDateChange = (type, value) => {
+    // Reset error cho field đó
+    setErrors(prev => ({ ...prev, [type]: '' }))
+
+    if (type === 'startDate') {
+      setStartDate(value)
+      // Nếu endDate đã có và startDate > endDate, set error cho endDate
+      if (endDate && value && new Date(value) > new Date(endDate)) {
+        setErrors(prev => ({
+          ...prev,
+          startDate: 'Ngày bắt đầu không thể lớn hơn ngày kết thúc',
+          endDate: 'Ngày kết thúc phải lớn hơn ngày bắt đầu'
+        }))
+      }
+    } else {
+      setEndDate(value)
+      // Kiểm tra ngày kết thúc không được lớn hơn hôm nay
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (value && new Date(value) > today) {
+        setErrors(prev => ({
+          ...prev,
+          endDate: 'Ngày kết thúc không thể lớn hơn hôm nay'
+        }))
+      }
+      // Kiểm tra startDate > endDate
+      if (startDate && value && new Date(startDate) > new Date(value)) {
+        setErrors(prev => ({
+          ...prev,
+          startDate: 'Ngày bắt đầu không thể lớn hơn ngày kết thúc',
+          endDate: 'Ngày kết thúc phải lớn hơn ngày bắt đầu'
+        }))
+      }
+    }
+  }
+
   useEffect(() => {
     if (filterType !== ANALYTICS_TYPES.CUSTOM) {
+      setErrors({ startDate: '', endDate: '' })
       fetchAnalyticsData()
     } else if (startDate && endDate) {
-      if (new Date(startDate) > new Date(endDate)) {
-        toast.warning('Ngày bắt đầu không thể lớn hơn ngày kết thúc!')
-        return
+      const isValid = validateDates()
+      if (isValid) {
+        fetchAnalyticsData()
       }
-      fetchAnalyticsData()
     }
   }, [filterType, startDate, endDate])
 
@@ -69,6 +155,9 @@ export const VendorDashboardPage = () => {
   }
 
   const activeLabel = filterOptions.find((o) => o.value === filterType)?.label
+
+  // Lấy max date cho input (hôm nay)
+  const maxDate = getTodayString()
 
   return (
     <div className="space-y-6 pb-12">
@@ -134,21 +223,45 @@ export const VendorDashboardPage = () => {
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95, x: -8 }}
                   transition={{ type: 'spring', stiffness: 220, damping: 20 }}
-                  className="flex items-center gap-2"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-2"
                 >
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="rounded-xl border-gray-200 text-gray-700 text-xs font-semibold py-5 cursor-pointer focus-visible:ring-brand-primary/20"
-                  />
-                  <span className="text-xs text-gray-300 font-bold">→</span>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="rounded-xl border-gray-200 text-gray-700 text-xs font-semibold py-5 cursor-pointer focus-visible:ring-brand-primary/20"
-                  />
+                  <div className="flex flex-col gap-1" style={{ maxWidth: '180px' }}>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      max={maxDate}
+                      onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      className={`rounded-xl border-gray-200 text-gray-700 text-xs font-semibold py-5 cursor-pointer focus-visible:ring-brand-primary/20 w-full ${
+                        errors.startDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                      }`}
+                    />
+                    {errors.startDate && (
+                      <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-full">
+                        <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
+                        <span className="leading-tight">{errors.startDate}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <span className="text-xs text-gray-300 font-bold hidden sm:block">→</span>
+
+                  <div className="flex flex-col gap-1" style={{ maxWidth: '180px' }}>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      max={maxDate}
+                      onChange={(e) => handleDateChange('endDate', e.target.value)}
+                      className={`rounded-xl border-gray-200 text-gray-700 text-xs font-semibold py-5 cursor-pointer focus-visible:ring-brand-primary/20 w-full ${
+                        errors.endDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                      }`}
+                    />
+                    {errors.endDate && (
+                      <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-full">
+                        <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
+                        <span className="leading-tight">{errors.endDate}</span>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
