@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiHeart } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiHeart, FiAlertCircle } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import { categoryService } from '~/services/user/categoryService'
 import {
@@ -19,6 +19,9 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
   const [minFav, setMinFav] = useState(filters.minFavorites || '')
   const [maxFav, setMaxFav] = useState(filters.maxFavorites || '')
 
+  // State cho validation
+  const [favError, setFavError] = useState('')
+
   useEffect(() => {
     categoryService.getAllCategories().then(setCategories).catch(console.error)
   }, [])
@@ -27,6 +30,7 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
     if (!filters.search) setSearchTxt('')
     if (!filters.minFavorites) setMinFav('')
     if (!filters.maxFavorites) setMaxFav('')
+    setFavError('') // Reset error khi filters thay đổi
   }, [filters])
 
   // Debounce tìm kiếm tên
@@ -37,8 +41,73 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
     return () => clearTimeout(timer)
   }, [searchTxt])
 
+  // Validate khoảng lượt tim
+  const validateFavoritesRange = (min, max) => {
+    // Nếu cả 2 đều rỗng thì không cần validate
+    if (!min && !max) {
+      setFavError('')
+      return true
+    }
+
+    // Chuyển đổi sang số
+    const minNum = min ? Number(min) : null
+    const maxNum = max ? Number(max) : null
+
+    // Validate số âm
+    if (minNum !== null && minNum < 0) {
+      setFavError('Giá trị "Từ" không được nhỏ hơn 0')
+      return false
+    }
+
+    if (maxNum !== null && maxNum < 0) {
+      setFavError('Giá trị "Đến" không được nhỏ hơn 0')
+      return false
+    }
+
+    // Validate min <= max (khi cả 2 đều có giá trị)
+    if (minNum !== null && maxNum !== null && minNum > maxNum) {
+      setFavError('Giá trị "Từ" không được lớn hơn "Đến"')
+      return false
+    }
+
+    setFavError('')
+    return true
+  }
+
+  // Xử lý khi thay đổi min
+  const handleMinChange = (value) => {
+    setMinFav(value)
+    // Validate real-time với max hiện tại
+    if (maxFav) {
+      validateFavoritesRange(value, maxFav)
+    } else {
+      setFavError('')
+    }
+  }
+
+  // Xử lý khi thay đổi max
+  const handleMaxChange = (value) => {
+    setMaxFav(value)
+    // Validate real-time với min hiện tại
+    if (minFav) {
+      validateFavoritesRange(minFav, value)
+    } else {
+      setFavError('')
+    }
+  }
+
   // Gộp cả min + max vào một lần update — tránh overwrite lẫn nhau
   const handleApplyFavoritesRange = () => {
+    // Validate trước khi áp dụng
+    const isValid = validateFavoritesRange(minFav, maxFav)
+    if (!isValid) return
+
+    // Nếu cả 2 đều rỗng, clear filter
+    if (!minFav && !maxFav) {
+      onApplyFavoritesRange(null, null)
+      return
+    }
+
     onApplyFavoritesRange(minFav || null, maxFav || null)
   }
 
@@ -130,26 +199,48 @@ export const FavoriteFilters = ({ filters, onFilterChange, onApplyFavoritesRange
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="p-4 rounded-xl shadow-xl border-gray-50 w-64 space-y-3">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Khoảng yêu thích</p>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Từ..."
-                  value={minFav}
-                  onChange={e => setMinFav(e.target.value)}
-                  className="h-9 text-xs rounded-lg border-gray-200 focus-visible:ring-rose-500/20"
-                />
-                <span className="text-gray-400 font-bold">-</span>
-                <Input
-                  type="number"
-                  placeholder="Đến..."
-                  value={maxFav}
-                  onChange={e => setMaxFav(e.target.value)}
-                  className="h-9 text-xs rounded-lg border-gray-200 focus-visible:ring-rose-500/20"
-                />
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Từ..."
+                    value={minFav}
+                    onChange={(e) => handleMinChange(e.target.value)}
+                    className={`h-9 text-xs rounded-lg border-gray-200 focus-visible:ring-rose-500/20 ${
+                      favError ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                    }`}
+                    min="0"
+                  />
+                  <span className="text-gray-400 font-bold">-</span>
+                  <Input
+                    type="number"
+                    placeholder="Đến..."
+                    value={maxFav}
+                    onChange={(e) => handleMaxChange(e.target.value)}
+                    className={`h-9 text-xs rounded-lg border-gray-200 focus-visible:ring-rose-500/20 ${
+                      favError ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                    }`}
+                    min="0"
+                  />
+                </div>
+
+                {/* Hiển thị lỗi - đã fix xuống dòng */}
+                {favError && (
+                  <div className="flex items-start gap-1.5 text-red-500 text-xs font-medium break-words whitespace-normal max-w-full">
+                    <FiAlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span className="leading-tight">{favError}</span>
+                  </div>
+                )}
               </div>
+
               <button
                 onClick={handleApplyFavoritesRange}
-                className="w-full mt-2 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                disabled={!!favError}
+                className={`w-full mt-2 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  favError
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-rose-500 hover:bg-rose-600 text-white'
+                }`}
               >
                 Áp dụng
               </button>

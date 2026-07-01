@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiRefreshCw, FiX } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiRefreshCw, FiX, FiAlertCircle } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ export const UserFilters = ({ filters, onFilterChange, onReset }) => {
   }, [searchTxt])
 
   const roleOptions = [
-    { value: '', label: 'Tất cả vai trò' },
+    { value: null, label: 'Tất cả vai trò' },
     { value: ROLE_ID.ADMIN, label: 'Quản trị viên' },
     { value: ROLE_ID.MANAGER, label: 'Điều hành viên' },
     { value: ROLE_ID.VENDOR, label: 'Người bán' },
@@ -34,27 +34,59 @@ export const UserFilters = ({ filters, onFilterChange, onReset }) => {
   ]
 
   const statusOptions = [
-    { value: '', label: 'Tất cả trạng thái' },
+    { value: null, label: 'Tất cả trạng thái' },
     { value: 1, label: 'Đang hoạt động' },
     { value: 0, label: 'Đã khóa' }
   ]
 
-  const currentRoleLabel = roleOptions.find(r => r.value === Number(filters.roleId))?.label || 'Tất cả vai trò'
-  const currentStatusLabel = statusOptions.find(s => s.value === Number(filters.isActive))?.label || 'Tất cả trạng thái'
+  // Fix: Xác định đúng label cho role
+  const getCurrentRoleLabel = () => {
+    // Nếu roleId là null hoặc undefined -> hiển thị "Tất cả vai trò"
+    if (filters.roleId === null || filters.roleId === undefined || filters.roleId === '') {
+      return 'Tất cả vai trò'
+    }
+    // Tìm label tương ứng với giá trị roleId (chuyển sang Number để so sánh chính xác)
+    const role = roleOptions.find(r => r.value === Number(filters.roleId))
+    return role?.label || 'Tất cả vai trò'
+  }
+
+  // Fix: Xác định đúng label cho status
+  const getCurrentStatusLabel = () => {
+    // Nếu isActive là null hoặc undefined -> hiển thị "Tất cả trạng thái"
+    if (filters.isActive === null || filters.isActive === undefined || filters.isActive === '') {
+      return 'Tất cả trạng thái'
+    }
+    // Tìm label tương ứng với giá trị isActive
+    const status = statusOptions.find(s => s.value === Number(filters.isActive))
+    return status?.label || 'Tất cả trạng thái'
+  }
+
+  const currentRoleLabel = getCurrentRoleLabel()
+  const currentStatusLabel = getCurrentStatusLabel()
 
   const activeBadges = []
   if (filters.search) activeBadges.push({ key: 'search', label: `Tìm: "${filters.search}"` })
-  if (filters.roleId) {
+  if (filters.roleId !== null && filters.roleId !== undefined && filters.roleId !== '') {
     const role = roleOptions.find(r => r.value === Number(filters.roleId))
-    if (role) activeBadges.push({ key: 'roleId', label: `Vai trò: ${role.label}` })
+    if (role && role.label !== 'Tất cả vai trò') {
+      activeBadges.push({ key: 'roleId', label: `Vai trò: ${role.label}` })
+    }
   }
-  if (filters.isActive !== null && filters.isActive !== undefined) {
+  if (filters.isActive !== null && filters.isActive !== undefined && filters.isActive !== '') {
     const status = statusOptions.find(s => s.value === Number(filters.isActive))
-    if (status) activeBadges.push({ key: 'isActive', label: `Trạng thái: ${status.label}` })
+    if (status && status.label !== 'Tất cả trạng thái') {
+      activeBadges.push({ key: 'isActive', label: `Trạng thái: ${status.label}` })
+    }
   }
 
   const handleRemoveFilter = (key) => {
-    onFilterChange(key, null)
+    if (key === 'isActive') {
+      onFilterChange('isActive', null)
+    } else if (key === 'roleId') {
+      onFilterChange('roleId', null)
+    } else {
+      onFilterChange(key, null)
+    }
   }
 
   return (
@@ -82,8 +114,8 @@ export const UserFilters = ({ filters, onFilterChange, onReset }) => {
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
               {roleOptions.map(option => (
                 <DropdownMenuItem
-                  key={option.value || 'all'}
-                  onClick={() => onFilterChange('roleId', option.value || null)}
+                  key={option.value === null ? 'all' : option.value}
+                  onClick={() => onFilterChange('roleId', option.value)}
                   className="text-xs font-semibold cursor-pointer rounded-lg"
                 >
                   {option.label}
@@ -103,8 +135,8 @@ export const UserFilters = ({ filters, onFilterChange, onReset }) => {
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
               {statusOptions.map(option => (
                 <DropdownMenuItem
-                  key={option.value || 'all'}
-                  onClick={() => onFilterChange('isActive', option.value !== '' ? option.value : null)}
+                  key={option.value === null ? 'all' : option.value}
+                  onClick={() => onFilterChange('isActive', option.value)}
                   className="text-xs font-semibold cursor-pointer rounded-lg"
                 >
                   {option.label}
