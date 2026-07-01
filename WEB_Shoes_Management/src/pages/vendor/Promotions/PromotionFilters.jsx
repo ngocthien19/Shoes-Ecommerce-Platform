@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiSearch, FiChevronDown, FiFilter, FiRefreshCw, FiX, FiCalendar, FiAlertCircle } from 'react-icons/fi'
+import { FiSearch, FiChevronDown, FiFilter, FiRefreshCw, FiX, FiCalendar, FiAlertCircle, FiCheck } from 'react-icons/fi'
 import { Input } from '~/components/ui/input'
 import {
   DropdownMenu,
@@ -15,7 +15,17 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
   const [searchTxt, setSearchTxt] = useState(filters.search || '')
   const [startDate, setStartDate] = useState(filters.start_date || '')
   const [endDate, setEndDate] = useState(filters.end_date || '')
+  const [tempStartDate, setTempStartDate] = useState(filters.start_date || '')
+  const [tempEndDate, setTempEndDate] = useState(filters.end_date || '')
   const [errors, setErrors] = useState({ startDate: '', endDate: '' })
+  const [isDateFilterApplied, setIsDateFilterApplied] = useState(!!(filters.start_date && filters.end_date))
+
+  // Format ngày hiển thị
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return ''
+    const parts = dateStr.split('-')
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
 
   // Validate ngày tháng (KHÔNG giới hạn ngày tương lai)
   const validateDates = (start, end) => {
@@ -42,9 +52,10 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
     return isValid
   }
 
-  // Sync state khi filters thay đổi từ bên ngoài (khi reset tất cả)
+  // Sync state khi filters thay đổi từ bên ngoài
   useEffect(() => {
     setStartDate(filters.start_date || '')
+    setTempStartDate(filters.start_date || '')
     if (!filters.start_date) {
       setErrors(prev => ({ ...prev, startDate: '' }))
     }
@@ -52,10 +63,15 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
 
   useEffect(() => {
     setEndDate(filters.end_date || '')
+    setTempEndDate(filters.end_date || '')
     if (!filters.end_date) {
       setErrors(prev => ({ ...prev, endDate: '' }))
     }
   }, [filters.end_date])
+
+  useEffect(() => {
+    setIsDateFilterApplied(!!(filters.start_date && filters.end_date))
+  }, [filters.start_date, filters.end_date])
 
   useEffect(() => {
     if (!filters.search) setSearchTxt('')
@@ -68,36 +84,56 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
     return () => clearTimeout(timer)
   }, [searchTxt])
 
-  // Xử lý khi thay đổi startDate
+  // Xử lý khi thay đổi startDate (chỉ cập nhật temp)
   const handleStartDateChange = (value) => {
-    setStartDate(value)
+    setTempStartDate(value)
+    setErrors(prev => ({ ...prev, startDate: '' }))
+    validateDates(value, tempEndDate)
+  }
 
-    // Validate real-time
-    const isValid = validateDates(value, endDate)
+  // Xử lý khi thay đổi endDate (chỉ cập nhật temp)
+  const handleEndDateChange = (value) => {
+    setTempEndDate(value)
+    setErrors(prev => ({ ...prev, endDate: '' }))
+    validateDates(tempStartDate, value)
+  }
 
-    // Nếu hợp lệ mới apply filter
-    if (isValid) {
-      onFilterChange('start_date', value || null)
+  // Áp dụng bộ lọc ngày
+  const handleApplyDateFilter = () => {
+    const isValid = validateDates(tempStartDate, tempEndDate)
+
+    if (!isValid) return
+
+    if (tempStartDate && tempEndDate) {
+      setStartDate(tempStartDate)
+      setEndDate(tempEndDate)
+      setIsDateFilterApplied(true)
+
+      // Cập nhật cả 2 filter cùng lúc
+      onFilterChange('dateRange', {
+        start_date: tempStartDate,
+        end_date: tempEndDate
+      })
     } else {
-      // Nếu không hợp lệ, clear filter để tránh lọc sai
-      onFilterChange('start_date', null)
+      if (!tempStartDate) {
+        setErrors(prev => ({ ...prev, startDate: 'Vui lòng chọn ngày bắt đầu' }))
+      }
+      if (!tempEndDate) {
+        setErrors(prev => ({ ...prev, endDate: 'Vui lòng chọn ngày kết thúc' }))
+      }
     }
   }
 
-  // Xử lý khi thay đổi endDate
-  const handleEndDateChange = (value) => {
-    setEndDate(value)
+  // Xóa bộ lọc ngày
+  const handleClearDateFilter = () => {
+    setTempStartDate('')
+    setTempEndDate('')
+    setStartDate('')
+    setEndDate('')
+    setIsDateFilterApplied(false)
+    setErrors({ startDate: '', endDate: '' })
 
-    // Validate real-time
-    const isValid = validateDates(startDate, value)
-
-    // Nếu hợp lệ mới apply filter
-    if (isValid) {
-      onFilterChange('end_date', value || null)
-    } else {
-      // Nếu không hợp lệ, clear filter để tránh lọc sai
-      onFilterChange('end_date', null)
-    }
+    onFilterChange('dateRange', null)
   }
 
   const statusOptions = [
@@ -121,32 +157,36 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
     const statusLabel = filters.is_active === 1 ? 'Đang hoạt động' : 'Tạm dừng'
     activeBadges.push({ key: 'is_active', label: `Trạng thái: ${statusLabel}` })
   }
-  if (filters.start_date) activeBadges.push({ key: 'start_date', label: `Từ ngày: ${filters.start_date}` })
-  if (filters.end_date) activeBadges.push({ key: 'end_date', label: `Đến ngày: ${filters.end_date}` })
+  if (filters.start_date && filters.end_date) {
+    activeBadges.push({
+      key: 'dateRange',
+      label: `${formatDisplayDate(filters.start_date)} → ${formatDisplayDate(filters.end_date)}`
+    })
+  }
   if (filters.sortBy && filters.sortBy !== 'created_at') {
     const sortObj = sortOptions.find(s => s.value === filters.sortBy)
     if (sortObj) activeBadges.push({ key: 'sortBy', label: `Sắp xếp: ${sortObj.label}` })
   }
 
-  // Hàm xóa filter, xử lý đặc biệt cho start_date và end_date
+  // Hàm xóa filter
   const handleRemoveFilter = (key) => {
-    if (key === 'start_date') {
-      setStartDate('')
-      setErrors(prev => ({ ...prev, startDate: '' }))
-      onFilterChange('start_date', null)
-    } else if (key === 'end_date') {
-      setEndDate('')
-      setErrors(prev => ({ ...prev, endDate: '' }))
-      onFilterChange('end_date', null)
+    if (key === 'dateRange') {
+      handleClearDateFilter()
+    } else if (key === 'search') {
+      onFilterChange('search', null)
+      setSearchTxt('')
     } else {
       onFilterChange(key, null)
     }
   }
 
+  const hasDateError = errors.startDate || errors.endDate
+  const isDateValid = tempStartDate && tempEndDate && !hasDateError
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+      {/* Hàng 1: Tìm kiếm + Bộ lọc trạng thái + Sắp xếp + Reset */}
       <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-        {/* Khung Search */}
         <div className="relative w-full lg:max-w-sm">
           <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <Input
@@ -157,52 +197,8 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
           />
         </div>
 
-        {/* Cụm Dropdown Lọc */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-          {/* Bộ lọc ngày bắt đầu */}
-          <div className="flex flex-col gap-1" style={{ maxWidth: '170px' }}>
-            <div className="relative w-full">
-              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => handleStartDateChange(e.target.value)}
-                className={`pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20 ${
-                  errors.startDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
-                }`}
-                placeholder="Từ ngày"
-              />
-            </div>
-            {errors.startDate && (
-              <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-full">
-                <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
-                <span className="leading-tight">{errors.startDate}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Bộ lọc ngày kết thúc */}
-          <div className="flex flex-col gap-1" style={{ maxWidth: '170px' }}>
-            <div className="relative w-full">
-              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => handleEndDateChange(e.target.value)}
-                className={`pl-9 rounded-xl border-gray-200 py-2.5 text-sm font-semibold w-full focus-visible:ring-brand-primary/20 ${
-                  errors.endDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
-                }`}
-                placeholder="Đến ngày"
-              />
-            </div>
-            {errors.endDate && (
-              <div className="flex items-start gap-1 text-xs text-red-500 break-words whitespace-normal max-w-full">
-                <FiAlertCircle size={12} className="shrink-0 mt-0.5" />
-                <span className="leading-tight">{errors.endDate}</span>
-              </div>
-            )}
-          </div>
-
+          {/* Bộ lọc trạng thái */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors">
@@ -218,11 +214,13 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Bộ lọc sắp xếp */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none cursor-pointer transition-colors">
                 <FiFilter size={12} className="text-gray-400" />
                 <span>{currentSortLabel}</span>
+                <FiChevronDown size={14} className="text-gray-400" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-gray-50 min-w-[160px]">
@@ -243,6 +241,74 @@ export const PromotionFilters = ({ filters, onFilterChange, onReset }) => {
         </div>
       </div>
 
+      {/* Hàng 2: Bộ lọc ngày tháng */}
+      <div className="mt-4 pt-4 border-t border-gray-50">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <FiCalendar size={14} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500">Lọc theo ngày:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Input
+                type="date"
+                value={tempStartDate}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                className={`rounded-xl border-gray-200 py-2 text-sm font-semibold focus-visible:ring-brand-primary/20 w-[160px] ${
+                  errors.startDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                }`}
+                placeholder="Từ ngày"
+              />
+            </div>
+
+            <span className="text-xs text-gray-400 font-bold">→</span>
+
+            <div className="relative">
+              <Input
+                type="date"
+                value={tempEndDate}
+                onChange={(e) => handleEndDateChange(e.target.value)}
+                className={`rounded-xl border-gray-200 py-2 text-sm font-semibold focus-visible:ring-brand-primary/20 w-[160px] ${
+                  errors.endDate ? 'border-red-500 focus-visible:ring-red-500/20' : ''
+                }`}
+                placeholder="Đến ngày"
+              />
+            </div>
+
+            {/* Nút Áp dụng */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleApplyDateFilter}
+                  disabled={!tempStartDate || !tempEndDate || !!hasDateError}
+                  className={`px-4 py-2 rounded-xl cursor-pointer transition-all duration-200 flex items-center gap-2 ${
+                    isDateValid
+                      ? 'bg-brand-primary text-white hover:bg-brand-primary/90 shadow-sm shadow-brand-primary/20'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <FiCheck size={14} />
+                  <span className="text-sm font-bold">Áp dụng</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="font-semibold">
+                {isDateValid ? 'Áp dụng lọc theo ngày' : 'Chọn đầy đủ ngày hợp lệ'}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Hiển thị lỗi */}
+          {(errors.startDate || errors.endDate) && (
+            <div className="flex items-center gap-2 text-xs text-red-500">
+              <FiAlertCircle size={12} />
+              <span>{errors.startDate || errors.endDate}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Active Badges */}
       <AnimatePresence>
         {activeBadges.length > 0 && (
           <motion.div

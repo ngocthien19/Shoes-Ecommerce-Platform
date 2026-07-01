@@ -60,11 +60,27 @@ export const VendorPromotionsPage = () => {
 
   const handleFilterChange = (key, value) => {
     const newParams = new URLSearchParams(searchParams)
-    if (value === null || value === undefined || value === '') {
-      newParams.delete(key)
+
+    // Xử lý đặc biệt cho dateRange
+    if (key === 'dateRange') {
+      if (value === null || value === undefined) {
+      // Xóa cả 2 params
+        newParams.delete('start_date')
+        newParams.delete('end_date')
+      } else {
+      // Set cả 2 params
+        newParams.set('start_date', value.start_date)
+        newParams.set('end_date', value.end_date)
+      }
     } else {
-      newParams.set(key, String(value))
+    // Xử lý các filter khác
+      if (value === null || value === undefined || value === '') {
+        newParams.delete(key)
+      } else {
+        newParams.set(key, String(value))
+      }
     }
+
     if (key !== 'page') newParams.set('page', '1')
     setSearchParams(newParams)
   }
