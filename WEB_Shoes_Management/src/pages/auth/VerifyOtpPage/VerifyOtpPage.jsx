@@ -5,8 +5,10 @@ import { motion } from 'framer-motion'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
 import { FiCheckCircle, FiArrowLeft } from 'react-icons/fi'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const VerifyOtpPage = () => {
+  usePageTitle('Xác thực OTP', 'Xác thực mã OTP để kích hoạt tài khoản Shoes Platform')
   const location = useLocation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)

@@ -78,9 +78,11 @@ import { MainLayout } from '~/layouts/user/MainLayout'
 import { ProtectedRoute, RejectedRoute } from '~/components/common/ProtectedRoute'
 import { PageTransition } from '~/components/common/PageTransition'
 import { ChatWidget } from '~/components/chat/ChatWidget'
+import { useRedirectByRole } from '~/hooks/useRedirectByRole'
 import 'react-toastify/dist/ReactToastify.css'
 
 const App = () => {
+  useRedirectByRole()
   return (
     <div className="app-wrapper">
       <Routes>
