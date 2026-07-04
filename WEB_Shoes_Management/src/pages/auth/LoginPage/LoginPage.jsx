@@ -15,8 +15,10 @@ import { toast } from 'react-toastify'
 import { useDispatch } from 'react-redux'
 import { loginSuccess, setFavorites } from '~/redux/user/userSlice'
 import { setCartCount } from '~/redux/user/cartSlice'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const LoginPage = () => {
+  usePageTitle('Đăng nhập', 'Đăng nhập vào tài khoản Shoes Platform của bạn')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()

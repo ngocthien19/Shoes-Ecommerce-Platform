@@ -6,8 +6,10 @@ import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCompass } from 'react-i
 import { InputField } from '~/components/common/InputField'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const ResetPasswordPage = () => {
+  usePageTitle('Đặt lại mật khẩu', 'Đặt lại mật khẩu tài khoản Shoes Platform')
   const location = useLocation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)

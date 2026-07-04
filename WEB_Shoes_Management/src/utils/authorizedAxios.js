@@ -17,7 +17,24 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
+// Kiểm tra xem đã đăng nhập chưa
+const isAuthenticated = () => {
+  try {
+    const persistRoot = localStorage.getItem('persist:root')
+    if (!persistRoot) return false
+
+    const parsed = JSON.parse(persistRoot)
+    const user = parsed.user ? JSON.parse(parsed.user) : null
+    return user?.isAuthenticated || false
+  } catch (e) {
+    return false
+  }
+}
+
 const handleSessionExpired = () => {
+  // Chỉ xử lý khi đã đăng nhập
+  if (!isAuthenticated()) return
+
   localStorage.removeItem('persist:root')
   localStorage.removeItem('userInfo')
 
@@ -46,6 +63,11 @@ authorizedAxiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
+    // Nếu chưa đăng nhập, không xử lý 401, chỉ reject
+    if (!isAuthenticated()) {
+      return Promise.reject(error)
+    }
 
     // Tránh loop vô tận khi chính request refresh-token bị lỗi 401
     if (originalRequest.url?.includes('/refresh-token')) {
@@ -80,7 +102,7 @@ authorizedAxiosInstance.interceptors.response.use(
         // Process queue với token mới
         processQueue(null, newAccessToken)
 
-        // Retry request gốc với cookie mới (cookie đã được set bởi server)
+        // Retry request gốc với cookie mới
         return authorizedAxiosInstance(originalRequest)
 
       } catch (refreshError) {

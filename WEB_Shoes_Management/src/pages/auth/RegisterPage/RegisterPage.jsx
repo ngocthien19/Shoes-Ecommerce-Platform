@@ -8,8 +8,10 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { Field, FieldLabel, FieldDescription } from '~/components/ui/field'
 import { authService } from '~/services/auth/authService'
 import { toast } from 'react-toastify'
+import { usePageTitle } from '~/hooks/usePageTitle'
 
 export const RegisterPage = () => {
+  usePageTitle('Đăng ký', 'Đăng ký tài khoản Shoes Platform')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
